@@ -1,12 +1,21 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS } from '../config';
+import { AudioManager } from '../systems/AudioManager';
 
 export class MenuScene extends Phaser.Scene {
+  private volumeFill!: Phaser.GameObjects.Rectangle;
+  private volumeText!: Phaser.GameObjects.Text;
+  private muteButton!: Phaser.GameObjects.Rectangle;
+  private muteText!: Phaser.GameObjects.Text;
+
   constructor() {
     super({ key: 'MenuScene' });
   }
 
   create(): void {
+    // Initialize audio context on scene create (needed for volume controls)
+    AudioManager.initialize();
+
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
 
@@ -47,19 +56,103 @@ export class MenuScene extends Phaser.Scene {
     });
 
     playButton.on('pointerdown', () => {
+      AudioManager.resume();
+      AudioManager.playButtonClick();
       this.scene.start('GameScene');
     });
 
+    // Volume controls section
+    this.createVolumeControls(centerX, centerY + 230);
+
     // Controls info
-    this.add.text(centerX, GAME_CONFIG.height - 80, 'Controls:', {
-      fontSize: '20px',
+    this.add.text(centerX, GAME_CONFIG.height - 60, 'Controls:', {
+      fontSize: '18px',
       color: '#888888',
     }).setOrigin(0.5);
 
-    this.add.text(centerX, GAME_CONFIG.height - 50, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot', {
-      fontSize: '16px',
+    this.add.text(centerX, GAME_CONFIG.height - 35, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  M: Mute', {
+      fontSize: '14px',
       color: '#666666',
     }).setOrigin(0.5);
+
+    // M key to toggle mute
+    this.input.keyboard?.on('keydown-M', () => {
+      const muted = AudioManager.toggleMute();
+      this.updateMuteDisplay(muted);
+    });
+  }
+
+  private createVolumeControls(centerX: number, y: number): void {
+    // Volume label
+    this.add.text(centerX - 120, y, 'Volume', {
+      fontSize: '16px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#aaaaaa',
+    }).setOrigin(0, 0.5);
+
+    // Volume bar background
+    const barWidth = 120;
+    const barHeight = 12;
+    const barX = centerX - 30;
+    const volumeBarBg = this.add.rectangle(barX, y, barWidth, barHeight, 0x333333);
+    volumeBarBg.setInteractive({ useHandCursor: true });
+
+    // Volume bar fill
+    const currentVolume = AudioManager.getVolume();
+    this.volumeFill = this.add.rectangle(
+      barX - barWidth / 2,
+      y,
+      currentVolume * barWidth,
+      barHeight,
+      0x4a6741
+    ).setOrigin(0, 0.5);
+
+    // Volume percentage text
+    this.volumeText = this.add.text(barX + barWidth / 2 + 10, y, `${Math.round(currentVolume * 100)}%`, {
+      fontSize: '14px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0, 0.5);
+
+    // Mute button
+    const isMuted = AudioManager.getMuted();
+    this.muteButton = this.add.rectangle(centerX + 100, y, 50, 24, isMuted ? 0x884444 : 0x448844);
+    this.muteButton.setInteractive({ useHandCursor: true });
+    this.muteText = this.add.text(centerX + 100, y, isMuted ? 'MUTE' : 'ON', {
+      fontSize: '12px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5);
+
+    // Click volume bar to adjust
+    volumeBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.updateVolumeFromPointer(pointer, barX, barWidth);
+    });
+    volumeBarBg.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.isDown) {
+        this.updateVolumeFromPointer(pointer, barX, barWidth);
+      }
+    });
+
+    // Mute button click
+    this.muteButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      const muted = AudioManager.toggleMute();
+      this.updateMuteDisplay(muted);
+    });
+  }
+
+  private updateVolumeFromPointer(pointer: Phaser.Input.Pointer, barX: number, barWidth: number): void {
+    const relativeX = pointer.x - (barX - barWidth / 2);
+    const newVolume = Phaser.Math.Clamp(relativeX / barWidth, 0, 1);
+    AudioManager.setVolume(newVolume);
+    this.volumeFill.width = newVolume * barWidth;
+    this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
+  }
+
+  private updateMuteDisplay(muted: boolean): void {
+    this.muteButton.setFillStyle(muted ? 0x884444 : 0x448844);
+    this.muteText.setText(muted ? 'MUTE' : 'ON');
   }
 
   drawPorcupine(x: number, y: number): void {

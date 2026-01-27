@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { PLAYER_CONFIG, COLORS, QUILL_CONFIG } from '../config';
 import { QuillManager } from '../systems/QuillManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { AudioManager } from '../systems/AudioManager';
 
 export type QuillState = 'full' | 'patchy' | 'sparse' | 'naked';
 
@@ -104,6 +105,7 @@ export class Player extends Phaser.GameObjects.Container {
     if (jumpPressed && this.body.blocked.down) {
       const jumpMult = 1 + this.upgradeManager.getModifier('jumpHeight');
       this.body.setVelocityY(PLAYER_CONFIG.jumpForce * jumpMult);
+      AudioManager.playJump();
     }
   }
 
@@ -127,66 +129,71 @@ export class Player extends Phaser.GameObjects.Container {
     // Direction multiplier for flipping
     const dir = this.facingRight ? 1 : -1;
 
-    // Body (oval)
-    this.graphics.fillStyle(bodyColor);
-    this.graphics.fillEllipse(0, 0, w, h * 0.8);
-
-    // Draw quills based on state
+    // Draw quills first (behind body)
     if (state !== 'naked') {
       this.drawQuills(state, dir);
     }
 
-    // Face
+    // Main body (larger oval, matching menu porcupine)
+    this.graphics.fillStyle(bodyColor);
+    this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
+
+    // Face/snout (lighter color, extends forward)
     this.graphics.fillStyle(0x6b5344);
-    this.graphics.fillEllipse(dir * 12, -5, w * 0.4, h * 0.4);
+    this.graphics.fillEllipse(dir * 15, 0, w * 0.45, h * 0.45);
 
     // Eye
     this.graphics.fillStyle(0x000000);
-    this.graphics.fillCircle(dir * 16, -8, 4);
+    this.graphics.fillCircle(dir * 18, -4, 5);
+    // Eye highlight
     this.graphics.fillStyle(0xffffff);
-    this.graphics.fillCircle(dir * 17, -9, 1.5);
+    this.graphics.fillCircle(dir * 19, -5, 2);
 
     // Nose
     this.graphics.fillStyle(0x000000);
-    this.graphics.fillCircle(dir * 22, -3, 3);
+    this.graphics.fillCircle(dir * 26, 2, 4);
 
-    // Legs (simple rectangles)
+    // Legs (front and back)
     this.graphics.fillStyle(bodyColor);
-    const legY = h * 0.3;
-    this.graphics.fillRect(-10, legY, 8, 12);
-    this.graphics.fillRect(2, legY, 8, 12);
+    const legY = h * 0.25;
+    // Back leg
+    this.graphics.fillRect(-dir * 12, legY, 10, 15);
+    // Front leg
+    this.graphics.fillRect(dir * 2, legY, 10, 15);
 
     // Flash white when invincible
     if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
-      this.graphics.fillEllipse(0, 0, w, h * 0.8);
+      this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
     }
 
-    // Naked state indicator - exclamation mark
+    // Naked state indicator - exclamation mark above head
     if (state === 'naked') {
       this.graphics.fillStyle(0xff0000);
-      this.graphics.fillRect(-3, -h * 0.8, 6, 15);
-      this.graphics.fillCircle(0, -h * 0.8 + 22, 4);
+      this.graphics.fillRect(-3, -h * 0.7, 6, 12);
+      this.graphics.fillCircle(0, -h * 0.7 + 18, 4);
     }
   }
 
   private drawQuills(state: QuillState, dir: number): void {
-    this.graphics.lineStyle(2, 0xffffff);
-
     const quillCount = state === 'full' ? 9 : state === 'patchy' ? 6 : 4;
-    const quillLength = state === 'full' ? 25 : state === 'patchy' ? 20 : 15;
+    const quillLength = state === 'full' ? 30 : state === 'patchy' ? 25 : 18;
 
-    // Draw quills on the back pointing UP and away from facing direction
+    // Quill style - thicker lines for better visibility
+    this.graphics.lineStyle(3, 0xffffff);
+
+    // Draw quills radiating from the back (like the menu porcupine)
     for (let i = 0; i < quillCount; i++) {
-      // Base angle points up (-90 deg), offset away from facing direction, spread across back
-      const baseAngle = -90 + (-dir * 30); // Point up and slightly back
-      const spread = (i - (quillCount - 1) / 2) * 15; // Spread quills across back
+      // Quills point up and back, spread in a fan pattern
+      const baseAngle = -90 - (dir * 20); // Point up and away from face
+      const spread = (i - (quillCount - 1) / 2) * 18; // Fan spread
       const angle = (baseAngle + spread) * Math.PI / 180;
 
-      const startX = -dir * 5 + Math.cos(angle) * 8;
-      const startY = Math.sin(angle) * 8 - 5;
-      const endX = -dir * 5 + Math.cos(angle) * (8 + quillLength);
-      const endY = Math.sin(angle) * (8 + quillLength) - 5;
+      // Start from the back of the body
+      const startX = -dir * 8;
+      const startY = -5;
+      const endX = startX + Math.cos(angle) * quillLength;
+      const endY = startY + Math.sin(angle) * quillLength;
 
       this.graphics.beginPath();
       this.graphics.moveTo(startX, startY);
@@ -202,8 +209,8 @@ export class Player extends Phaser.GameObjects.Container {
     return this.quillManager.shoot(this.x, this.y, targetX, targetY);
   }
 
-  takeDamage(amount: number): void {
-    if (this.isInvincible) return;
+  takeDamage(amount: number): boolean {
+    if (this.isInvincible) return false;
 
     const state = this.getQuillState();
     const damageMult = QUILL_CONFIG.states[state].takeDamageMult;
@@ -222,6 +229,8 @@ export class Player extends Phaser.GameObjects.Container {
     const knockbackDir = this.facingRight ? -1 : 1;
     this.body.setVelocityX(knockbackDir * 200);
     this.body.setVelocityY(-150);
+
+    return true;
   }
 
   heal(amount: number): void {
