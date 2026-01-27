@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ENEMY_CONFIG } from '../config';
+import { ENEMY_CONFIG, ENEMY_SCALING } from '../config';
 
 export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss';
 
@@ -17,27 +17,48 @@ export class Enemy extends Phaser.GameObjects.Container {
   private target: Phaser.GameObjects.Container | null = null;
   private facingRight: boolean = true;
   private lastFireTime: number = 0;
-  private isDiving: boolean = false;
+  public isDiving: boolean = false;
   private diveTarget: { x: number; y: number } | null = null;
 
   // For shellback blocking
   private blockAngle: number = 90;
 
+  // Boss-specific state
+  private isCharging: boolean = false;
+  private chargeTarget: { x: number; y: number } | null = null;
+  private lastChargeTime: number = 0;
+  private bossPhase: number = 1; // Changes behavior based on health
+
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
-    type: EnemyType
+    type: EnemyType,
+    wave: number = 1
   ) {
     super(scene, x, y);
 
     this.enemyType = type;
     const config = ENEMY_CONFIG[type];
 
-    this.health = config.health;
-    this.maxHealth = config.health;
-    this.damage = config.damage;
-    this.speed = config.speed;
+    // Calculate wave-based scaling with diminishing returns (capped at maxScaleMultiplier)
+    const healthMultiplier = Math.min(
+      ENEMY_SCALING.maxScaleMultiplier,
+      1 + (wave - 1) * ENEMY_SCALING.healthPerWave
+    );
+    const damageMultiplier = Math.min(
+      ENEMY_SCALING.maxScaleMultiplier,
+      1 + (wave - 1) * ENEMY_SCALING.damagePerWave
+    );
+    const speedMultiplier = Math.min(
+      1.5, // Lower cap for speed to keep game playable
+      1 + (wave - 1) * ENEMY_SCALING.speedPerWave
+    );
+
+    this.health = Math.floor(config.health * healthMultiplier);
+    this.maxHealth = this.health;
+    this.damage = Math.floor(config.damage * damageMultiplier);
+    this.speed = Math.floor(config.speed * speedMultiplier);
     this.points = config.points;
 
     if (type === 'shellback') {
@@ -103,6 +124,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     // Simple chase behavior
     const dir = this.target!.x > this.x ? 1 : -1;
     this.body.setVelocityX(dir * this.speed);
+    this.tryJump();
   }
 
   private updateSpitter(_time: number): void {
@@ -124,6 +146,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
 
     // Shooting is handled by WaveManager/GameScene for collision purposes
+    this.tryJump();
   }
 
   private updateSwooper(time: number): void {
@@ -168,13 +191,55 @@ export class Enemy extends Phaser.GameObjects.Container {
     // Slow but steady approach
     const dir = this.target!.x > this.x ? 1 : -1;
     this.body.setVelocityX(dir * this.speed);
+    this.tryJump();
   }
 
   private updateBoss(time: number): void {
+    const config = ENEMY_CONFIG.boss;
     const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
 
-    // Boss moves toward player but keeps some distance
-    const preferredDist = 200;
+    // Update boss phase based on health
+    const healthPercent = this.health / this.maxHealth;
+    this.bossPhase = healthPercent > 0.5 ? 1 : 2;
+
+    // Handle charging attack
+    if (this.isCharging && this.chargeTarget) {
+      const chargeAngle = Phaser.Math.Angle.Between(this.x, this.y, this.chargeTarget.x, this.chargeTarget.y);
+      this.body.setVelocity(
+        Math.cos(chargeAngle) * config.chargeSpeed,
+        Math.sin(chargeAngle) * config.chargeSpeed
+      );
+
+      // End charge if reached target or too far
+      const chargeDist = Phaser.Math.Distance.Between(this.x, this.y, this.chargeTarget.x, this.chargeTarget.y);
+      if (chargeDist < 50 || this.body.blocked.left || this.body.blocked.right) {
+        this.isCharging = false;
+        this.chargeTarget = null;
+      }
+      return;
+    }
+
+    // Phase 2: More aggressive, faster attacks
+    const preferredDist = this.bossPhase === 1 ? 200 : 150;
+
+    // Try to jump to reach player on platforms
+    if (this.body.blocked.down && this.target!.y < this.y - 60) {
+      if (Math.random() < 0.03) {
+        this.body.setVelocityY(-550);
+      }
+    }
+
+    // Initiate charge attack when player is close and cooldown is up
+    if (dist < 250 && time - this.lastChargeTime > config.chargeCooldown) {
+      if (Math.random() < 0.02) {
+        this.isCharging = true;
+        this.chargeTarget = { x: this.target!.x, y: this.target!.y };
+        this.lastChargeTime = time;
+        return;
+      }
+    }
+
+    // Normal movement
     if (dist < preferredDist - 30) {
       const dir = this.target!.x > this.x ? -1 : 1;
       this.body.setVelocityX(dir * this.speed);
@@ -182,8 +247,23 @@ export class Enemy extends Phaser.GameObjects.Container {
       const dir = this.target!.x > this.x ? 1 : -1;
       this.body.setVelocityX(dir * this.speed);
     } else {
-      // Strafe side to side
-      this.body.setVelocityX(Math.sin(time / 300) * this.speed);
+      // Strafe side to side - faster in phase 2
+      const strafeSpeed = this.bossPhase === 1 ? 300 : 200;
+      this.body.setVelocityX(Math.sin(time / strafeSpeed) * this.speed * 1.2);
+    }
+  }
+
+  private tryJump(): void {
+    // Only jump if on the ground and player is above
+    if (!this.body.blocked.down || !this.target) return;
+
+    const heightDiff = this.target.y - this.y;
+    // Player is at least 60px above
+    if (heightDiff < -60) {
+      // Small random chance per frame to avoid all enemies jumping at once
+      if (Math.random() < 0.03) {
+        this.body.setVelocityY(-620); // Strong jump to reach platforms
+      }
     }
   }
 
@@ -308,29 +388,41 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   private drawBoss(w: number, h: number, dir: number, color: number): void {
+    // Visual effect when charging - red glow outline
+    if (this.isCharging) {
+      this.graphics.lineStyle(4, 0xff0000, 0.8);
+      this.graphics.strokeEllipse(0, 0, w + 10, h + 10);
+    }
+
+    // Phase 2 indicator - darker, angrier color
+    const bodyColor = this.bossPhase === 2 ? color - 0x220000 : color;
+
     // Huge menacing body
-    this.graphics.fillStyle(color);
+    this.graphics.fillStyle(bodyColor);
     this.graphics.fillEllipse(0, 0, w, h);
 
-    // Spiky protrusions
-    this.graphics.fillStyle(color - 0x220000);
-    for (let i = 0; i < 5; i++) {
-      const angle = (i / 5) * Math.PI - Math.PI / 2;
+    // Spiky protrusions - more in phase 2
+    this.graphics.fillStyle(bodyColor - 0x220000);
+    const spikeCount = this.bossPhase === 1 ? 5 : 7;
+    for (let i = 0; i < spikeCount; i++) {
+      const angle = (i / spikeCount) * Math.PI - Math.PI / 2;
       const spikeX = Math.cos(angle) * w * 0.5;
       const spikeY = Math.sin(angle) * h * 0.5;
+      const spikeLength = this.bossPhase === 1 ? 20 : 25;
       this.graphics.fillTriangle(
         spikeX, spikeY,
-        spikeX + Math.cos(angle) * 20, spikeY + Math.sin(angle) * 20,
-        spikeX + Math.cos(angle + 0.3) * 15, spikeY + Math.sin(angle + 0.3) * 15
+        spikeX + Math.cos(angle) * spikeLength, spikeY + Math.sin(angle) * spikeLength,
+        spikeX + Math.cos(angle + 0.3) * (spikeLength * 0.75), spikeY + Math.sin(angle + 0.3) * (spikeLength * 0.75)
       );
     }
 
     // Armored head
-    this.graphics.fillStyle(color + 0x111111);
+    this.graphics.fillStyle(bodyColor + 0x111111);
     this.graphics.fillEllipse(w * 0.3 * dir, -h * 0.1, w * 0.4, h * 0.5);
 
-    // Glowing eyes
-    this.graphics.fillStyle(0xffff00);
+    // Glowing eyes - brighter when charging or in phase 2
+    const eyeColor = this.isCharging ? 0xff0000 : (this.bossPhase === 2 ? 0xff6600 : 0xffff00);
+    this.graphics.fillStyle(eyeColor);
     this.graphics.fillCircle(w * 0.35 * dir, -h * 0.2, 8);
     this.graphics.fillCircle(w * 0.25 * dir, -h * 0.15, 6);
     this.graphics.fillStyle(0xff0000);
@@ -436,5 +528,19 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   isBoss(): boolean {
     return this.enemyType === 'boss';
+  }
+
+  isBossCharging(): boolean {
+    return this.enemyType === 'boss' && this.isCharging;
+  }
+
+  getBossPhase(): number {
+    return this.bossPhase;
+  }
+
+  // Boss fires multiple projectiles in phase 2
+  getBurstCount(): number {
+    if (this.enemyType !== 'boss') return 1;
+    return this.bossPhase === 2 ? 3 : 1;
   }
 }

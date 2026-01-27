@@ -9,7 +9,7 @@ export const GAME_CONFIG = {
 export const PLAYER_CONFIG = {
   // Movement
   moveSpeed: 300,
-  jumpForce: -680,
+  jumpForce: -580,
   gravity: 1200,
   airControl: 0.8, // Multiplier for air movement
 
@@ -28,7 +28,7 @@ export const QUILL_CONFIG = {
   startingQuills: 30,
 
   // Regeneration
-  regenRate: 1.5, // Quills per second (base)
+  regenRate: 1.0, // Quills per second (base)
   regenDelay: 800, // ms before regen starts after firing
   nakedRegenMultiplier: 3, // Faster regen when naked
 
@@ -98,15 +98,17 @@ export const ENEMY_CONFIG = {
   },
   // Boss - big, mean, multi-phase
   boss: {
-    health: 500,
+    health: 300,
     damage: 25,
-    speed: 80,
-    projectileSpeed: 350,
-    fireRate: 0.8, // Seconds between shots
+    speed: 100,
+    projectileSpeed: 400,
+    fireRate: 0.6, // Seconds between shots (faster)
     points: 500,
     color: 0x8b0000,
     width: 100,
     height: 80,
+    chargeSpeed: 350, // Speed during charge attack
+    chargeCooldown: 4000, // ms between charges
   },
 };
 
@@ -116,6 +118,14 @@ export const WAVE_CONFIG = {
   timeBetweenSpawns: 1000, // ms
   waveDelay: 3000, // ms between waves
   bossWaveInterval: 5, // Boss every N waves
+};
+
+// Enemy stat scaling per wave - keeps progression challenging
+export const ENEMY_SCALING = {
+  healthPerWave: 0.08,     // +8% health per wave
+  damagePerWave: 0.05,     // +5% damage per wave
+  speedPerWave: 0.02,      // +2% speed per wave (subtle)
+  maxScaleMultiplier: 3.0, // Cap at 3x base stats
 };
 
 export const UPGRADE_CONFIG = {

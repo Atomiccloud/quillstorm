@@ -7,6 +7,8 @@ import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { SaveManager } from '../systems/SaveManager';
+import { AudioManager } from '../systems/AudioManager';
+import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
 
 export class GameScene extends Phaser.Scene {
@@ -52,8 +54,11 @@ export class GameScene extends Phaser.Scene {
     this.waveManager = new WaveManager(this);
     this.waveManager.setTarget(this.player);
 
-    // Create enemy projectile group
-    this.enemyProjectiles = this.physics.add.group();
+    // Create enemy projectile group (no gravity so projectiles fly straight)
+    this.enemyProjectiles = this.physics.add.group({
+      allowGravity: false,
+      collideWorldBounds: false
+    });
 
     // Create HUD
     this.hud = new HUD(this, this.player, this.quillManager, this.waveManager, this.upgradeManager);
@@ -73,10 +78,10 @@ export class GameScene extends Phaser.Scene {
     this.events.on('resume', this.onResumeFromUpgrade, this);
   }
 
-  private createPlatforms(): void {
+  private createPlatforms(wave: number = 1): void {
     this.platforms = this.physics.add.staticGroup();
 
-    // Ground
+    // Ground (always present)
     const ground = this.add.rectangle(
       GAME_CONFIG.width / 2,
       GAME_CONFIG.height - 30,
@@ -86,20 +91,8 @@ export class GameScene extends Phaser.Scene {
     );
     this.platforms.add(ground);
 
-    // Create some platforms - arranged as stepping stones
-    const platformData = [
-      // Lower tier (easy to reach from ground)
-      { x: 200, y: 550, width: 200 },
-      { x: 640, y: 550, width: 200 },
-      { x: 1080, y: 550, width: 200 },
-      // Mid tier (reachable from lower tier)
-      { x: 400, y: 420, width: 180 },
-      { x: 880, y: 420, width: 180 },
-      // Upper tier (reachable from mid tier)
-      { x: 640, y: 300, width: 220 },
-      { x: 150, y: 350, width: 140 },
-      { x: 1130, y: 350, width: 140 },
-    ];
+    // Get platforms from level generator based on current wave
+    const platformData = LevelGenerator.getPlatformsForWave(wave);
 
     platformData.forEach(({ x, y, width }) => {
       const platform = this.add.rectangle(x, y, width, 20, COLORS.platform);
@@ -107,12 +100,51 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private regeneratePlatforms(wave: number): void {
+    // Clear existing platforms
+    this.platforms.clear(true, true);
+
+    // Recreate with new layout
+    this.createPlatforms(wave);
+
+    // Re-establish collision with player (collider persists, but group changed)
+    this.physics.add.collider(this.player, this.platforms);
+
+    // Re-establish collision with enemies
+    this.physics.add.collider(
+      this.waveManager.enemies,
+      this.platforms,
+      undefined,
+      (enemyObj) => {
+        const enemy = enemyObj as unknown as Enemy;
+        if (enemy.enemyType === 'swooper') {
+          return enemy.isDiving;
+        }
+        return true;
+      },
+      this
+    );
+  }
+
   private setupCollisions(): void {
     // Player collides with platforms
     this.physics.add.collider(this.player, this.platforms);
 
-    // Enemies collide with platforms
-    this.physics.add.collider(this.waveManager.enemies, this.platforms);
+    // Enemies collide with platforms (swoopers only when diving)
+    this.physics.add.collider(
+      this.waveManager.enemies,
+      this.platforms,
+      undefined,
+      (enemyObj) => {
+        const enemy = enemyObj as unknown as Enemy;
+        // Swoopers can phase through platforms when hovering, only collide when diving
+        if (enemy.enemyType === 'swooper') {
+          return enemy.isDiving;
+        }
+        return true;
+      },
+      this
+    );
 
     // Player quills hit enemies
     this.physics.add.overlap(
@@ -148,7 +180,9 @@ export class GameScene extends Phaser.Scene {
       if (this.gameOver || this.isChoosingUpgrade) return;
 
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      this.player.shoot(worldPoint.x, worldPoint.y);
+      if (this.player.shoot(worldPoint.x, worldPoint.y)) {
+        AudioManager.playShoot();
+      }
     });
 
     // Hold to shoot continuously
@@ -156,7 +190,9 @@ export class GameScene extends Phaser.Scene {
       if (!pointer.isDown || this.gameOver || this.isChoosingUpgrade) return;
 
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      this.player.shoot(worldPoint.x, worldPoint.y);
+      if (this.player.shoot(worldPoint.x, worldPoint.y)) {
+        AudioManager.playShoot();
+      }
     });
 
     // Escape to pause
@@ -164,6 +200,35 @@ export class GameScene extends Phaser.Scene {
       if (this.gameOver || this.isChoosingUpgrade) return;
       this.scene.pause();
       this.scene.launch('PauseScene');
+    });
+
+    // M to toggle mute
+    this.input.keyboard?.on('keydown-M', () => {
+      const muted = AudioManager.toggleMute();
+      this.showMuteIndicator(muted);
+    });
+  }
+
+  private showMuteIndicator(muted: boolean): void {
+    const text = this.add.text(
+      GAME_CONFIG.width / 2,
+      100,
+      muted ? 'MUTED' : 'UNMUTED',
+      {
+        fontSize: '24px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: muted ? '#ff6666' : '#66ff66',
+        stroke: '#000000',
+        strokeThickness: 3,
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      y: 80,
+      duration: 1000,
+      onComplete: () => text.destroy(),
     });
   }
 
@@ -202,22 +267,33 @@ export class GameScene extends Phaser.Scene {
       if (e.canShoot()) {
         e.markShot();
 
-        // Create projectile toward player
-        const angle = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
+        const baseAngle = Phaser.Math.Angle.Between(e.x, e.y, this.player.x, this.player.y);
         const speed = e.getProjectileSpeed();
+        const burstCount = e.getBurstCount();
 
-        const projectile = this.add.circle(e.x, e.y, 8, 0x00ff00);
-        this.physics.add.existing(projectile);
-        const body = projectile.body as Phaser.Physics.Arcade.Body;
-        body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-        body.setAllowGravity(false);
+        // Fire projectiles - bosses in phase 2 fire a spread
+        for (let i = 0; i < burstCount; i++) {
+          // Spread angle for burst shots
+          const spreadOffset = burstCount > 1 ? (i - (burstCount - 1) / 2) * 0.2 : 0;
+          const angle = baseAngle + spreadOffset;
 
-        this.enemyProjectiles.add(projectile);
+          // Boss projectiles are larger and red
+          const projSize = e.isBoss() ? 12 : 8;
+          const projColor = e.isBoss() ? 0xff4400 : 0x00ff00;
 
-        // Destroy after timeout
-        this.time.delayedCall(3000, () => {
-          if (projectile.active) projectile.destroy();
-        });
+          const projectile = this.add.circle(e.x, e.y, projSize, projColor);
+          this.physics.add.existing(projectile);
+          const body = projectile.body as Phaser.Physics.Arcade.Body;
+          body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+          body.setAllowGravity(false);
+
+          this.enemyProjectiles.add(projectile);
+
+          // Destroy after timeout
+          this.time.delayedCall(3000, () => {
+            if (projectile.active) projectile.destroy();
+          });
+        }
       }
     });
   }
@@ -235,6 +311,7 @@ export class GameScene extends Phaser.Scene {
     const killed = enemy.takeDamage(quill.getDamage(), hitAngle);
 
     if (killed) {
+      AudioManager.playEnemyDeath();
       this.hud.addScore(enemy.points);
       this.spawnDeathParticles(enemy.x, enemy.y);
 
@@ -242,6 +319,8 @@ export class GameScene extends Phaser.Scene {
       if (Math.random() < 0.3) {
         this.spawnQuillPickup(enemy.x, enemy.y);
       }
+    } else {
+      AudioManager.playHit();
     }
 
     // Handle quill (may pierce or die)
@@ -253,13 +332,17 @@ export class GameScene extends Phaser.Scene {
 
     if (enemy.isDead()) return;
 
-    this.player.takeDamage(enemy.damage);
+    if (this.player.takeDamage(enemy.damage)) {
+      AudioManager.playPlayerDamage();
+    }
   }
 
   private onProjectileHitPlayer(_playerObj: Phaser.GameObjects.GameObject, projectileObj: Phaser.GameObjects.GameObject): void {
     const projectile = projectileObj as Phaser.GameObjects.Arc;
 
-    this.player.takeDamage(15);
+    if (this.player.takeDamage(15)) {
+      AudioManager.playPlayerDamage();
+    }
     projectile.destroy();
   }
 
@@ -285,37 +368,109 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnQuillPickup(x: number, y: number): void {
-    const pickup = this.add.triangle(x, y, 0, 10, 5, 0, 10, 10, 0xffffff);
-    this.physics.add.existing(pickup);
-    const body = pickup.body as Phaser.Physics.Arcade.Body;
-    body.setVelocityY(-100);
+    // Create container for pickup with glow effect
+    const pickupContainer = this.add.container(x, y);
 
-    // Bob animation
+    // Glow effect (larger, semi-transparent circle behind)
+    const glow = this.add.circle(0, 0, 16, 0x00ffff, 0.3);
+    pickupContainer.add(glow);
+
+    // Pulsing glow animation
     this.tweens.add({
-      targets: pickup,
-      y: y - 10,
-      duration: 500,
+      targets: glow,
+      scale: { from: 1, to: 1.5 },
+      alpha: { from: 0.3, to: 0.1 },
+      duration: 600,
       yoyo: true,
       repeat: -1,
     });
 
-    // Pickup collision
-    this.physics.add.overlap(this.player, pickup, () => {
-      this.quillManager.addQuills(3);
-      pickup.destroy();
-    });
+    // Draw quill shape using graphics
+    const quillGraphics = this.add.graphics();
+    quillGraphics.fillStyle(0x00ffff);
+    // Quill body - elongated diamond shape
+    quillGraphics.beginPath();
+    quillGraphics.moveTo(12, 0);   // Tip (right)
+    quillGraphics.lineTo(0, -4);   // Top back
+    quillGraphics.lineTo(-12, 0);  // Back (left)
+    quillGraphics.lineTo(0, 4);    // Bottom back
+    quillGraphics.closePath();
+    quillGraphics.fillPath();
+    // Sharp tip highlight
+    quillGraphics.fillStyle(0xffffff);
+    quillGraphics.fillTriangle(12, 0, 6, -2, 6, 2);
+    pickupContainer.add(quillGraphics);
 
-    // Timeout
-    this.time.delayedCall(10000, () => {
-      if (pickup.active) {
+    // Add physics to container
+    this.physics.add.existing(pickupContainer);
+    const body = pickupContainer.body as Phaser.Physics.Arcade.Body;
+    body.setSize(24, 16);
+    body.setOffset(-12, -8);
+    body.setVelocityY(-150);
+    body.setAllowGravity(true);
+    body.setBounce(0.3);
+
+    // Enable platform collision so pickups land on surfaces
+    this.physics.add.collider(pickupContainer, this.platforms);
+
+    // Gentle floating animation after landing
+    this.time.delayedCall(800, () => {
+      if (pickupContainer.active) {
         this.tweens.add({
-          targets: pickup,
-          alpha: 0,
-          duration: 500,
-          onComplete: () => pickup.destroy(),
+          targets: pickupContainer,
+          y: pickupContainer.y - 8,
+          duration: 800,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
         });
       }
     });
+
+    // Pickup collision with player
+    this.physics.add.overlap(this.player, pickupContainer, () => {
+      // Spawn collect particles
+      this.spawnCollectParticles(pickupContainer.x, pickupContainer.y);
+      AudioManager.playPickup();
+      this.quillManager.addQuills(3);
+      pickupContainer.destroy();
+    });
+
+    // Timeout with flash warning before despawn
+    this.time.delayedCall(8000, () => {
+      if (pickupContainer.active) {
+        // Flash warning (5 blinks) before disappearing
+        this.tweens.add({
+          targets: pickupContainer,
+          alpha: 0.2,
+          duration: 200,
+          yoyo: true,
+          repeat: 4,
+          onComplete: () => {
+            if (pickupContainer.active) pickupContainer.destroy();
+          },
+        });
+      }
+    });
+  }
+
+  private spawnCollectParticles(x: number, y: number): void {
+    // Burst of cyan particles spiraling outward on pickup collection
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const particle = this.add.circle(x, y, 4, 0x00ffff);
+
+      this.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * 40,
+        y: y + Math.sin(angle) * 40,
+        alpha: 0,
+        scale: 0,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => particle.destroy(),
+      });
+    }
   }
 
   private showUpgradeSelection(): void {
@@ -342,8 +497,17 @@ export class GameScene extends Phaser.Scene {
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
     this.player.heal(20); // Small heal between waves
 
+    // Check if layout should change (after boss waves: 5, 10, 15, etc.)
+    const currentWave = this.waveManager.currentWave;
+    if (LevelGenerator.shouldChangeLayout(currentWave)) {
+      // Show layout change notification
+      this.showLayoutChange(currentWave + 1);
+      // Regenerate platforms for next wave
+      this.regeneratePlatforms(currentWave + 1);
+    }
+
     // Check if next wave is a boss wave
-    const nextWave = this.waveManager.currentWave + 1;
+    const nextWave = currentWave + 1;
     const isBossWave = nextWave % 5 === 0;
 
     // Start next wave
@@ -359,8 +523,33 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private showLayoutChange(wave: number): void {
+    const layoutName = LevelGenerator.getLayoutName(wave);
+    const text = this.add.text(
+      GAME_CONFIG.width / 2,
+      GAME_CONFIG.height / 2 + 50,
+      `New Arena: ${layoutName.toUpperCase()}`,
+      {
+        fontSize: '28px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#00ffff',
+        stroke: '#000000',
+        strokeThickness: 4,
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+    this.tweens.add({
+      targets: text,
+      alpha: 0,
+      y: GAME_CONFIG.height / 2,
+      duration: 2500,
+      onComplete: () => text.destroy(),
+    });
+  }
+
   private onPlayerDeath(): void {
     this.gameOver = true;
+    AudioManager.playGameOver();
 
     // Submit score
     const isNewHighScore = SaveManager.submitRun(this.hud.score, this.waveManager.currentWave);

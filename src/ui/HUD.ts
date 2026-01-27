@@ -5,6 +5,7 @@ import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { SaveManager } from '../systems/SaveManager';
+import { AudioManager } from '../systems/AudioManager';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -246,6 +247,8 @@ export class HUD {
   }
 
   showWaveComplete(): void {
+    AudioManager.playWaveComplete();
+
     const text = this.scene.add.text(
       GAME_CONFIG.width / 2,
       GAME_CONFIG.height / 2 - 50,
@@ -269,6 +272,8 @@ export class HUD {
   }
 
   showBossWarning(): void {
+    AudioManager.playBossWarning();
+
     const text = this.scene.add.text(
       GAME_CONFIG.width / 2,
       GAME_CONFIG.height / 2,

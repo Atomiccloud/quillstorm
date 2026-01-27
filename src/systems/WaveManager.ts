@@ -130,7 +130,7 @@ export class WaveManager {
       y = type === 'swooper' ? 100 : GAME_CONFIG.height - 100;
     }
 
-    const enemy = new Enemy(this.scene, x, y, type);
+    const enemy = new Enemy(this.scene, x, y, type, this.currentWave);
     if (this.target) {
       enemy.setTarget(this.target);
     }

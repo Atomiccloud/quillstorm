@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS, UPGRADE_CONFIG } from '../config';
 import { Upgrade, getRandomUpgrades } from '../data/upgrades';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { AudioManager } from '../systems/AudioManager';
 
 export class UpgradeScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
@@ -202,6 +203,7 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   selectUpgrade(upgrade: Upgrade): void {
+    AudioManager.playUpgradeSelect();
     this.upgradeManager.addUpgrade(upgrade);
     this.scene.stop();
     this.scene.resume('GameScene');

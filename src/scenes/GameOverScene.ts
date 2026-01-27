@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
+import { AudioManager } from '../systems/AudioManager';
 
 interface GameOverData {
   score: number;
@@ -97,10 +98,16 @@ export class GameOverScene extends Phaser.Scene {
     // Button interactions
     retryButton.on('pointerover', () => retryButton.setFillStyle(0x5a7751));
     retryButton.on('pointerout', () => retryButton.setFillStyle(0x4a6741));
-    retryButton.on('pointerdown', () => this.scene.start('GameScene'));
+    retryButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.scene.start('GameScene');
+    });
 
     menuButton.on('pointerover', () => menuButton.setFillStyle(0x666666));
     menuButton.on('pointerout', () => menuButton.setFillStyle(0x555555));
-    menuButton.on('pointerdown', () => this.scene.start('MenuScene'));
+    menuButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.scene.start('MenuScene');
+    });
   }
 }
