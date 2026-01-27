@@ -1,0 +1,440 @@
+import Phaser from 'phaser';
+import { ENEMY_CONFIG } from '../config';
+
+export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss';
+
+export class Enemy extends Phaser.GameObjects.Container {
+  declare body: Phaser.Physics.Arcade.Body;
+  private graphics!: Phaser.GameObjects.Graphics;
+
+  public enemyType: EnemyType;
+  public health: number;
+  public maxHealth: number;
+  public damage: number;
+  public speed: number;
+  public points: number;
+
+  private target: Phaser.GameObjects.Container | null = null;
+  private facingRight: boolean = true;
+  private lastFireTime: number = 0;
+  private isDiving: boolean = false;
+  private diveTarget: { x: number; y: number } | null = null;
+
+  // For shellback blocking
+  private blockAngle: number = 90;
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    type: EnemyType
+  ) {
+    super(scene, x, y);
+
+    this.enemyType = type;
+    const config = ENEMY_CONFIG[type];
+
+    this.health = config.health;
+    this.maxHealth = config.health;
+    this.damage = config.damage;
+    this.speed = config.speed;
+    this.points = config.points;
+
+    if (type === 'shellback') {
+      this.blockAngle = (config as typeof ENEMY_CONFIG.shellback).blockAngle;
+    }
+
+    // Add to scene and enable physics
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+
+    // Set up physics body
+    this.body = this.body as Phaser.Physics.Arcade.Body;
+    this.body.setSize(config.width, config.height);
+    this.body.setOffset(-config.width / 2, -config.height / 2);
+
+    // Swooper flies
+    if (type === 'swooper') {
+      this.body.setAllowGravity(false);
+    } else {
+      this.body.setCollideWorldBounds(true);
+    }
+
+    // Create graphics
+    this.graphics = scene.add.graphics();
+    this.add(this.graphics);
+
+    this.draw();
+  }
+
+  setTarget(target: Phaser.GameObjects.Container): void {
+    this.target = target;
+  }
+
+  update(time: number, _delta: number): void {
+    if (!this.target || this.health <= 0) return;
+
+    // Face the target
+    this.facingRight = this.target.x > this.x;
+
+    // Movement AI based on type
+    switch (this.enemyType) {
+      case 'scurrier':
+        this.updateScurrier();
+        break;
+      case 'spitter':
+        this.updateSpitter(time);
+        break;
+      case 'swooper':
+        this.updateSwooper(time);
+        break;
+      case 'shellback':
+        this.updateShellback();
+        break;
+      case 'boss':
+        this.updateBoss(time);
+        break;
+    }
+
+    this.draw();
+  }
+
+  private updateScurrier(): void {
+    // Simple chase behavior
+    const dir = this.target!.x > this.x ? 1 : -1;
+    this.body.setVelocityX(dir * this.speed);
+  }
+
+  private updateSpitter(_time: number): void {
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
+
+    // Keep distance
+    const preferredDist = 250;
+    if (dist < preferredDist - 50) {
+      // Too close, back away
+      const dir = this.target!.x > this.x ? -1 : 1;
+      this.body.setVelocityX(dir * this.speed);
+    } else if (dist > preferredDist + 50) {
+      // Too far, approach
+      const dir = this.target!.x > this.x ? 1 : -1;
+      this.body.setVelocityX(dir * this.speed);
+    } else {
+      // Good distance, stop
+      this.body.setVelocityX(0);
+    }
+
+    // Shooting is handled by WaveManager/GameScene for collision purposes
+  }
+
+  private updateSwooper(time: number): void {
+    const config = ENEMY_CONFIG.swooper;
+
+    if (this.isDiving && this.diveTarget) {
+      // Continue dive
+      const angle = Phaser.Math.Angle.Between(this.x, this.y, this.diveTarget.x, this.diveTarget.y);
+      this.body.setVelocity(
+        Math.cos(angle) * config.diveSpeed,
+        Math.sin(angle) * config.diveSpeed
+      );
+
+      // End dive if close or below target
+      if (this.y > this.diveTarget.y + 50 ||
+          Phaser.Math.Distance.Between(this.x, this.y, this.diveTarget.x, this.diveTarget.y) < 30) {
+        this.isDiving = false;
+        this.diveTarget = null;
+      }
+    } else {
+      // Hover and prepare to dive
+      const targetY = this.target!.y - 150;
+      const targetX = this.target!.x + Math.sin(time / 500) * 100;
+
+      // Move toward hover position
+      const dx = targetX - this.x;
+      const dy = targetY - this.y;
+      this.body.setVelocity(
+        Phaser.Math.Clamp(dx * 2, -this.speed, this.speed),
+        Phaser.Math.Clamp(dy * 2, -this.speed, this.speed)
+      );
+
+      // Start dive if above and close horizontally
+      if (Math.abs(dx) < 50 && this.y < this.target!.y - 100) {
+        this.isDiving = true;
+        this.diveTarget = { x: this.target!.x, y: this.target!.y };
+      }
+    }
+  }
+
+  private updateShellback(): void {
+    // Slow but steady approach
+    const dir = this.target!.x > this.x ? 1 : -1;
+    this.body.setVelocityX(dir * this.speed);
+  }
+
+  private updateBoss(time: number): void {
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
+
+    // Boss moves toward player but keeps some distance
+    const preferredDist = 200;
+    if (dist < preferredDist - 30) {
+      const dir = this.target!.x > this.x ? -1 : 1;
+      this.body.setVelocityX(dir * this.speed);
+    } else if (dist > preferredDist + 50) {
+      const dir = this.target!.x > this.x ? 1 : -1;
+      this.body.setVelocityX(dir * this.speed);
+    } else {
+      // Strafe side to side
+      this.body.setVelocityX(Math.sin(time / 300) * this.speed);
+    }
+  }
+
+  private draw(): void {
+    this.graphics.clear();
+    const config = ENEMY_CONFIG[this.enemyType];
+    const w = config.width;
+    const h = config.height;
+    const dir = this.facingRight ? 1 : -1;
+
+    switch (this.enemyType) {
+      case 'scurrier':
+        this.drawScurrier(w, h, dir, config.color);
+        break;
+      case 'spitter':
+        this.drawSpitter(w, h, dir, config.color);
+        break;
+      case 'swooper':
+        this.drawSwooper(w, h, dir, config.color);
+        break;
+      case 'shellback':
+        this.drawShellback(w, h, dir, config.color);
+        break;
+      case 'boss':
+        this.drawBoss(w, h, dir, config.color);
+        break;
+    }
+
+    // Health bar
+    this.drawHealthBar(w);
+  }
+
+  private drawScurrier(w: number, h: number, dir: number, color: number): void {
+    // Small rodent body
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w, h);
+
+    // Ears
+    this.graphics.fillCircle(-w * 0.3 * dir, -h * 0.4, 5);
+    this.graphics.fillCircle(-w * 0.1 * dir, -h * 0.45, 5);
+
+    // Eye
+    this.graphics.fillStyle(0xff0000);
+    this.graphics.fillCircle(w * 0.2 * dir, -h * 0.1, 4);
+
+    // Teeth
+    this.graphics.fillStyle(0xffffff);
+    this.graphics.fillRect(w * 0.3 * dir - 2, h * 0.1, 4, 6);
+  }
+
+  private drawSpitter(w: number, h: number, dir: number, color: number): void {
+    // Toad body
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, h * 0.1, w, h * 0.8);
+
+    // Head bulge
+    this.graphics.fillEllipse(w * 0.2 * dir, -h * 0.2, w * 0.5, h * 0.5);
+
+    // Bulging cheeks
+    this.graphics.fillStyle(color + 0x222200);
+    this.graphics.fillCircle(w * 0.15 * dir, h * 0.1, 8);
+
+    // Eye
+    this.graphics.fillStyle(0xffff00);
+    this.graphics.fillCircle(w * 0.25 * dir, -h * 0.25, 6);
+    this.graphics.fillStyle(0x000000);
+    this.graphics.fillCircle(w * 0.27 * dir, -h * 0.25, 3);
+  }
+
+  private drawSwooper(w: number, h: number, _dir: number, color: number): void {
+    // Bat body
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w * 0.5, h);
+
+    // Wings
+    this.graphics.fillTriangle(
+      -w * 0.5, -h * 0.3,
+      0, 0,
+      -w * 0.5, h * 0.3
+    );
+    this.graphics.fillTriangle(
+      w * 0.5, -h * 0.3,
+      0, 0,
+      w * 0.5, h * 0.3
+    );
+
+    // Ears
+    this.graphics.fillTriangle(-5, -h * 0.5, -8, -h * 0.8, -2, -h * 0.5);
+    this.graphics.fillTriangle(5, -h * 0.5, 8, -h * 0.8, 2, -h * 0.5);
+
+    // Eyes
+    this.graphics.fillStyle(0xff0000);
+    this.graphics.fillCircle(-4, -h * 0.2, 3);
+    this.graphics.fillCircle(4, -h * 0.2, 3);
+  }
+
+  private drawShellback(w: number, h: number, dir: number, color: number): void {
+    // Shell (back)
+    this.graphics.fillStyle(color - 0x222222);
+    this.graphics.fillEllipse(-w * 0.1 * dir, 0, w * 0.9, h);
+
+    // Shell pattern
+    this.graphics.lineStyle(2, color);
+    for (let i = -2; i <= 2; i++) {
+      this.graphics.beginPath();
+      this.graphics.arc(-w * 0.1 * dir, 0, h * 0.3 + Math.abs(i) * 5, -Math.PI / 2, Math.PI / 2);
+      this.graphics.strokePath();
+    }
+
+    // Head
+    this.graphics.fillStyle(color + 0x111111);
+    this.graphics.fillEllipse(w * 0.3 * dir, 0, w * 0.35, h * 0.5);
+
+    // Eye
+    this.graphics.fillStyle(0x000000);
+    this.graphics.fillCircle(w * 0.35 * dir, -h * 0.1, 4);
+
+    // Legs
+    this.graphics.fillStyle(color + 0x111111);
+    this.graphics.fillRect(-w * 0.3, h * 0.3, 10, 8);
+    this.graphics.fillRect(w * 0.1, h * 0.3, 10, 8);
+  }
+
+  private drawBoss(w: number, h: number, dir: number, color: number): void {
+    // Huge menacing body
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w, h);
+
+    // Spiky protrusions
+    this.graphics.fillStyle(color - 0x220000);
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI - Math.PI / 2;
+      const spikeX = Math.cos(angle) * w * 0.5;
+      const spikeY = Math.sin(angle) * h * 0.5;
+      this.graphics.fillTriangle(
+        spikeX, spikeY,
+        spikeX + Math.cos(angle) * 20, spikeY + Math.sin(angle) * 20,
+        spikeX + Math.cos(angle + 0.3) * 15, spikeY + Math.sin(angle + 0.3) * 15
+      );
+    }
+
+    // Armored head
+    this.graphics.fillStyle(color + 0x111111);
+    this.graphics.fillEllipse(w * 0.3 * dir, -h * 0.1, w * 0.4, h * 0.5);
+
+    // Glowing eyes
+    this.graphics.fillStyle(0xffff00);
+    this.graphics.fillCircle(w * 0.35 * dir, -h * 0.2, 8);
+    this.graphics.fillCircle(w * 0.25 * dir, -h * 0.15, 6);
+    this.graphics.fillStyle(0xff0000);
+    this.graphics.fillCircle(w * 0.35 * dir, -h * 0.2, 4);
+    this.graphics.fillCircle(w * 0.25 * dir, -h * 0.15, 3);
+
+    // Mouth with fangs
+    this.graphics.fillStyle(0x000000);
+    this.graphics.fillEllipse(w * 0.4 * dir, h * 0.1, 15, 10);
+    this.graphics.fillStyle(0xffffff);
+    this.graphics.fillTriangle(
+      w * 0.35 * dir, h * 0.05,
+      w * 0.38 * dir, h * 0.2,
+      w * 0.32 * dir, h * 0.15
+    );
+    this.graphics.fillTriangle(
+      w * 0.45 * dir, h * 0.05,
+      w * 0.48 * dir, h * 0.2,
+      w * 0.42 * dir, h * 0.15
+    );
+
+    // Crown/horns
+    this.graphics.fillStyle(0x440000);
+    this.graphics.fillTriangle(
+      w * 0.1 * dir, -h * 0.5,
+      w * 0.2 * dir, -h * 0.8,
+      w * 0.3 * dir, -h * 0.5
+    );
+    this.graphics.fillTriangle(
+      w * 0.3 * dir, -h * 0.5,
+      w * 0.4 * dir, -h * 0.9,
+      w * 0.5 * dir, -h * 0.5
+    );
+  }
+
+  private drawHealthBar(w: number): void {
+    const barWidth = w;
+    const barHeight = 4;
+    const y = -30;
+
+    // Background
+    this.graphics.fillStyle(0x333333);
+    this.graphics.fillRect(-barWidth / 2, y, barWidth, barHeight);
+
+    // Health
+    const healthPercent = this.health / this.maxHealth;
+    const healthColor = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000;
+    this.graphics.fillStyle(healthColor);
+    this.graphics.fillRect(-barWidth / 2, y, barWidth * healthPercent, barHeight);
+  }
+
+  takeDamage(amount: number, fromAngle?: number): boolean {
+    // Shellback blocks frontal damage
+    if (this.enemyType === 'shellback' && fromAngle !== undefined) {
+      const facingAngle = this.facingRight ? 0 : Math.PI;
+      let angleDiff = Math.abs(fromAngle - facingAngle);
+      if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+
+      const blockRadians = (this.blockAngle / 2) * Math.PI / 180;
+      if (angleDiff < blockRadians) {
+        // Blocked! Visual feedback
+        this.scene.cameras.main.shake(50, 0.002);
+        return false;
+      }
+    }
+
+    this.health -= amount;
+    this.health = Math.max(0, this.health);
+
+    // Flash white
+    this.graphics.fillStyle(0xffffff, 0.5);
+    const config = ENEMY_CONFIG[this.enemyType];
+    this.graphics.fillEllipse(0, 0, config.width, config.height);
+
+    return this.health <= 0;
+  }
+
+  isDead(): boolean {
+    return this.health <= 0;
+  }
+
+  canShoot(): boolean {
+    if (this.enemyType !== 'spitter' && this.enemyType !== 'boss') return false;
+
+    const config = this.enemyType === 'boss' ? ENEMY_CONFIG.boss : ENEMY_CONFIG.spitter;
+    const now = this.scene.time.now;
+    return now - this.lastFireTime >= config.fireRate * 1000;
+  }
+
+  markShot(): void {
+    this.lastFireTime = this.scene.time.now;
+  }
+
+  getProjectileSpeed(): number {
+    if (this.enemyType === 'spitter') {
+      return ENEMY_CONFIG.spitter.projectileSpeed;
+    }
+    if (this.enemyType === 'boss') {
+      return ENEMY_CONFIG.boss.projectileSpeed;
+    }
+    return 0;
+  }
+
+  isBoss(): boolean {
+    return this.enemyType === 'boss';
+  }
+}
