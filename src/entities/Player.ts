@@ -19,6 +19,7 @@ export class Player extends Phaser.GameObjects.Container {
   public maxHealth: number = PLAYER_CONFIG.maxHealth;
   private isInvincible: boolean = false;
   private facingRight: boolean = true;
+  private shieldCharges: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -212,6 +213,18 @@ export class Player extends Phaser.GameObjects.Container {
   takeDamage(amount: number): boolean {
     if (this.isInvincible) return false;
 
+    // Check shields first
+    if (this.shieldCharges > 0) {
+      this.shieldCharges--;
+      this.spawnShieldBreakEffect();
+      // Brief invincibility after shield break
+      this.isInvincible = true;
+      this.scene.time.delayedCall(500, () => {
+        this.isInvincible = false;
+      });
+      return false; // No damage taken
+    }
+
     const state = this.getQuillState();
     const damageMult = QUILL_CONFIG.states[state].takeDamageMult;
     const actualDamage = amount * damageMult;
@@ -231,6 +244,26 @@ export class Player extends Phaser.GameObjects.Container {
     this.body.setVelocityY(-150);
 
     return true;
+  }
+
+  private spawnShieldBreakEffect(): void {
+    // Visual feedback when shield absorbs a hit
+    const shield = this.scene.add.circle(this.x, this.y, 40, 0x00aaff, 0.6);
+    this.scene.tweens.add({
+      targets: shield,
+      scale: 2,
+      alpha: 0,
+      duration: 300,
+      onComplete: () => shield.destroy(),
+    });
+  }
+
+  resetShieldsForWave(): void {
+    this.shieldCharges = this.upgradeManager.getModifier('shieldCharges');
+  }
+
+  getShieldCharges(): number {
+    return this.shieldCharges;
   }
 
   heal(amount: number): void {

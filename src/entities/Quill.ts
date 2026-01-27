@@ -12,6 +12,9 @@ export class Quill extends Phaser.GameObjects.Container {
   private quillAngle: number;
   private pierceCount: number;
   private bounceCount: number;
+  private sizeMultiplier: number;
+  private homingStrength: number;
+  private enemiesGroup?: Phaser.GameObjects.Group;
 
   public damage: number;
 
@@ -20,7 +23,8 @@ export class Quill extends Phaser.GameObjects.Container {
     x: number,
     y: number,
     angle: number,
-    upgradeManager: UpgradeManager
+    upgradeManager: UpgradeManager,
+    enemiesGroup?: Phaser.GameObjects.Group
   ) {
     super(scene, x, y);
 
@@ -39,14 +43,23 @@ export class Quill extends Phaser.GameObjects.Container {
     // Get bounce count
     this.bounceCount = Math.floor(this.upgradeManager.getModifier('bouncing'));
 
+    // Get size multiplier
+    this.sizeMultiplier = 1 + this.upgradeManager.getModifier('projectileSize');
+
+    // Get homing strength and enemies reference
+    this.homingStrength = this.upgradeManager.getModifier('homingStrength');
+    this.enemiesGroup = enemiesGroup;
+
     // Add to scene and enable physics
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    // Set up physics body
+    // Set up physics body (scaled by size multiplier)
     this.body = this.body as Phaser.Physics.Arcade.Body;
-    this.body.setSize(QUILL_CONFIG.width, QUILL_CONFIG.height);
-    this.body.setOffset(-QUILL_CONFIG.width / 2, -QUILL_CONFIG.height / 2);
+    const scaledWidth = QUILL_CONFIG.width * this.sizeMultiplier;
+    const scaledHeight = QUILL_CONFIG.height * this.sizeMultiplier;
+    this.body.setSize(scaledWidth, scaledHeight);
+    this.body.setOffset(-scaledWidth / 2, -scaledHeight / 2);
 
     // Set velocity
     const speed = QUILL_CONFIG.speed * (1 + this.upgradeManager.getModifier('projectileSpeed'));
@@ -87,6 +100,11 @@ export class Quill extends Phaser.GameObjects.Container {
       return;
     }
 
+    // Apply homing behavior
+    if (this.homingStrength > 0 && this.enemiesGroup) {
+      this.applyHoming();
+    }
+
     // Update rotation to match velocity
     this.quillAngle = Math.atan2(this.body.velocity.y, this.body.velocity.x);
     this.rotation = this.quillAngle;
@@ -97,11 +115,57 @@ export class Quill extends Phaser.GameObjects.Container {
     }
   }
 
+  private applyHoming(): void {
+    if (!this.enemiesGroup) return;
+
+    // Find nearest enemy
+    let nearestEnemy: Phaser.GameObjects.GameObject | null = null;
+    let nearestDist = Infinity;
+
+    this.enemiesGroup.getChildren().forEach((enemy) => {
+      const e = enemy as Phaser.GameObjects.Container;
+      const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
+      if (dist < nearestDist && dist < 300) { // Only home within range
+        nearestDist = dist;
+        nearestEnemy = enemy;
+      }
+    });
+
+    if (nearestEnemy) {
+      const target = nearestEnemy as Phaser.GameObjects.Container;
+      const targetAngle = Math.atan2(target.y - this.y, target.x - this.x);
+      const currentAngle = Math.atan2(this.body.velocity.y, this.body.velocity.x);
+
+      // Calculate angle difference and turn toward target
+      let angleDiff = targetAngle - currentAngle;
+
+      // Normalize angle difference to [-PI, PI]
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+      // Apply homing - turn toward target based on strength
+      const turnAmount = angleDiff * this.homingStrength * 0.1;
+      const newAngle = currentAngle + turnAmount;
+
+      // Maintain current speed
+      const currentSpeed = Math.sqrt(
+        this.body.velocity.x * this.body.velocity.x +
+        this.body.velocity.y * this.body.velocity.y
+      );
+
+      this.body.setVelocity(
+        Math.cos(newAngle) * currentSpeed,
+        Math.sin(newAngle) * currentSpeed
+      );
+    }
+  }
+
   private draw(): void {
     this.graphics.clear();
 
-    const w = QUILL_CONFIG.width;
-    const h = QUILL_CONFIG.height;
+    // Apply size multiplier to visuals
+    const w = QUILL_CONFIG.width * this.sizeMultiplier;
+    const h = QUILL_CONFIG.height * this.sizeMultiplier;
 
     // Quill body (pointed shape)
     this.graphics.fillStyle(COLORS.quill);

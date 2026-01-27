@@ -14,7 +14,14 @@ export type ModifierType =
   | 'piercing'
   | 'bouncing'
   | 'aoeRadius'
-  | 'maxHealth';
+  | 'maxHealth'
+  // New modifier types
+  | 'explosionRadius'
+  | 'projectileSize'
+  | 'shieldCharges'
+  | 'companionCount'
+  | 'homingStrength'
+  | 'vampirism';
 
 export class UpgradeManager {
   private upgrades: Upgrade[] = [];
@@ -39,6 +46,13 @@ export class UpgradeManager {
     this.modifiers.set('bouncing', 0);
     this.modifiers.set('aoeRadius', 0);
     this.modifiers.set('maxHealth', 0);
+    // New modifiers
+    this.modifiers.set('explosionRadius', 0);
+    this.modifiers.set('projectileSize', 0);
+    this.modifiers.set('shieldCharges', 0);
+    this.modifiers.set('companionCount', 0);
+    this.modifiers.set('homingStrength', 0);
+    this.modifiers.set('vampirism', 0);
   }
 
   addUpgrade(upgrade: Upgrade): void {
@@ -94,6 +108,25 @@ export class UpgradeManager {
       }
       if (effects.maxHealth !== undefined) {
         this.addModifier('maxHealth', effects.maxHealth);
+      }
+      // New effect types
+      if (effects.explosionRadius !== undefined) {
+        this.addModifier('explosionRadius', effects.explosionRadius);
+      }
+      if (effects.projectileSize !== undefined) {
+        this.addModifier('projectileSize', effects.projectileSize);
+      }
+      if (effects.shieldCharges !== undefined) {
+        this.addModifier('shieldCharges', effects.shieldCharges);
+      }
+      if (effects.companionCount !== undefined) {
+        this.addModifier('companionCount', effects.companionCount);
+      }
+      if (effects.homingStrength !== undefined) {
+        this.addModifier('homingStrength', effects.homingStrength);
+      }
+      if (effects.vampirism !== undefined) {
+        this.addModifier('vampirism', effects.vampirism);
       }
     }
   }
@@ -157,6 +190,25 @@ export class UpgradeManager {
     }
     if (this.modifiers.get('bouncing')! !== 0) {
       summary.push({ name: 'Bounces', value: formatFlat(this.modifiers.get('bouncing')!) });
+    }
+    // New modifiers
+    if (this.modifiers.get('explosionRadius')! !== 0) {
+      summary.push({ name: 'Explosion', value: `${this.modifiers.get('explosionRadius')!}px` });
+    }
+    if (this.modifiers.get('projectileSize')! !== 0) {
+      summary.push({ name: 'Quill Size', value: formatPercent(this.modifiers.get('projectileSize')!) });
+    }
+    if (this.modifiers.get('shieldCharges')! !== 0) {
+      summary.push({ name: 'Shields', value: formatFlat(this.modifiers.get('shieldCharges')!) });
+    }
+    if (this.modifiers.get('companionCount')! !== 0) {
+      summary.push({ name: 'Companions', value: formatFlat(this.modifiers.get('companionCount')!) });
+    }
+    if (this.modifiers.get('homingStrength')! !== 0) {
+      summary.push({ name: 'Homing', value: formatPercent(this.modifiers.get('homingStrength')!) });
+    }
+    if (this.modifiers.get('vampirism')! !== 0) {
+      summary.push({ name: 'Lifesteal', value: formatPercent(this.modifiers.get('vampirism')!) });
     }
 
     return summary;

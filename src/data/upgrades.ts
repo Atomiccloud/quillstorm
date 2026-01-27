@@ -18,6 +18,13 @@ export interface UpgradeEffects {
   bouncing?: number;         // Flat addition
   aoeRadius?: number;        // Flat addition in pixels
   maxHealth?: number;        // Flat addition
+  // New effect types
+  explosionRadius?: number;  // AOE damage radius on impact
+  projectileSize?: number;   // Visual size multiplier (larger hitbox)
+  shieldCharges?: number;    // Absorbs N hits before breaking
+  companionCount?: number;   // Baby porcupine companions
+  homingStrength?: number;   // Projectile tracking (0-1)
+  vampirism?: number;        // Heal % of damage dealt
 }
 
 export interface Upgrade {
@@ -272,6 +279,136 @@ export const UPGRADES: Upgrade[] = [
     description: 'Incredible power, but you become very fragile.',
     rarity: 'legendary',
     effects: { damage: 1.5, critChance: 0.3, critDamage: 1.0, maxHealth: -50 },
+    maxStacks: 1,
+  },
+
+  // ===== NEW UPGRADES - PHASE 8 =====
+
+  // COMMON - New
+  {
+    id: 'thick_quills',
+    name: 'Thick Quills',
+    description: 'Larger quills are easier to hit enemies with.',
+    rarity: 'common',
+    effects: { projectileSize: 0.3 },
+  },
+  {
+    id: 'life_leech_1',
+    name: 'Life Leech',
+    description: 'Heal a small amount when dealing damage.',
+    rarity: 'common',
+    effects: { vampirism: 0.05 },
+  },
+
+  // UNCOMMON - New
+  {
+    id: 'explosive_tips',
+    name: 'Explosive Tips',
+    description: 'Quills explode on impact, damaging nearby enemies.',
+    rarity: 'uncommon',
+    effects: { explosionRadius: 40 },
+  },
+  {
+    id: 'energy_shield',
+    name: 'Energy Shield',
+    description: 'Block one hit per wave.',
+    rarity: 'uncommon',
+    effects: { shieldCharges: 1 },
+  },
+  {
+    id: 'seeker_quills',
+    name: 'Seeker Quills',
+    description: 'Quills slightly track enemies.',
+    rarity: 'uncommon',
+    effects: { homingStrength: 0.3 },
+  },
+
+  // RARE - New
+  {
+    id: 'cluster_bombs',
+    name: 'Cluster Bombs',
+    description: 'Bigger explosions with more damage.',
+    rarity: 'rare',
+    effects: { explosionRadius: 60, damage: 0.2 },
+  },
+  {
+    id: 'reinforced_shield',
+    name: 'Reinforced Shield',
+    description: 'Block two hits and gain health.',
+    rarity: 'rare',
+    effects: { shieldCharges: 2, maxHealth: 15 },
+  },
+  {
+    id: 'baby_buddy',
+    name: 'Baby Buddy',
+    description: 'A baby porcupine fights alongside you!',
+    rarity: 'rare',
+    effects: { companionCount: 1 },
+    maxStacks: 4,
+  },
+
+  // EPIC - New
+  {
+    id: 'devastation',
+    name: 'Devastation',
+    description: 'Massive explosion radius with increased damage.',
+    rarity: 'epic',
+    effects: { explosionRadius: 100, damage: 0.4 },
+  },
+  {
+    id: 'porcupine_pack',
+    name: 'Porcupine Pack',
+    description: 'Two baby porcupines join your fight!',
+    rarity: 'epic',
+    effects: { companionCount: 2 },
+    maxStacks: 2,
+  },
+  {
+    id: 'fortress',
+    name: 'Fortress',
+    description: 'Strong shields and extra health.',
+    rarity: 'epic',
+    effects: { shieldCharges: 3, maxHealth: 30 },
+  },
+  {
+    id: 'smart_missiles',
+    name: 'Smart Missiles',
+    description: 'Homing quills that pierce enemies.',
+    rarity: 'epic',
+    effects: { homingStrength: 0.7, piercing: 1 },
+  },
+
+  // LEGENDARY - New
+  {
+    id: 'nuclear_quills',
+    name: 'Nuclear Quills',
+    description: 'Devastating explosions, but slower firing.',
+    rarity: 'legendary',
+    effects: { explosionRadius: 150, damage: 0.8, fireRate: -0.3 },
+    maxStacks: 1,
+  },
+  {
+    id: 'porcupine_army',
+    name: 'Porcupine Army',
+    description: 'An entire squad of baby porcupines!',
+    rarity: 'legendary',
+    effects: { companionCount: 4 },
+    maxStacks: 1,
+  },
+  {
+    id: 'vampire_lord',
+    name: 'Vampire Lord',
+    description: 'Significant lifesteal with bonus damage.',
+    rarity: 'legendary',
+    effects: { vampirism: 0.15, damage: 0.3 },
+    maxStacks: 1,
+  },
+  {
+    id: 'immortal_fortress',
+    name: 'Immortal Fortress',
+    description: 'Near-invincible defense with massive shields.',
+    rarity: 'legendary',
+    effects: { shieldCharges: 5, maxHealth: 50 },
     maxStacks: 1,
   },
 ];

@@ -46,7 +46,7 @@ export const QUILL_CONFIG = {
   states: {
     full: { min: 0.70, speedMult: 1, damageMult: 1, takeDamageMult: 1 },
     patchy: { min: 0.40, speedMult: 1, damageMult: 1, takeDamageMult: 1 },
-    sparse: { min: 0.10, speedMult: 1.1, damageMult: 0.85, takeDamageMult: 1 },
+    sparse: { min: 0.03, speedMult: 1.1, damageMult: 0.85, takeDamageMult: 1 },
     naked: { min: 0, speedMult: 1.25, damageMult: 0, takeDamageMult: 2 },
   },
 };
@@ -67,8 +67,8 @@ export const ENEMY_CONFIG = {
     health: 25,
     damage: 15,
     speed: 60,
-    projectileSpeed: 300,
-    fireRate: 1.5, // Seconds between shots
+    projectileSpeed: 250,
+    fireRate: 2.2, // Seconds between shots
     points: 20,
     color: 0x228b22,
     width: 35,
