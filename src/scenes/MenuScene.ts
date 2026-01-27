@@ -84,7 +84,7 @@ export class MenuScene extends Phaser.Scene {
 
   private createVolumeControls(centerX: number, y: number): void {
     // Volume label
-    this.add.text(centerX - 120, y, 'Volume', {
+    this.add.text(centerX - 150, y, 'Volume', {
       fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#aaaaaa',

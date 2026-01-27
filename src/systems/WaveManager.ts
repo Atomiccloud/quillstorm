@@ -38,11 +38,13 @@ export class WaveManager {
 
     // Boss wave every 5 waves
     if (this.currentWave % WAVE_CONFIG.bossWaveInterval === 0) {
-      // Boss wave: just the boss plus a few minions
       queue.push('boss');
-      const minionCount = Math.floor(this.currentWave / 5) + 2;
-      for (let i = 0; i < minionCount; i++) {
-        queue.push(this.getRandomEnemyType());
+      // First boss (wave 5) is solo, later bosses get minions
+      if (this.currentWave > 5) {
+        const minionCount = Math.floor(this.currentWave / 5);
+        for (let i = 0; i < minionCount; i++) {
+          queue.push(this.getRandomEnemyType());
+        }
       }
       return queue;
     }

@@ -3,6 +3,7 @@ import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
+import { Companion } from '../entities/Companion';
 import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
@@ -20,6 +21,7 @@ export class GameScene extends Phaser.Scene {
 
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
+  private companions: Companion[] = [];
 
   private waveCompleteTimer: number = 0;
   private isChoosingUpgrade: boolean = false;
@@ -54,6 +56,9 @@ export class GameScene extends Phaser.Scene {
     this.waveManager = new WaveManager(this);
     this.waveManager.setTarget(this.player);
 
+    // Give quill manager access to enemies for homing quills
+    this.quillManager.setEnemiesGroup(this.waveManager.enemies);
+
     // Create enemy projectile group (no gravity so projectiles fly straight)
     this.enemyProjectiles = this.physics.add.group({
       allowGravity: false,
@@ -71,6 +76,8 @@ export class GameScene extends Phaser.Scene {
 
     // Start first wave
     this.time.delayedCall(1000, () => {
+      this.player.resetShieldsForWave();
+      this.updateCompanions();
       this.waveManager.startWave();
     });
 
@@ -241,6 +248,11 @@ export class GameScene extends Phaser.Scene {
     this.waveManager.update(time, delta);
     this.hud.update();
 
+    // Update companions
+    this.companions.forEach((companion) => {
+      companion.update(time, delta, this.waveManager.enemies);
+    });
+
     // Handle enemy shooting
     this.handleEnemyShooting();
 
@@ -283,11 +295,13 @@ export class GameScene extends Phaser.Scene {
 
           const projectile = this.add.circle(e.x, e.y, projSize, projColor);
           this.physics.add.existing(projectile);
-          const body = projectile.body as Phaser.Physics.Arcade.Body;
-          body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
-          body.setAllowGravity(false);
 
+          // Add to group FIRST, then set velocity (group can reset body properties)
           this.enemyProjectiles.add(projectile);
+
+          const body = projectile.body as Phaser.Physics.Arcade.Body;
+          body.setAllowGravity(false);
+          body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
           // Destroy after timeout
           this.time.delayedCall(3000, () => {
@@ -308,7 +322,30 @@ export class GameScene extends Phaser.Scene {
     const hitAngle = Math.atan2(enemy.y - quill.y, enemy.x - quill.x);
 
     // Deal damage
-    const killed = enemy.takeDamage(quill.getDamage(), hitAngle);
+    const damage = quill.getDamage();
+    const killed = enemy.takeDamage(damage, hitAngle);
+
+    // Vampirism - heal based on damage dealt
+    const vampirism = this.upgradeManager.getModifier('vampirism');
+    if (vampirism > 0) {
+      const healAmount = damage * vampirism;
+      this.player.heal(healAmount);
+    }
+
+    // Explosion AOE - damage nearby enemies
+    const explosionRadius = this.upgradeManager.getModifier('explosionRadius');
+    if (explosionRadius > 0) {
+      this.spawnExplosionEffect(enemy.x, enemy.y, explosionRadius);
+      // Damage all enemies within radius (except the one we just hit)
+      this.waveManager.enemies.getChildren().forEach((otherEnemyObj) => {
+        const otherEnemy = otherEnemyObj as Enemy;
+        if (otherEnemy === enemy || otherEnemy.isDead()) return;
+        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, otherEnemy.x, otherEnemy.y);
+        if (dist <= explosionRadius) {
+          otherEnemy.takeDamage(damage * 0.5); // AOE does 50% damage
+        }
+      });
+    }
 
     if (killed) {
       AudioManager.playEnemyDeath();
@@ -363,6 +400,47 @@ export class GameScene extends Phaser.Scene {
         scale: 0,
         duration: 500,
         onComplete: () => particle.destroy(),
+      });
+    }
+  }
+
+  private spawnExplosionEffect(x: number, y: number, radius: number): void {
+    // Expanding ring
+    const ring = this.add.circle(x, y, 10, 0xff8800, 0);
+    ring.setStrokeStyle(4, 0xff4400);
+
+    this.tweens.add({
+      targets: ring,
+      scale: radius / 10,
+      alpha: 0,
+      duration: 300,
+      ease: 'Power2',
+      onComplete: () => ring.destroy(),
+    });
+
+    // Inner flash
+    const flash = this.add.circle(x, y, radius * 0.3, 0xffff00, 0.6);
+    this.tweens.add({
+      targets: flash,
+      scale: 0,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => flash.destroy(),
+    });
+
+    // Spark particles
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const spark = this.add.circle(x, y, 3, 0xff6600);
+
+      this.tweens.add({
+        targets: spark,
+        x: x + Math.cos(angle) * radius * 0.8,
+        y: y + Math.sin(angle) * radius * 0.8,
+        alpha: 0,
+        duration: 250,
+        ease: 'Power2',
+        onComplete: () => spark.destroy(),
       });
     }
   }
@@ -490,6 +568,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onResumeFromUpgrade(): void {
+    // Only proceed if we were actually choosing an upgrade (not resuming from pause)
+    if (!this.isChoosingUpgrade) return;
+
     this.isChoosingUpgrade = false;
 
     // Apply any health upgrades
@@ -512,6 +593,8 @@ export class GameScene extends Phaser.Scene {
 
     // Start next wave
     this.time.delayedCall(500, () => {
+      this.player.resetShieldsForWave();
+      this.updateCompanions();
       if (isBossWave) {
         this.hud.showBossWarning();
         this.time.delayedCall(1500, () => {
@@ -564,6 +647,81 @@ export class GameScene extends Phaser.Scene {
         highScore: SaveManager.getHighScore(),
         highestWave: SaveManager.getHighestWave(),
       });
+    });
+  }
+
+  private updateCompanions(): void {
+    const desiredCount = Math.floor(this.upgradeManager.getModifier('companionCount'));
+
+    // Remove excess companions
+    while (this.companions.length > desiredCount) {
+      const companion = this.companions.pop();
+      companion?.destroy();
+    }
+
+    // Add new companions
+    while (this.companions.length < desiredCount) {
+      const index = this.companions.length;
+      const companion = new Companion(
+        this,
+        this.player.x,
+        this.player.y - 30,
+        this.player,
+        index
+      );
+
+      // Set up shooting callback
+      companion.onShoot = (x, y, targetX, targetY) => {
+        this.companionShoot(x, y, targetX, targetY);
+      };
+
+      this.companions.push(companion);
+    }
+  }
+
+  private companionShoot(x: number, y: number, targetX: number, targetY: number): void {
+    // Create a mini quill from companion position
+    const angle = Phaser.Math.Angle.Between(x, y, targetX, targetY);
+
+    // Create simple projectile (smaller, less damage than player)
+    const quill = this.add.graphics();
+    quill.fillStyle(0x00ffff);
+    quill.fillTriangle(8, 0, -4, -3, -4, 3);
+
+    const container = this.add.container(x, y, [quill]);
+    container.rotation = angle;
+
+    this.physics.add.existing(container);
+    const body = container.body as Phaser.Physics.Arcade.Body;
+    body.setSize(12, 8);
+    body.setAllowGravity(false);
+
+    const speed = 400;
+    body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+
+    AudioManager.playShoot();
+
+    // Add collision with enemies
+    this.physics.add.overlap(container, this.waveManager.enemies, (_, enemyObj) => {
+      const enemy = enemyObj as Enemy;
+      if (!enemy.isDead()) {
+        // Companion quills do base damage (less than player upgraded quills)
+        const damage = 10 * (1 + this.upgradeManager.getModifier('damage') * 0.5);
+        const killed = enemy.takeDamage(damage);
+        if (killed) {
+          AudioManager.playEnemyDeath();
+          this.hud.addScore(enemy.points);
+          this.spawnDeathParticles(enemy.x, enemy.y);
+        } else {
+          AudioManager.playHit();
+        }
+        container.destroy();
+      }
+    });
+
+    // Destroy after timeout
+    this.time.delayedCall(2000, () => {
+      if (container.active) container.destroy();
     });
   }
 

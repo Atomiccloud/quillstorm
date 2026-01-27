@@ -7,6 +7,7 @@ export class QuillManager {
   private scene: Phaser.Scene;
   private upgradeManager: UpgradeManager;
   public quills: Phaser.GameObjects.Group;
+  private enemiesGroup?: Phaser.GameObjects.Group;
 
   public currentQuills: number;
   public maxQuills: number;
@@ -117,7 +118,8 @@ export class QuillManager {
         fromX,
         fromY,
         projectileAngle,
-        this.upgradeManager
+        this.upgradeManager,
+        this.enemiesGroup
       );
 
       this.quills.add(quill);
@@ -132,5 +134,9 @@ export class QuillManager {
 
   addQuills(amount: number): void {
     this.currentQuills = Math.min(this.maxQuills, this.currentQuills + amount);
+  }
+
+  setEnemiesGroup(enemies: Phaser.GameObjects.Group): void {
+    this.enemiesGroup = enemies;
   }
 }
