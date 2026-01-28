@@ -62,10 +62,10 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Leaderboard button
-    const leaderboardButton = this.add.rectangle(centerX, centerY + 195, 160, 40, 0x444477)
+    const leaderboardButton = this.add.rectangle(centerX, centerY + 220, 160, 40, 0x444477)
       .setInteractive({ useHandCursor: true });
 
-    this.add.text(centerX, centerY + 195, 'LEADERBOARD', {
+    this.add.text(centerX, centerY + 220, 'LEADERBOARD', {
       fontSize: '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
@@ -85,7 +85,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Volume controls section
-    this.createVolumeControls(centerX, centerY + 260);
+    this.createVolumeControls(centerX, centerY + 290);
 
     // Controls info
     this.add.text(centerX, GAME_CONFIG.height - 60, 'Controls:', {
