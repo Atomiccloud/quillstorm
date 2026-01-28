@@ -11,23 +11,25 @@ interface LevelTemplate {
   platforms: PlatformData[];
 }
 
-// Platform templates - each offers different gameplay dynamics
+// Platform templates - designed for 1440x810 canvas
+// Ground is at y=780, player max jump ~140px
+// Platforms spaced max 130px vertically for reliable jumps
 const LEVEL_TEMPLATES: LevelTemplate[] = [
   {
-    // Classic layout - the original design, balanced for new players
+    // Classic layout - balanced for new players
     name: 'classic',
     platforms: [
-      // Lower tier (easy to reach from ground)
-      { x: 200, y: 550, width: 200 },
-      { x: 640, y: 550, width: 200 },
-      { x: 1080, y: 550, width: 200 },
-      // Mid tier (reachable from lower tier)
-      { x: 400, y: 420, width: 180 },
-      { x: 880, y: 420, width: 180 },
-      // Upper tier (reachable from mid tier)
-      { x: 640, y: 300, width: 220 },
-      { x: 150, y: 350, width: 140 },
-      { x: 1130, y: 350, width: 140 },
+      // Lower tier (~140px above ground, easy to reach)
+      { x: 225, y: 640, width: 200 },
+      { x: 720, y: 640, width: 200 },
+      { x: 1215, y: 640, width: 200 },
+      // Mid tier (~130px above lower)
+      { x: 450, y: 510, width: 180 },
+      { x: 990, y: 510, width: 180 },
+      // Upper tier (~120px above mid)
+      { x: 720, y: 390, width: 220 },
+      { x: 170, y: 440, width: 140 },
+      { x: 1270, y: 440, width: 140 },
     ],
   },
   {
@@ -35,42 +37,42 @@ const LEVEL_TEMPLATES: LevelTemplate[] = [
     name: 'towers',
     platforms: [
       // Left tower
-      { x: 180, y: 550, width: 160 },
-      { x: 180, y: 420, width: 140 },
-      { x: 180, y: 290, width: 120 },
+      { x: 200, y: 640, width: 160 },
+      { x: 200, y: 510, width: 140 },
+      { x: 200, y: 380, width: 120 },
       // Right tower
-      { x: 1100, y: 550, width: 160 },
-      { x: 1100, y: 420, width: 140 },
-      { x: 1100, y: 290, width: 120 },
+      { x: 1240, y: 640, width: 160 },
+      { x: 1240, y: 510, width: 140 },
+      { x: 1240, y: 380, width: 120 },
       // Center bridge
-      { x: 640, y: 480, width: 280 },
-      { x: 640, y: 320, width: 200 },
+      { x: 720, y: 570, width: 280 },
+      { x: 720, y: 410, width: 200 },
     ],
   },
   {
     // Asymmetric - unbalanced, challenging positioning
     name: 'asymmetric',
     platforms: [
-      { x: 150, y: 500, width: 180 },
-      { x: 420, y: 580, width: 220 },
-      { x: 750, y: 460, width: 160 },
-      { x: 1000, y: 530, width: 200 },
-      { x: 280, y: 340, width: 200 },
-      { x: 580, y: 280, width: 180 },
-      { x: 900, y: 360, width: 180 },
-      { x: 1150, y: 280, width: 140 },
+      { x: 170, y: 590, width: 180 },
+      { x: 475, y: 670, width: 220 },
+      { x: 845, y: 550, width: 160 },
+      { x: 1125, y: 620, width: 200 },
+      { x: 315, y: 430, width: 200 },
+      { x: 655, y: 370, width: 180 },
+      { x: 1015, y: 450, width: 180 },
+      { x: 1290, y: 370, width: 140 },
     ],
   },
   {
     // Sparse - fewer, larger platforms, more ground combat
     name: 'sparse',
     platforms: [
-      { x: 200, y: 500, width: 280 },
-      { x: 640, y: 560, width: 320 },
-      { x: 1080, y: 500, width: 280 },
-      { x: 400, y: 340, width: 220 },
-      { x: 880, y: 340, width: 220 },
-      { x: 640, y: 200, width: 200 },
+      { x: 225, y: 590, width: 280 },
+      { x: 720, y: 650, width: 320 },
+      { x: 1215, y: 590, width: 280 },
+      { x: 450, y: 430, width: 220 },
+      { x: 990, y: 430, width: 220 },
+      { x: 720, y: 290, width: 200 },
     ],
   },
   {
@@ -78,14 +80,14 @@ const LEVEL_TEMPLATES: LevelTemplate[] = [
     name: 'gauntlet',
     platforms: [
       // Central corridor
-      { x: 640, y: 550, width: 400 },
-      { x: 640, y: 400, width: 300 },
-      { x: 640, y: 250, width: 200 },
+      { x: 720, y: 640, width: 400 },
+      { x: 720, y: 490, width: 300 },
+      { x: 720, y: 340, width: 200 },
       // Flanking platforms
-      { x: 150, y: 480, width: 160 },
-      { x: 150, y: 320, width: 140 },
-      { x: 1130, y: 480, width: 160 },
-      { x: 1130, y: 320, width: 140 },
+      { x: 170, y: 570, width: 160 },
+      { x: 170, y: 410, width: 140 },
+      { x: 1270, y: 570, width: 160 },
+      { x: 1270, y: 410, width: 140 },
     ],
   },
 ];

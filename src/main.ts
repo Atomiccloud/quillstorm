@@ -28,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: GAME_CONFIG.width,
     height: GAME_CONFIG.height,
-    expandParent: false,
+    parent: 'game-container',
   },
 };
 

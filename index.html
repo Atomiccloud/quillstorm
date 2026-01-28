@@ -22,6 +22,15 @@
         border: 3px solid #4a4a6a;
         border-radius: 8px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        /* Set explicit dimensions to prevent resize jitter */
+        width: 1440px;
+        height: 810px;
+        max-width: 95vw;
+        max-height: 95vh;
+      }
+      #game-container canvas {
+        width: 100% !important;
+        height: 100% !important;
       }
     </style>
   </head>
