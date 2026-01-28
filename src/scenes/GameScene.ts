@@ -214,6 +214,12 @@ export class GameScene extends Phaser.Scene {
       const muted = AudioManager.toggleMute();
       this.showMuteIndicator(muted);
     });
+
+    // R to quick restart
+    this.input.keyboard?.on('keydown-R', () => {
+      if (this.isChoosingUpgrade) return;
+      this.scene.restart();
+    });
   }
 
   private showMuteIndicator(muted: boolean): void {
