@@ -1,13 +1,22 @@
-import { kv } from '@vercel/kv';
-
 const RATE_LIMIT_WINDOW = 60; // seconds
 const MAX_REQUESTS = 6; // requests per window
 const SUBMISSION_COOLDOWN = 10; // seconds between submissions
 
+// Check if KV is configured
+function isKVConfigured(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
 export async function checkRateLimit(ip: string): Promise<boolean> {
+  // Skip rate limiting if KV isn't configured
+  if (!isKVConfigured()) {
+    return true;
+  }
+
   const key = `ratelimit:${ip}`;
 
   try {
+    const { kv } = await import('@vercel/kv');
     const current = await kv.incr(key);
 
     // Set expiry on first request
@@ -24,9 +33,15 @@ export async function checkRateLimit(ip: string): Promise<boolean> {
 }
 
 export async function checkSubmissionCooldown(ip: string): Promise<boolean> {
+  // Skip cooldown if KV isn't configured
+  if (!isKVConfigured()) {
+    return true;
+  }
+
   const key = `submission:${ip}`;
 
   try {
+    const { kv } = await import('@vercel/kv');
     const existing = await kv.get(key);
 
     if (existing) {

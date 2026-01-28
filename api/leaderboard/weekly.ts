@@ -1,4 +1,3 @@
-import { kv } from '@vercel/kv';
 import { parseMember, getISOWeek, getNextMondayTimestamp } from '../_lib/validation';
 
 export const config = {
@@ -21,6 +20,35 @@ interface WeeklyLeaderboardResponse {
   resetsIn: number; // seconds until reset
 }
 
+// Check if KV is configured
+function isKVConfigured(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+// Get week boundaries for response
+function getWeekInfo(): { weekStart: string; weekEnd: string; resetsIn: number } {
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  const weekStart = new Date(now);
+  weekStart.setUTCDate(now.getUTCDate() - daysFromMonday);
+  weekStart.setUTCHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+  weekEnd.setUTCHours(23, 59, 59, 999);
+
+  const nextMonday = getNextMondayTimestamp();
+  const resetsIn = nextMonday - Math.floor(Date.now() / 1000);
+
+  return {
+    weekStart: weekStart.toISOString().split('T')[0],
+    weekEnd: weekEnd.toISOString().split('T')[0],
+    resetsIn: Math.max(0, resetsIn),
+  };
+}
+
 export default async function handler(req: Request): Promise<Response> {
   // Only allow GET
   if (req.method !== 'GET') {
@@ -30,11 +58,32 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  const weekInfo = getWeekInfo();
+
+  // Return empty results if KV isn't configured
+  if (!isKVConfigured()) {
+    return new Response(JSON.stringify({
+      entries: [],
+      total: 0,
+      ...weekInfo,
+      message: 'Leaderboard not configured yet',
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
+
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10), 100);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
   try {
+    // Dynamic import to avoid errors when KV isn't configured
+    const { kv } = await import('@vercel/kv');
+
     const { year, week } = getISOWeek();
     const weeklyKey = `leaderboard:weekly:${year}:${week}`;
 
@@ -65,28 +114,10 @@ export default async function handler(req: Request): Promise<Response> {
 
     const total = await kv.zcard(weeklyKey) || 0;
 
-    // Calculate week boundaries
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay();
-    const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-    const weekStart = new Date(now);
-    weekStart.setUTCDate(now.getUTCDate() - daysFromMonday);
-    weekStart.setUTCHours(0, 0, 0, 0);
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-    weekEnd.setUTCHours(23, 59, 59, 999);
-
-    const nextMonday = getNextMondayTimestamp();
-    const resetsIn = nextMonday - Math.floor(Date.now() / 1000);
-
     const response: WeeklyLeaderboardResponse = {
       entries,
       total,
-      weekStart: weekStart.toISOString().split('T')[0],
-      weekEnd: weekEnd.toISOString().split('T')[0],
-      resetsIn: Math.max(0, resetsIn),
+      ...weekInfo,
     };
 
     return new Response(JSON.stringify(response), {
@@ -100,15 +131,15 @@ export default async function handler(req: Request): Promise<Response> {
   } catch (error) {
     console.error('Weekly leaderboard fetch error:', error);
     return new Response(JSON.stringify({
-      error: 'Server error',
       entries: [],
       total: 0,
-      weekStart: '',
-      weekEnd: '',
-      resetsIn: 0,
+      ...weekInfo,
     }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 }
