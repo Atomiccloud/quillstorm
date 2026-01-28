@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+// Using Web Crypto API (Edge-compatible, no Node.js crypto)
 
 const SALT = process.env.CHECKSUM_SALT || 'quillstorm-default-salt-change-in-prod';
 const MAX_SCORE = 50000;
@@ -18,7 +18,15 @@ export interface ValidationResult {
   sanitizedName?: string;
 }
 
-export function validateSubmission(data: SubmissionData): ValidationResult {
+// SHA256 using Web Crypto API (available in Edge runtime)
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function validateSubmission(data: SubmissionData): Promise<ValidationResult> {
   // Name validation
   if (!data.playerName || typeof data.playerName !== 'string') {
     return { valid: false, error: 'Invalid player name' };
@@ -49,7 +57,7 @@ export function validateSubmission(data: SubmissionData): ValidationResult {
   }
 
   // Checksum validation
-  const expectedChecksum = generateChecksum(data.score, data.wave);
+  const expectedChecksum = await generateChecksum(data.score, data.wave);
   if (data.checksum !== expectedChecksum) {
     return { valid: false, error: 'Invalid checksum' };
   }
@@ -57,9 +65,10 @@ export function validateSubmission(data: SubmissionData): ValidationResult {
   return { valid: true, sanitizedName: trimmedName };
 }
 
-export function generateChecksum(score: number, wave: number): string {
+export async function generateChecksum(score: number, wave: number): Promise<string> {
   const data = `${score}:${wave}:${SALT}`;
-  return crypto.createHash('sha256').update(data).digest('hex').slice(0, 16);
+  const hash = await sha256(data);
+  return hash.slice(0, 16);
 }
 
 // Helper to get ISO week number

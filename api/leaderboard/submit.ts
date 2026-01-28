@@ -59,7 +59,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // Validate input
-  const validation = validateSubmission(body);
+  const validation = await validateSubmission(body);
   if (!validation.valid) {
     return new Response(JSON.stringify({ success: false, error: validation.error }), {
       status: 400,
