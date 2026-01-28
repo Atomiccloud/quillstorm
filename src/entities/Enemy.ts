@@ -130,26 +130,25 @@ export class Enemy extends Phaser.GameObjects.Container {
   private updateSpitter(_time: number): void {
     const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
 
-    // Spitters are more aggressive - shorter preferred distance, only retreat if very close
-    const preferredDist = 180;
-    const retreatDist = 80; // Only back away if player gets very close
+    // Spitters are ranged - they prefer to keep distance and don't jump
+    const preferredDist = 250;
+    const retreatDist = 150; // Back away if player gets close
 
     if (dist < retreatDist) {
-      // Too close, back away slowly
+      // Too close, back away
       const dir = this.target!.x > this.x ? -1 : 1;
-      this.body.setVelocityX(dir * this.speed * 0.8);
-    } else if (dist > preferredDist + 30) {
-      // Too far, approach to get in range
-      const dir = this.target!.x > this.x ? 1 : -1;
       this.body.setVelocityX(dir * this.speed);
-    } else {
+    } else if (dist < preferredDist) {
       // Good distance, slow strafe to make aiming harder
-      const strafeDir = Math.sin(this.scene.time.now / 800) > 0 ? 1 : -1;
-      this.body.setVelocityX(strafeDir * this.speed * 0.4);
+      const strafeDir = Math.sin(this.scene.time.now / 1000) > 0 ? 1 : -1;
+      this.body.setVelocityX(strafeDir * this.speed * 0.5);
+    } else {
+      // Far away, slowly approach but don't rush
+      const dir = this.target!.x > this.x ? 1 : -1;
+      this.body.setVelocityX(dir * this.speed * 0.6);
     }
 
-    // Shooting is handled by WaveManager/GameScene for collision purposes
-    this.tryJump();
+    // Spitters don't jump - they're ranged units that stay on the ground
   }
 
   private updateSwooper(time: number): void {
