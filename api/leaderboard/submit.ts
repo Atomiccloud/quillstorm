@@ -1,4 +1,3 @@
-import { kv } from '@vercel/kv';
 import { nanoid } from 'nanoid';
 import { validateSubmission, getISOWeek, getNextMondayTimestamp } from '../_lib/validation';
 import { checkRateLimit, checkSubmissionCooldown, getClientIP } from '../_lib/ratelimit';
@@ -21,12 +20,33 @@ interface SubmitResponse {
   error?: string;
 }
 
+// Check if KV is configured
+function isKVConfigured(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
 export default async function handler(req: Request): Promise<Response> {
   // Only allow POST
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), {
       status: 405,
       headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Return success but with null ranks if KV isn't configured
+  if (!isKVConfigured()) {
+    return new Response(JSON.stringify({
+      success: true,
+      globalRank: null,
+      weeklyRank: null,
+      message: 'Leaderboard not configured yet - score not saved',
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 
@@ -71,6 +91,9 @@ export default async function handler(req: Request): Promise<Response> {
   const { score, wave } = body;
 
   try {
+    // Dynamic import to avoid errors when KV isn't configured
+    const { kv } = await import('@vercel/kv');
+
     // Create unique entry
     const id = nanoid(12);
     const timestamp = Date.now();
@@ -121,9 +144,12 @@ export default async function handler(req: Request): Promise<Response> {
     });
   } catch (error) {
     console.error('Leaderboard submission error:', error);
-    return new Response(JSON.stringify({ success: false, error: 'Server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ success: false, error: 'Server error - score saved locally' }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 }

@@ -1,4 +1,3 @@
-import { kv } from '@vercel/kv';
 import { parseMember } from '../_lib/validation';
 
 export const config = {
@@ -18,6 +17,11 @@ interface LeaderboardResponse {
   total: number;
 }
 
+// Check if KV is configured
+function isKVConfigured(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
 export default async function handler(req: Request): Promise<Response> {
   // Only allow GET
   if (req.method !== 'GET') {
@@ -27,11 +31,29 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  // Return empty results if KV isn't configured
+  if (!isKVConfigured()) {
+    return new Response(JSON.stringify({
+      entries: [],
+      total: 0,
+      message: 'Leaderboard not configured yet',
+    }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
+  }
+
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10), 100);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
   try {
+    // Dynamic import to avoid errors when KV isn't configured
+    const { kv } = await import('@vercel/kv');
+
     // Get entries with scores (returns array of [member, score, member, score, ...])
     const results = await kv.zrange('leaderboard:global', offset, offset + limit - 1, {
       rev: true,
@@ -57,7 +79,7 @@ export default async function handler(req: Request): Promise<Response> {
       }
     }
 
-    const total = await kv.zcard('leaderboard:global');
+    const total = await kv.zcard('leaderboard:global') || 0;
 
     const response: LeaderboardResponse = {
       entries,
@@ -74,9 +96,12 @@ export default async function handler(req: Request): Promise<Response> {
     });
   } catch (error) {
     console.error('Leaderboard fetch error:', error);
-    return new Response(JSON.stringify({ error: 'Server error', entries: [], total: 0 }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ entries: [], total: 0 }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
     });
   }
 }
