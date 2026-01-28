@@ -56,7 +56,7 @@ export const ENEMY_CONFIG = {
   scurrier: {
     health: 30,
     damage: 10,
-    speed: 150,
+    speed: 120, // Slowed down to give player more breathing room
     points: 10,
     color: 0x8b4513,
     width: 30,
@@ -68,7 +68,7 @@ export const ENEMY_CONFIG = {
     damage: 15,
     speed: 60,
     projectileSpeed: 250,
-    fireRate: 2.2, // Seconds between shots
+    fireRate: 3.0, // Seconds between shots (longer cooldown)
     points: 20,
     color: 0x228b22,
     width: 35,
