@@ -314,3 +314,4 @@ The arena changes after boss waves (every 5 waves):
 | Aim | Mouse cursor |
 | Pause | Escape |
 | Mute/Unmute | M |
+| Quick Restart | R |

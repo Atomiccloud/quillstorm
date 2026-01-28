@@ -109,5 +109,17 @@ export class GameOverScene extends Phaser.Scene {
       AudioManager.playButtonClick();
       this.scene.start('MenuScene');
     });
+
+    // R to quick restart
+    this.input.keyboard?.on('keydown-R', () => {
+      AudioManager.playButtonClick();
+      this.scene.start('GameScene');
+    });
+
+    // Show hint
+    this.add.text(centerX, centerY + 230, 'Press R to quick restart', {
+      fontSize: '16px',
+      color: '#666666',
+    }).setOrigin(0.5);
   }
 }

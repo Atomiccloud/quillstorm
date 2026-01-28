@@ -10,7 +10,7 @@
 - [x] 5 enemy types with unique AI
 - [x] Wave-based progression
 - [x] Boss waves every 5 waves
-- [x] 30+ upgrades across 5 rarities
+- [x] 46 upgrades across 5 rarities
 - [x] High score persistence
 
 ### Recent Improvements
@@ -19,6 +19,11 @@
 - [x] Enemy stat scaling per wave
 - [x] Procedural audio system
 - [x] Level layout rotation after boss waves
+- [x] Volume settings in pause menu
+- [x] Mute toggle (M key)
+- [x] New upgrade types: shields, companions, explosions, homing, vampirism
+- [x] Difficulty balancing (slower scurriers, ranged spitters)
+- [x] Solo boss on wave 5, minions on later boss waves
 
 ## Planned Features
 
@@ -33,11 +38,11 @@
 **Audio Enhancements**
 - [ ] Background music (procedural or looping)
 - [ ] Ambient sounds
-- [ ] Volume settings in pause menu
-- [ ] Mute button in HUD (M key)
+- [x] Volume settings in pause menu
+- [x] Mute toggle (M key)
 
 **Quality of Life**
-- [ ] Quick restart key (R)
+- [x] Quick restart key (R)
 - [ ] Run statistics on game over
 - [ ] Tutorial/help overlay
 
