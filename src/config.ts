@@ -1,8 +1,8 @@
 // Game balance constants - tweak these to adjust gameplay feel
 
 export const GAME_CONFIG = {
-  width: 1280,
-  height: 720,
+  width: 1600,
+  height: 900,
   backgroundColor: 0x1a1a2e,
 };
 
