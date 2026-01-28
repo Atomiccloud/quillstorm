@@ -4,12 +4,14 @@ interface SaveData {
   highScore: number;
   highestWave: number;
   totalRuns: number;
+  playerName: string;
 }
 
 const defaultSave: SaveData = {
   highScore: 0,
   highestWave: 0,
   totalRuns: 0,
+  playerName: '',
 };
 
 export class SaveManager {
@@ -44,6 +46,19 @@ export class SaveManager {
 
   static getTotalRuns(): number {
     return this.data.totalRuns;
+  }
+
+  static getPlayerName(): string {
+    return this.data.playerName;
+  }
+
+  static setPlayerName(name: string): void {
+    this.data.playerName = name.trim();
+    this.save();
+  }
+
+  static hasPlayerName(): boolean {
+    return this.data.playerName.length >= 3;
   }
 
   static submitRun(score: number, wave: number): boolean {

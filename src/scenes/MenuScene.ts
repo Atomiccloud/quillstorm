@@ -61,8 +61,31 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('GameScene');
     });
 
+    // Leaderboard button
+    const leaderboardButton = this.add.rectangle(centerX, centerY + 195, 160, 40, 0x444477)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(centerX, centerY + 195, 'LEADERBOARD', {
+      fontSize: '18px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5);
+
+    leaderboardButton.on('pointerover', () => {
+      leaderboardButton.setFillStyle(0x555588);
+    });
+
+    leaderboardButton.on('pointerout', () => {
+      leaderboardButton.setFillStyle(0x444477);
+    });
+
+    leaderboardButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.scene.start('LeaderboardScene');
+    });
+
     // Volume controls section
-    this.createVolumeControls(centerX, centerY + 230);
+    this.createVolumeControls(centerX, centerY + 260);
 
     // Controls info
     this.add.text(centerX, GAME_CONFIG.height - 60, 'Controls:', {
