@@ -144,6 +144,32 @@ export class AudioManager {
     this.playTone(800, 0.15, 'sine', 0.4, 0.16);
   }
 
+  // Burrower surfacing - rumble then pop
+  static playBurrowSurface(): void {
+    this.playTone(80, 0.15, 'sawtooth', 0.4);
+    this.playTone(120, 0.1, 'square', 0.5, 0.1);
+    this.playNoise(0.12, 0.6);
+  }
+
+  // Healer heal beam - gentle ascending chime
+  static playHeal(): void {
+    this.playTone(500, 0.12, 'sine', 0.25);
+    this.playTone(700, 0.12, 'sine', 0.2, 0.08);
+  }
+
+  // Splitter splitting into two - wet pop sound
+  static playSplit(): void {
+    this.playTone(250, 0.08, 'square', 0.4);
+    this.playTone(180, 0.1, 'sawtooth', 0.3, 0.05);
+    this.playNoise(0.06, 0.3);
+  }
+
+  // Shellback roll attack - grinding rumble
+  static playShellRoll(): void {
+    this.playTone(100, 0.3, 'sawtooth', 0.3);
+    this.playTone(90, 0.3, 'square', 0.2, 0.05);
+  }
+
   // ============ Volume Control ============
 
   static setVolume(volume: number): void {

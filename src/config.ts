@@ -85,7 +85,7 @@ export const ENEMY_CONFIG = {
     width: 35,
     height: 20,
   },
-  // Shellback - tanky, blocks frontal attacks
+  // Shellback - tanky, blocks frontal attacks, can roll
   shellback: {
     health: 80,
     damage: 15,
@@ -95,6 +95,61 @@ export const ENEMY_CONFIG = {
     width: 45,
     height: 35,
     blockAngle: 90, // Degrees of frontal protection
+    rollSpeed: 100, // 2x base speed during roll
+    rollDuration: 2000, // ms of rolling
+    rollCooldown: 6000, // ms between rolls
+    rollDamage: 20, // contact damage while rolling
+    rollMinDist: 100, // min distance to start roll
+    rollMaxDist: 400, // max distance to start roll
+  },
+  // Burrower - underground ambush enemy
+  burrower: {
+    health: 50,
+    damage: 20,
+    speed: 90,
+    points: 35,
+    color: 0x5c3317,
+    width: 35,
+    height: 30,
+    burrowDuration: 3000, // ms underground
+    surfaceDuration: 4000, // ms above ground before burrowing again
+    surfaceRadius: 60, // AOE damage radius on emergence
+    surfaceDamage: 20, // damage on emergence
+  },
+  // Splitter - splits into two splitlings on death
+  splitter: {
+    health: 60,
+    damage: 12,
+    speed: 80,
+    points: 30,
+    color: 0x9932cc,
+    width: 40,
+    height: 35,
+  },
+  // Splitling - child of splitter, does NOT split again
+  splitling: {
+    health: 20,
+    damage: 8,
+    speed: 160,
+    points: 10,
+    color: 0xba55d3,
+    width: 22,
+    height: 18,
+  },
+  // Healer - heals nearby allies, flees from player
+  healer: {
+    health: 35,
+    damage: 5,
+    speed: 70,
+    points: 50,
+    color: 0x32cd32,
+    width: 30,
+    height: 25,
+    healRange: 200, // range to heal allies
+    healPercent: 0.12, // heals 12% of target's max HP
+    healCooldown: 3000, // ms between heals
+    fleeRange: 300, // flees when player is within this range
+    preferredDist: 350, // tries to stay this far from player
   },
   // Boss - big, mean, multi-phase
   boss: {
@@ -115,7 +170,12 @@ export const ENEMY_CONFIG = {
 export const WAVE_CONFIG = {
   baseEnemyCount: 5,
   enemyScalePerWave: 1.2, // Each wave has 20% more enemies
-  timeBetweenSpawns: 1000, // ms
+  maxEnemiesPerWave: 100, // Cap to prevent 400+ enemy marathons
+  // Spawn pacing - ramps from slow start to fast finish within each wave
+  spawnIntervalStart: 2000, // ms between spawns at wave start
+  spawnIntervalEnd: 500, // ms between spawns at wave end
+  spawnIntervalDecayPerWave: 30, // start interval decreases by this per wave
+  spawnIntervalMinStart: 800, // floor for starting interval
   waveDelay: 3000, // ms between waves
   bossWaveInterval: 5, // Boss every N waves
 };

@@ -7,7 +7,7 @@
 - [x] Quill shooting mechanics
 - [x] Quill state system (full/patchy/sparse/naked)
 - [x] Quill regeneration
-- [x] 5 enemy types with unique AI
+- [x] 8 enemy types with unique AI (+ splitlings)
 - [x] Wave-based progression
 - [x] Boss waves every 5 waves
 - [x] 46 upgrades across 5 rarities
@@ -19,11 +19,20 @@
 - [x] Enemy stat scaling per wave
 - [x] Procedural audio system
 - [x] Level layout rotation after boss waves
-- [x] Volume settings in pause menu
+- [x] Volume settings in pause menu and main menu
 - [x] Mute toggle (M key)
 - [x] New upgrade types: shields, companions, explosions, homing, vampirism
 - [x] Difficulty balancing (slower scurriers, ranged spitters)
 - [x] Solo boss on wave 5, minions on later boss waves
+- [x] Canvas sizing (1440x810) with resize jitter fix
+- [x] Online leaderboard system (global + weekly)
+- [x] Vercel deployment with Upstash Redis (Vercel KV)
+- [x] Graceful fallback when KV is unavailable
+- [x] 3 new enemy types: Burrower (wave 8), Splitter (wave 12), Healer (wave 15)
+- [x] Shellback roll attack (invincible spinning charge)
+- [x] Spawn pacing: ramps from slow to fast within each wave
+- [x] Enemy cap at 100 per wave (prevents 400+ enemy marathons)
+- [x] Rebalanced spawn weights for all enemy types
 
 ## Planned Features
 
@@ -49,10 +58,11 @@
 ### Medium Term
 
 **New Content**
-- [ ] Additional enemy types
-  - Burrower (emerges from ground)
-  - Splitter (divides when killed)
-  - Healer (buffs nearby enemies)
+- [x] Additional enemy types
+  - [x] Burrower (emerges from ground with AOE)
+  - [x] Splitter (divides into 2 splitlings when killed)
+  - [x] Healer (heals nearby allies, floats, flees from player)
+  - [x] Shellback roll attack (invincible spinning charge)
 - [ ] More upgrade varieties
 - [ ] Additional arena layouts
 
@@ -76,7 +86,7 @@
 
 **Multiplayer**
 - [ ] Local co-op (same screen)
-- [ ] Online leaderboards
+- [x] Online leaderboards (global + weekly)
 - [ ] Daily challenge seeds
 
 **Platform Support**
@@ -91,6 +101,15 @@
 - Pickups can sometimes spawn in unreachable locations
 - Quill regeneration visual could be clearer
 - Some upgrade descriptions could be more specific
+
+### Leaderboard Security
+The leaderboard checksum uses a client-side salt that is visible in the JS bundle. This deters casual manipulation but a determined user could forge submissions by extracting the salt and computing valid checksums. Current mitigations:
+- Rate limiting (6 requests/60s per IP)
+- Submission cooldown (10s between submissions)
+- Score/wave proportionality check (server rejects anomalous scores)
+- Name sanitization (prevents XSS)
+
+If cheating becomes a problem, consider adding a moderation endpoint to remove suspicious entries.
 
 ### Considered but Not Planned
 - Save mid-run (conflicts with roguelike design)
