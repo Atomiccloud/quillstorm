@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ENEMY_CONFIG, ENEMY_SCALING } from '../config';
+import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG } from '../config';
 
 export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer';
 
@@ -55,18 +55,21 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.enemyType = type;
     const config = ENEMY_CONFIG[type];
 
+    // Calculate scaling steps (scales every N waves instead of every wave)
+    const scalingSteps = Math.floor((wave - 1) / WAVE_CONFIG.scalingInterval);
+
     // Calculate wave-based scaling with diminishing returns (capped at maxScaleMultiplier)
     const healthMultiplier = Math.min(
       ENEMY_SCALING.maxScaleMultiplier,
-      1 + (wave - 1) * ENEMY_SCALING.healthPerWave
+      1 + scalingSteps * ENEMY_SCALING.healthPerWave
     );
     const damageMultiplier = Math.min(
       ENEMY_SCALING.maxScaleMultiplier,
-      1 + (wave - 1) * ENEMY_SCALING.damagePerWave
+      1 + scalingSteps * ENEMY_SCALING.damagePerWave
     );
     const speedMultiplier = Math.min(
       1.5, // Lower cap for speed to keep game playable
-      1 + (wave - 1) * ENEMY_SCALING.speedPerWave
+      1 + scalingSteps * ENEMY_SCALING.speedPerWave
     );
 
     this.health = Math.floor(config.health * healthMultiplier);
@@ -255,9 +258,15 @@ export class Enemy extends Phaser.GameObjects.Container {
     const config = ENEMY_CONFIG.boss;
     const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
 
-    // Update boss phase based on health
+    // Update boss phase based on health (3 phases)
     const healthPercent = this.health / this.maxHealth;
-    this.bossPhase = healthPercent > 0.5 ? 1 : 2;
+    if (healthPercent > 0.5) {
+      this.bossPhase = 1; // Slow single shots
+    } else if (healthPercent > 0.25) {
+      this.bossPhase = 2; // Triple shot but still slower
+    } else {
+      this.bossPhase = 3; // Enraged rapid triple shots
+    }
 
     // Handle charging attack
     if (this.isCharging && this.chargeTarget) {
@@ -276,8 +285,8 @@ export class Enemy extends Phaser.GameObjects.Container {
       return;
     }
 
-    // Phase 2: More aggressive, faster attacks
-    const preferredDist = this.bossPhase === 1 ? 200 : 150;
+    // Phase 3: Most aggressive (close distance), Phase 2: moderate, Phase 1: ranged
+    const preferredDist = this.bossPhase === 3 ? 120 : this.bossPhase === 2 ? 160 : 200;
 
     // Try to jump to reach player on platforms
     if (this.body.blocked.down && this.target!.y < this.y - 60) {
@@ -287,8 +296,10 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
 
     // Initiate charge attack when player is close and cooldown is up
+    // Phase 3 is more aggressive with charges
+    const chargeChance = this.bossPhase === 3 ? 0.04 : 0.02;
     if (dist < 250 && time - this.lastChargeTime > config.chargeCooldown) {
-      if (Math.random() < 0.02) {
+      if (Math.random() < chargeChance) {
         this.isCharging = true;
         this.chargeTarget = { x: this.target!.x, y: this.target!.y };
         this.lastChargeTime = time;
@@ -304,8 +315,8 @@ export class Enemy extends Phaser.GameObjects.Container {
       const dir = this.target!.x > this.x ? 1 : -1;
       this.body.setVelocityX(dir * this.speed);
     } else {
-      // Strafe side to side - faster in phase 2
-      const strafeSpeed = this.bossPhase === 1 ? 300 : 200;
+      // Strafe side to side - faster in phase 2/3
+      const strafeSpeed = this.bossPhase === 1 ? 350 : this.bossPhase === 2 ? 280 : 200;
       this.body.setVelocityX(Math.sin(time / strafeSpeed) * this.speed * 1.2);
     }
   }
@@ -731,21 +742,21 @@ export class Enemy extends Phaser.GameObjects.Container {
       this.graphics.strokeEllipse(0, 0, w + 10, h + 10);
     }
 
-    // Phase 2 indicator - darker, angrier color
-    const bodyColor = this.bossPhase === 2 ? color - 0x220000 : color;
+    // Phase indicator - gets darker and angrier in each phase
+    const bodyColor = this.bossPhase === 3 ? color - 0x330000 : this.bossPhase === 2 ? color - 0x220000 : color;
 
     // Huge menacing body
     this.graphics.fillStyle(bodyColor);
     this.graphics.fillEllipse(0, 0, w, h);
 
-    // Spiky protrusions - more in phase 2
+    // Spiky protrusions - more in higher phases
     this.graphics.fillStyle(bodyColor - 0x220000);
-    const spikeCount = this.bossPhase === 1 ? 5 : 7;
+    const spikeCount = this.bossPhase === 1 ? 5 : this.bossPhase === 2 ? 7 : 9;
     for (let i = 0; i < spikeCount; i++) {
       const angle = (i / spikeCount) * Math.PI - Math.PI / 2;
       const spikeX = Math.cos(angle) * w * 0.5;
       const spikeY = Math.sin(angle) * h * 0.5;
-      const spikeLength = this.bossPhase === 1 ? 20 : 25;
+      const spikeLength = this.bossPhase === 1 ? 20 : this.bossPhase === 2 ? 25 : 30;
       this.graphics.fillTriangle(
         spikeX, spikeY,
         spikeX + Math.cos(angle) * spikeLength, spikeY + Math.sin(angle) * spikeLength,
@@ -753,12 +764,19 @@ export class Enemy extends Phaser.GameObjects.Container {
       );
     }
 
+    // Phase 3 enrage glow
+    if (this.bossPhase === 3) {
+      const pulse = Math.sin(this.scene.time.now / 100) * 0.2 + 0.6;
+      this.graphics.lineStyle(3, 0xff4400, pulse);
+      this.graphics.strokeEllipse(0, 0, w + 5, h + 5);
+    }
+
     // Armored head
     this.graphics.fillStyle(bodyColor + 0x111111);
     this.graphics.fillEllipse(w * 0.3 * dir, -h * 0.1, w * 0.4, h * 0.5);
 
-    // Glowing eyes - brighter when charging or in phase 2
-    const eyeColor = this.isCharging ? 0xff0000 : (this.bossPhase === 2 ? 0xff6600 : 0xffff00);
+    // Glowing eyes - brighter based on phase and charging
+    const eyeColor = this.isCharging ? 0xff0000 : (this.bossPhase === 3 ? 0xff2200 : this.bossPhase === 2 ? 0xff6600 : 0xffff00);
     this.graphics.fillStyle(eyeColor);
     this.graphics.fillCircle(w * 0.35 * dir, -h * 0.2, 8);
     this.graphics.fillCircle(w * 0.25 * dir, -h * 0.15, 6);
@@ -855,9 +873,18 @@ export class Enemy extends Phaser.GameObjects.Container {
   canShoot(): boolean {
     if (this.enemyType !== 'spitter' && this.enemyType !== 'boss') return false;
 
-    const config = this.enemyType === 'boss' ? ENEMY_CONFIG.boss : ENEMY_CONFIG.spitter;
     const now = this.scene.time.now;
-    return now - this.lastFireTime >= config.fireRate * 1000;
+
+    if (this.enemyType === 'boss') {
+      // Boss uses 3-phase fire rates
+      const config = ENEMY_CONFIG.boss;
+      const fireRate = this.bossPhase === 1 ? config.fireRatePhase1 :
+                       this.bossPhase === 2 ? config.fireRatePhase2 :
+                       config.fireRatePhase3;
+      return now - this.lastFireTime >= fireRate * 1000;
+    }
+
+    return now - this.lastFireTime >= ENEMY_CONFIG.spitter.fireRate * 1000;
   }
 
   markShot(): void {
@@ -886,10 +913,10 @@ export class Enemy extends Phaser.GameObjects.Container {
     return this.bossPhase;
   }
 
-  // Boss fires multiple projectiles in phase 2
+  // Boss fires multiple projectiles in phase 2+ (single shot in phase 1)
   getBurstCount(): number {
     if (this.enemyType !== 'boss') return 1;
-    return this.bossPhase === 2 ? 3 : 1;
+    return this.bossPhase >= 2 ? 3 : 1;
   }
 
   isSplitter(): boolean {

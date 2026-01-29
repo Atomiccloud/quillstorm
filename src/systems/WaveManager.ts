@@ -99,10 +99,11 @@ export class WaveManager {
   private getCurrentSpawnInterval(): number {
     if (this.totalSpawns <= 1) return WAVE_CONFIG.spawnIntervalStart;
 
-    // Starting interval decreases each wave
+    // Starting interval decreases every N waves (scalingInterval)
+    const scalingSteps = Math.floor((this.currentWave - 1) / WAVE_CONFIG.scalingInterval);
     const startInterval = Math.max(
       WAVE_CONFIG.spawnIntervalMinStart,
-      WAVE_CONFIG.spawnIntervalStart - (this.currentWave - 1) * WAVE_CONFIG.spawnIntervalDecayPerWave
+      WAVE_CONFIG.spawnIntervalStart - scalingSteps * WAVE_CONFIG.spawnIntervalDecayPerWave
     );
     const endInterval = WAVE_CONFIG.spawnIntervalEnd;
 

@@ -140,22 +140,23 @@ Your quill percentage determines your state:
 - **Damage**: 25 (contact)
 - **Speed**: 100
 - **Projectile Speed**: 400
-- **Fire Rate**: 0.6 sec between shots
 - **Charge Speed**: 350
 - **Points**: 500
 - **Appears**: Every 5 waves (5, 10, 15, 20...)
 
-**Two-Phase Fight:**
+**Three-Phase Fight:**
 
-| Phase | HP | Behavior |
-|-------|-----|----------|
-| Phase 1 | >50% | Maintains distance, strafes, fires single shots |
-| Phase 2 | ≤50% | More aggressive, fires 3-shot spread, faster strafing |
+| Phase | HP | Fire Rate | Behavior |
+|-------|-----|-----------|----------|
+| Phase 1 | >50% | 1.8 sec | Maintains distance, strafes slowly, fires single shots |
+| Phase 2 | 25-50% | 1.2 sec | More aggressive, fires 3-shot spread, faster strafing |
+| Phase 3 | ≤25% | 0.6 sec | Enraged! Rapid 3-shot bursts, relentless pursuit, double charge chance |
 
 **Special Attacks:**
-- **Charge Attack**: Boss glows red, then charges at high speed
+- **Charge Attack**: Boss glows red, then charges at high speed (more frequent in Phase 3)
 - **Jump**: Can jump to reach players on platforms
-- **Projectile Spread**: In phase 2, fires 3 projectiles in a spread pattern
+- **Projectile Spread**: In phase 2+, fires 3 projectiles in a spread pattern
+- **Enrage Glow**: In phase 3, boss pulses with orange/red glow
 
 **Boss Wave Spawning:**
 - Wave 5: Boss spawns ALONE (no minions)
@@ -190,8 +191,8 @@ Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
 | Wave Start | 2000ms between spawns | Slow trickle, time to breathe |
 | Wave End | 500ms between spawns | Intense finale |
 
-- Starting interval decreases by 30ms per wave (floor: 800ms)
-- Example: Wave 1 spawns 2000ms→500ms, Wave 20 starts at 1430ms→500ms
+- Starting interval decreases by 50ms every 2 waves (floor: 800ms)
+- Example: Wave 1-2 spawns 2000ms→500ms, Wave 9-10 starts at 1800ms→500ms
 
 ### Enemy Unlocking
 - **Wave 1**: Scurrier only
@@ -216,13 +217,15 @@ Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
 | Healer | 5 | Wave 15 |
 
 ### Stat Scaling Per Wave
-Enemies get stronger each wave (capped at multiplier):
+Enemies get stronger every 2 waves (capped at multiplier):
 
-| Stat | Per Wave | Max Cap |
-|------|----------|---------|
+| Stat | Per 2 Waves | Max Cap |
+|------|-------------|---------|
 | Health | +8% | 3.0x |
 | Damage | +5% | 3.0x |
-| Speed | +2% | 3.0x |
+| Speed | +2% | 1.5x |
+
+Note: Stats only increase on waves 3, 5, 7, 9, etc. Spawn pacing also scales every 2 waves.
 
 ---
 
