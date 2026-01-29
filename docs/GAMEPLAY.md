@@ -76,14 +76,64 @@ Your quill percentage determines your state:
 
 ### Shellback (Gray)
 - **Health**: 80
-- **Damage**: 15
-- **Speed**: 50
+- **Damage**: 15 (20 while rolling)
+- **Speed**: 50 (100 while rolling)
 - **Points**: 40
 - **Behavior**:
   - Slow, steady approach toward player
   - Can jump to reach platforms
 - **Special**: Blocks 90° frontal arc damage - attack from behind!
+- **Roll Attack**: Periodically curls into a ball and rolls toward player
+  - Fully invincible during roll
+  - Lasts 2 seconds, 6 second cooldown
+  - Triggers at 100-400px range
+  - Visual: spinning ball with yellow invincibility glow
 - **Unlocked**: Wave 5
+
+### Burrower (Dark Brown)
+- **Health**: 50
+- **Damage**: 20
+- **Speed**: 90
+- **Points**: 35
+- **Behavior**:
+  - Cycles between above-ground and underground phases
+  - Above ground: chases player like a scurrier (4 seconds)
+  - Burrows underground: nearly invisible (alpha 0.15), immune to damage, phases through platforms
+  - Moves toward player at 1.5x speed while burrowed (3 seconds)
+  - Surfaces with AOE damage (60px radius, 20 damage)
+  - Visual: dark brown mole with claws, dirt burst on surfacing
+- **Unlocked**: Wave 8
+
+### Splitter (Purple)
+- **Health**: 60
+- **Damage**: 12
+- **Speed**: 80
+- **Points**: 30
+- **Behavior**:
+  - Chases player like a slower scurrier
+  - On death, splits into 2 **Splitlings**
+  - Visual: purple blob with visible center seam and two pairs of eyes
+- **Splitlings**:
+  - Health: 20, Damage: 8, Speed: 160, Points: 10
+  - Faster and more aggressive than parent
+  - Do NOT split again
+  - Wave doesn't complete until all splitlings are dead
+- **Unlocked**: Wave 12
+
+### Healer (Green)
+- **Health**: 35
+- **Damage**: 5
+- **Speed**: 70
+- **Points**: 50
+- **Behavior**:
+  - Floats (no gravity, like swooper)
+  - Maintains ~350px distance from player
+  - Flees at 1.5x speed if player gets within 300px
+  - Heals lowest-HP ally within 200px for 12% of their max HP every 3 seconds
+  - Does NOT heal bosses
+  - Visual: green orb with white cross, pulsing aura, heal beam to target
+  - Priority target due to healing ability (high points)
+- **Unlocked**: Wave 15
 
 ### Boss (Dark Red)
 - **Health**: 300
@@ -117,8 +167,10 @@ Your quill percentage determines your state:
 
 ### Enemy Count Formula
 ```
-count = 5 × (1.2 ^ (wave - 1))
+count = min(100, 5 × (1.2 ^ (wave - 1)))
 ```
+
+Capped at 100 enemies per wave to prevent excessively long waves.
 
 | Wave | Enemies |
 |------|---------|
@@ -127,13 +179,41 @@ count = 5 × (1.2 ^ (wave - 1))
 | 10 | 24 (Boss + 2 minions) |
 | 15 | 48 (Boss + 3 minions) |
 | 20 | 95 (Boss + 4 minions) |
+| 25+ | 100 (capped) |
+
+### Spawn Pacing
+
+Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
+
+| Phase | Interval | Notes |
+|-------|----------|-------|
+| Wave Start | 2000ms between spawns | Slow trickle, time to breathe |
+| Wave End | 500ms between spawns | Intense finale |
+
+- Starting interval decreases by 30ms per wave (floor: 800ms)
+- Example: Wave 1 spawns 2000ms→500ms, Wave 20 starts at 1430ms→500ms
 
 ### Enemy Unlocking
 - **Wave 1**: Scurrier only
 - **Wave 2+**: Spitter added
 - **Wave 3+**: Swooper added
-- **Wave 5+**: Shellback added
+- **Wave 5+**: Shellback added (with roll attack)
+- **Wave 8+**: Burrower added
+- **Wave 12+**: Splitter added
+- **Wave 15+**: Healer added
 - **Every 5 waves**: Boss fight
+
+### Spawn Weights
+
+| Type | Weight | Unlock |
+|------|--------|--------|
+| Scurrier | 30 | Wave 1 |
+| Spitter | 20 | Wave 2 |
+| Swooper | 15 | Wave 3 |
+| Shellback | 12 | Wave 5 |
+| Burrower | 10 | Wave 8 |
+| Splitter | 8 | Wave 12 |
+| Healer | 5 | Wave 15 |
 
 ### Stat Scaling Per Wave
 Enemies get stronger each wave (capped at multiplier):
@@ -315,3 +395,24 @@ The arena changes after boss waves (every 5 waves):
 | Pause | Escape |
 | Mute/Unmute | M |
 | Quick Restart | R |
+
+---
+
+## Leaderboard
+
+### Score Submission
+After a game over, players can submit their score to the online leaderboard:
+1. First time: prompted to enter a name (3-20 chars, alphanumeric + spaces)
+2. Name is saved locally for future submissions
+3. Score is submitted automatically with the saved name
+4. Global and weekly ranks are displayed if the player makes the top 100
+
+### Leaderboard Types
+
+| Type | Description | Reset |
+|------|-------------|-------|
+| Global | Top 100 all-time scores | Never |
+| Weekly | Top 100 scores this week | Monday 00:00 UTC |
+
+### Offline Support
+If the submission fails (network error), the score is queued locally and retried on the next session. Pending submissions expire after 7 days.

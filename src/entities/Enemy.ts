@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ENEMY_CONFIG, ENEMY_SCALING } from '../config';
 
-export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss';
+export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer';
 
 export class Enemy extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
@@ -28,6 +28,20 @@ export class Enemy extends Phaser.GameObjects.Container {
   private chargeTarget: { x: number; y: number } | null = null;
   private lastChargeTime: number = 0;
   private bossPhase: number = 1; // Changes behavior based on health
+
+  // Shellback roll state
+  public isRolling: boolean = false;
+  private rollTimer: number = 0;
+  private lastRollTime: number = 0;
+
+  // Burrower state
+  public isBurrowed: boolean = false;
+  private burrowTimer: number = 0;
+  private burrowPhase: 'above' | 'burrowing' | 'underground' | 'surfacing' = 'above';
+
+  // Healer state
+  private lastHealTime: number = 0;
+  public healTarget: Enemy | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -74,8 +88,8 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.body.setSize(config.width, config.height);
     this.body.setOffset(-config.width / 2, -config.height / 2);
 
-    // Swooper flies
-    if (type === 'swooper') {
+    // Swooper and healer fly
+    if (type === 'swooper' || type === 'healer') {
       this.body.setAllowGravity(false);
     } else {
       this.body.setCollideWorldBounds(true);
@@ -110,10 +124,22 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.updateSwooper(time);
         break;
       case 'shellback':
-        this.updateShellback();
+        this.updateShellback(time);
         break;
       case 'boss':
         this.updateBoss(time);
+        break;
+      case 'burrower':
+        this.updateBurrower(time);
+        break;
+      case 'splitter':
+        this.updateSplitter();
+        break;
+      case 'splitling':
+        this.updateSplitling();
+        break;
+      case 'healer':
+        this.updateHealer(time);
         break;
     }
 
@@ -189,8 +215,37 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
   }
 
-  private updateShellback(): void {
-    // Slow but steady approach
+  private updateShellback(time: number): void {
+    const config = ENEMY_CONFIG.shellback;
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
+
+    if (this.isRolling) {
+      // Rolling: move toward player at 2x speed, invincible
+      this.rollTimer -= this.scene.game.loop.delta;
+      const dir = this.target!.x > this.x ? 1 : -1;
+      this.body.setVelocityX(dir * config.rollSpeed);
+
+      if (this.rollTimer <= 0) {
+        this.isRolling = false;
+        this.lastRollTime = time;
+      }
+      return;
+    }
+
+    // Check if should start rolling
+    if (
+      this.body.blocked.down &&
+      dist >= config.rollMinDist &&
+      dist <= config.rollMaxDist &&
+      time - this.lastRollTime > config.rollCooldown &&
+      Math.random() < 0.015
+    ) {
+      this.isRolling = true;
+      this.rollTimer = config.rollDuration;
+      return;
+    }
+
+    // Normal slow approach
     const dir = this.target!.x > this.x ? 1 : -1;
     this.body.setVelocityX(dir * this.speed);
     this.tryJump();
@@ -255,6 +310,146 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
   }
 
+  private updateBurrower(_time: number): void {
+    const config = ENEMY_CONFIG.burrower;
+
+    switch (this.burrowPhase) {
+      case 'above':
+        // Chase player like scurrier while above ground
+        {
+          const dir = this.target!.x > this.x ? 1 : -1;
+          this.body.setVelocityX(dir * this.speed);
+          this.tryJump();
+
+          this.burrowTimer += this.scene.game.loop.delta;
+          if (this.burrowTimer >= config.surfaceDuration) {
+            this.burrowPhase = 'burrowing';
+            this.burrowTimer = 0;
+          }
+        }
+        break;
+
+      case 'burrowing':
+        // Quick transition to underground
+        this.isBurrowed = true;
+        this.setAlpha(0.15);
+        this.body.setAllowGravity(false);
+        this.body.setVelocityY(0);
+        this.burrowPhase = 'underground';
+        this.burrowTimer = 0;
+        break;
+
+      case 'underground':
+        // Move toward player invisibly
+        {
+          const dir = this.target!.x > this.x ? 1 : -1;
+          this.body.setVelocityX(dir * this.speed * 1.5);
+
+          // Surface when close to player or timer expires
+          const dist = Math.abs(this.target!.x - this.x);
+          this.burrowTimer += this.scene.game.loop.delta;
+
+          if (dist < 60 || this.burrowTimer >= config.burrowDuration) {
+            this.burrowPhase = 'surfacing';
+            this.burrowTimer = 0;
+          }
+        }
+        break;
+
+      case 'surfacing':
+        // Emerge with AOE damage - handled by GameScene
+        this.isBurrowed = false;
+        this.setAlpha(1);
+        this.body.setAllowGravity(true);
+        this.body.setVelocityX(0);
+        this.body.setVelocityY(-300); // Pop up
+        this.burrowPhase = 'above';
+        this.burrowTimer = 0;
+        // Flag that we just surfaced (GameScene checks this)
+        this._justSurfaced = true;
+        break;
+    }
+  }
+
+  // Flag for GameScene to detect surfacing event
+  public _justSurfaced: boolean = false;
+
+  private updateSplitter(): void {
+    // Slower scurrier behavior - chase player
+    const dir = this.target!.x > this.x ? 1 : -1;
+    this.body.setVelocityX(dir * this.speed);
+    this.tryJump();
+  }
+
+  private updateSplitling(): void {
+    // Faster, more aggressive chase
+    const dir = this.target!.x > this.x ? 1 : -1;
+    this.body.setVelocityX(dir * this.speed);
+    this.tryJump();
+  }
+
+  private updateHealer(time: number): void {
+    const config = ENEMY_CONFIG.healer;
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
+
+    // Flee from player if too close
+    if (dist < config.fleeRange) {
+      const fleeDir = this.target!.x > this.x ? -1 : 1;
+      this.body.setVelocityX(fleeDir * this.speed * 1.5);
+      // Float upward to escape
+      if (this.y > 150) {
+        this.body.setVelocityY(-this.speed);
+      }
+    } else if (dist > config.preferredDist + 100) {
+      // Move closer if too far
+      const dir = this.target!.x > this.x ? 1 : -1;
+      this.body.setVelocityX(dir * this.speed * 0.5);
+    } else {
+      // Hover at preferred distance, gentle bob
+      this.body.setVelocityX(Math.sin(time / 800) * this.speed * 0.3);
+    }
+
+    // Float at a consistent height
+    const targetY = this.target!.y - 120;
+    const dy = targetY - this.y;
+    this.body.setVelocityY(Phaser.Math.Clamp(dy * 1.5, -this.speed, this.speed));
+
+    // Heal logic - find lowest HP ally in range (not boss, not self)
+    if (time - this.lastHealTime >= config.healCooldown) {
+      this.healTarget = null;
+      const allies = this.scene.children.list.filter(
+        (obj) => obj instanceof Enemy && obj !== this && !obj.isDead() && !obj.isBoss()
+      ) as Enemy[];
+
+      let lowestHPAlly: Enemy | null = null;
+      let lowestHPPercent = 1;
+
+      for (const ally of allies) {
+        const allyDist = Phaser.Math.Distance.Between(this.x, this.y, ally.x, ally.y);
+        if (allyDist <= config.healRange) {
+          const hpPercent = ally.health / ally.maxHealth;
+          if (hpPercent < lowestHPPercent && hpPercent < 1) {
+            lowestHPPercent = hpPercent;
+            lowestHPAlly = ally;
+          }
+        }
+      }
+
+      if (lowestHPAlly) {
+        // Heal the ally
+        const healAmount = Math.floor(lowestHPAlly.maxHealth * config.healPercent);
+        lowestHPAlly.health = Math.min(lowestHPAlly.maxHealth, lowestHPAlly.health + healAmount);
+        this.healTarget = lowestHPAlly;
+        this.lastHealTime = time;
+        // _justHealed flag for GameScene sound/visual
+        this._justHealed = true;
+      }
+    }
+  }
+
+  // Flag for GameScene to detect heal event
+  public _justHealed: boolean = false;
+
   private tryJump(): void {
     // Only jump if on the ground and player is above
     if (!this.body.blocked.down || !this.target) return;
@@ -291,6 +486,18 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
       case 'boss':
         this.drawBoss(w, h, dir, config.color);
+        break;
+      case 'burrower':
+        this.drawBurrower(w, h, dir, config.color);
+        break;
+      case 'splitter':
+        this.drawSplitter(w, h, dir, config.color);
+        break;
+      case 'splitling':
+        this.drawSplitling(w, h, dir, config.color);
+        break;
+      case 'healer':
+        this.drawHealer(w, h, dir, config.color);
         break;
     }
 
@@ -363,6 +570,27 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   private drawShellback(w: number, h: number, dir: number, color: number): void {
+    if (this.isRolling) {
+      // Rolling: curled ball with spin lines
+      this.graphics.fillStyle(color - 0x222222);
+      const rollSize = Math.max(w, h) * 0.6;
+      this.graphics.fillCircle(0, 0, rollSize);
+
+      // Shell pattern on ball
+      this.graphics.lineStyle(2, color);
+      for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2 + (this.scene.time.now / 100);
+        this.graphics.beginPath();
+        this.graphics.arc(0, 0, rollSize * 0.6, angle, angle + Math.PI * 0.3);
+        this.graphics.strokePath();
+      }
+
+      // Invincibility glow
+      this.graphics.lineStyle(3, 0xffff00, 0.6);
+      this.graphics.strokeCircle(0, 0, rollSize + 4);
+      return;
+    }
+
     // Shell (back)
     this.graphics.fillStyle(color - 0x222222);
     this.graphics.fillEllipse(-w * 0.1 * dir, 0, w * 0.9, h);
@@ -387,6 +615,113 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.graphics.fillStyle(color + 0x111111);
     this.graphics.fillRect(-w * 0.3, h * 0.3, 10, 8);
     this.graphics.fillRect(w * 0.1, h * 0.3, 10, 8);
+  }
+
+  private drawBurrower(w: number, h: number, dir: number, color: number): void {
+    if (this.isBurrowed) {
+      // When burrowed: just small dirt mound indicator
+      this.graphics.fillStyle(0x443322, 0.3);
+      this.graphics.fillEllipse(0, h * 0.3, w * 0.8, 8);
+      return;
+    }
+
+    // Mole body
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w, h * 0.85);
+
+    // Snout
+    this.graphics.fillStyle(0xffccaa);
+    this.graphics.fillEllipse(w * 0.35 * dir, h * 0.1, 12, 8);
+    // Nose
+    this.graphics.fillStyle(0x331111);
+    this.graphics.fillCircle(w * 0.42 * dir, h * 0.1, 3);
+
+    // Small beady eyes
+    this.graphics.fillStyle(0x000000);
+    this.graphics.fillCircle(w * 0.2 * dir, -h * 0.15, 3);
+
+    // Big digging claws
+    this.graphics.fillStyle(0xddccaa);
+    this.graphics.fillTriangle(
+      w * 0.3 * dir, h * 0.35,
+      w * 0.45 * dir, h * 0.5,
+      w * 0.15 * dir, h * 0.5
+    );
+    this.graphics.fillTriangle(
+      -w * 0.1 * dir, h * 0.35,
+      w * 0.05 * dir, h * 0.5,
+      -w * 0.25 * dir, h * 0.5
+    );
+  }
+
+  private drawSplitter(w: number, h: number, _dir: number, color: number): void {
+    // Blob body with visible seam
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w, h);
+
+    // Center seam showing it can split
+    this.graphics.lineStyle(2, 0x000000, 0.6);
+    this.graphics.beginPath();
+    this.graphics.moveTo(0, -h * 0.5);
+    this.graphics.lineTo(0, h * 0.5);
+    this.graphics.strokePath();
+
+    // Two pairs of eyes (one on each side of seam)
+    this.graphics.fillStyle(0xffffff);
+    this.graphics.fillCircle(-w * 0.15, -h * 0.15, 5);
+    this.graphics.fillCircle(w * 0.15, -h * 0.15, 5);
+    this.graphics.fillStyle(0x000000);
+    this.graphics.fillCircle(-w * 0.15, -h * 0.15, 3);
+    this.graphics.fillCircle(w * 0.15, -h * 0.15, 3);
+
+    // Jiggly aura
+    const pulse = Math.sin(this.scene.time.now / 200) * 2;
+    this.graphics.lineStyle(1, color + 0x222222, 0.4);
+    this.graphics.strokeEllipse(0, 0, w + pulse, h + pulse);
+  }
+
+  private drawSplitling(w: number, h: number, _dir: number, color: number): void {
+    // Small blob
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w, h);
+
+    // Single eye
+    this.graphics.fillStyle(0xffffff);
+    this.graphics.fillCircle(0, -h * 0.15, 4);
+    this.graphics.fillStyle(0x000000);
+    this.graphics.fillCircle(0, -h * 0.15, 2);
+  }
+
+  private drawHealer(w: number, h: number, _dir: number, color: number): void {
+    // Floating orb body
+    this.graphics.fillStyle(color);
+    this.graphics.fillCircle(0, 0, w * 0.45);
+
+    // White cross (healer symbol)
+    this.graphics.fillStyle(0xffffff, 0.9);
+    this.graphics.fillRect(-3, -h * 0.25, 6, h * 0.5);
+    this.graphics.fillRect(-w * 0.25, -3, w * 0.5, 6);
+
+    // Pulsing aura
+    const pulse = Math.sin(this.scene.time.now / 300) * 0.2 + 0.3;
+    this.graphics.lineStyle(2, 0x90ee90, pulse);
+    this.graphics.strokeCircle(0, 0, w * 0.55);
+
+    // Heal beam to target
+    if (this.healTarget && !this.healTarget.isDead()) {
+      const dx = this.healTarget.x - this.x;
+      const dy = this.healTarget.y - this.y;
+      this.graphics.lineStyle(2, 0x00ff00, 0.6);
+      this.graphics.beginPath();
+      this.graphics.moveTo(0, 0);
+      this.graphics.lineTo(dx, dy);
+      this.graphics.strokePath();
+
+      // Clear target after drawing beam briefly
+      if (this.scene.time.now - this.lastHealTime > 300) {
+        this.healTarget = null;
+      }
+    }
   }
 
   private drawBoss(w: number, h: number, dir: number, color: number): void {
@@ -477,6 +812,17 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   takeDamage(amount: number, fromAngle?: number): boolean {
+    // Burrowed enemies are immune to damage
+    if (this.isBurrowed) {
+      return false;
+    }
+
+    // Rolling shellback is invincible
+    if (this.isRolling) {
+      this.scene.cameras.main.shake(50, 0.002);
+      return false;
+    }
+
     // Shellback blocks frontal damage
     if (this.enemyType === 'shellback' && fromAngle !== undefined) {
       const facingAngle = this.facingRight ? 0 : Math.PI;
@@ -544,5 +890,21 @@ export class Enemy extends Phaser.GameObjects.Container {
   getBurstCount(): number {
     if (this.enemyType !== 'boss') return 1;
     return this.bossPhase === 2 ? 3 : 1;
+  }
+
+  isSplitter(): boolean {
+    return this.enemyType === 'splitter';
+  }
+
+  isBurrower(): boolean {
+    return this.enemyType === 'burrower';
+  }
+
+  isHealer(): boolean {
+    return this.enemyType === 'healer';
+  }
+
+  getRollDamage(): number {
+    return ENEMY_CONFIG.shellback.rollDamage;
   }
 }

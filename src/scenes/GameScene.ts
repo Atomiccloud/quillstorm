@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -127,6 +127,12 @@ export class GameScene extends Phaser.Scene {
         if (enemy.enemyType === 'swooper') {
           return enemy.isDiving;
         }
+        if (enemy.enemyType === 'healer') {
+          return false;
+        }
+        if (enemy.isBurrowed) {
+          return false;
+        }
         return true;
       },
       this
@@ -137,7 +143,7 @@ export class GameScene extends Phaser.Scene {
     // Player collides with platforms
     this.physics.add.collider(this.player, this.platforms);
 
-    // Enemies collide with platforms (swoopers only when diving)
+    // Enemies collide with platforms (exceptions for flying/burrowed enemies)
     this.physics.add.collider(
       this.waveManager.enemies,
       this.platforms,
@@ -147,6 +153,14 @@ export class GameScene extends Phaser.Scene {
         // Swoopers can phase through platforms when hovering, only collide when diving
         if (enemy.enemyType === 'swooper') {
           return enemy.isDiving;
+        }
+        // Healers float, no platform collision
+        if (enemy.enemyType === 'healer') {
+          return false;
+        }
+        // Burrowed enemies phase through platforms
+        if (enemy.isBurrowed) {
+          return false;
         }
         return true;
       },
@@ -262,6 +276,9 @@ export class GameScene extends Phaser.Scene {
     // Handle enemy shooting
     this.handleEnemyShooting();
 
+    // Handle new enemy mechanics (burrower AOE, healer sounds, shellback roll sounds)
+    this.handleNewEnemyMechanics();
+
     // Check for wave completion
     if (!this.isChoosingUpgrade && this.waveManager.isWaveComplete()) {
       this.waveCompleteTimer += delta;
@@ -318,6 +335,68 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private handleNewEnemyMechanics(): void {
+    this.waveManager.enemies.getChildren().forEach((enemyObj) => {
+      const enemy = enemyObj as Enemy;
+      if (enemy.isDead()) return;
+
+      // Burrower surfacing AOE
+      if (enemy._justSurfaced) {
+        enemy._justSurfaced = false;
+        AudioManager.playBurrowSurface();
+        const config = ENEMY_CONFIG.burrower;
+
+        // AOE damage to player if in range
+        const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+        if (dist <= config.surfaceRadius) {
+          if (this.player.takeDamage(config.surfaceDamage)) {
+            AudioManager.playPlayerDamage();
+          }
+        }
+
+        // Visual: dirt burst effect
+        this.spawnBurrowEffect(enemy.x, enemy.y, config.surfaceRadius);
+      }
+
+      // Healer heal sound
+      if (enemy._justHealed) {
+        enemy._justHealed = false;
+        AudioManager.playHeal();
+      }
+    });
+  }
+
+  private spawnBurrowEffect(x: number, y: number, radius: number): void {
+    // Dirt burst particles
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const dirt = this.add.circle(x, y, 5, 0x8b6914);
+
+      this.tweens.add({
+        targets: dirt,
+        x: x + Math.cos(angle) * radius * 0.8,
+        y: y + Math.sin(angle) * radius * 0.6 - 20,
+        alpha: 0,
+        scale: 0.3,
+        duration: 400,
+        ease: 'Power2',
+        onComplete: () => dirt.destroy(),
+      });
+    }
+
+    // Ground ring
+    const ring = this.add.circle(x, y, 10, 0x8b6914, 0);
+    ring.setStrokeStyle(3, 0x654321);
+    this.tweens.add({
+      targets: ring,
+      scale: radius / 10,
+      alpha: 0,
+      duration: 350,
+      ease: 'Power1',
+      onComplete: () => ring.destroy(),
+    });
+  }
+
   private onQuillHitEnemy(quillObj: Phaser.GameObjects.GameObject, enemyObj: Phaser.GameObjects.GameObject): void {
     const quill = quillObj as Quill;
     const enemy = enemyObj as Enemy;
@@ -358,6 +437,12 @@ export class GameScene extends Phaser.Scene {
       this.hud.addScore(enemy.points);
       this.spawnDeathParticles(enemy.x, enemy.y);
 
+      // Splitter splits into 2 splitlings on death
+      if (enemy.isSplitter()) {
+        AudioManager.playSplit();
+        this.waveManager.spawnSplitlings(enemy.x, enemy.y);
+      }
+
       // Chance to drop quill pickup
       if (Math.random() < 0.3) {
         this.spawnQuillPickup(enemy.x, enemy.y);
@@ -375,7 +460,13 @@ export class GameScene extends Phaser.Scene {
 
     if (enemy.isDead()) return;
 
-    if (this.player.takeDamage(enemy.damage)) {
+    // Burrowed enemies don't deal contact damage
+    if (enemy.isBurrowed) return;
+
+    // Rolling shellback deals roll damage instead of normal damage
+    const damage = enemy.isRolling ? enemy.getRollDamage() : enemy.damage;
+
+    if (this.player.takeDamage(damage)) {
       AudioManager.playPlayerDamage();
     }
   }
@@ -718,6 +809,11 @@ export class GameScene extends Phaser.Scene {
           AudioManager.playEnemyDeath();
           this.hud.addScore(enemy.points);
           this.spawnDeathParticles(enemy.x, enemy.y);
+          // Splitter splits on death from companion quills too
+          if (enemy.isSplitter()) {
+            AudioManager.playSplit();
+            this.waveManager.spawnSplitlings(enemy.x, enemy.y);
+          }
         } else {
           AudioManager.playHit();
         }
