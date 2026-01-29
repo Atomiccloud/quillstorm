@@ -151,13 +151,16 @@ export const ENEMY_CONFIG = {
     fleeRange: 300, // flees when player is within this range
     preferredDist: 350, // tries to stay this far from player
   },
-  // Boss - big, mean, multi-phase
+  // Boss - big, mean, 3-phase fight
   boss: {
     health: 300,
     damage: 25,
     speed: 100,
     projectileSpeed: 400,
-    fireRate: 0.6, // Seconds between shots (faster)
+    // 3-phase fire rates: Phase 1 (100-50%), Phase 2 (50-25%), Phase 3 (<25%)
+    fireRatePhase1: 1.8, // Slow single shots
+    fireRatePhase2: 1.2, // Faster triple shots
+    fireRatePhase3: 0.6, // Enraged rapid triple shots
     points: 500,
     color: 0x8b0000,
     width: 100,
@@ -174,8 +177,9 @@ export const WAVE_CONFIG = {
   // Spawn pacing - ramps from slow start to fast finish within each wave
   spawnIntervalStart: 2000, // ms between spawns at wave start
   spawnIntervalEnd: 500, // ms between spawns at wave end
-  spawnIntervalDecayPerWave: 30, // start interval decreases by this per wave
+  spawnIntervalDecayPerWave: 50, // start interval decreases by this per scaling step
   spawnIntervalMinStart: 800, // floor for starting interval
+  scalingInterval: 2, // Stats and spawn pacing scale every N waves
   waveDelay: 3000, // ms between waves
   bossWaveInterval: 5, // Boss every N waves
 };
