@@ -44,7 +44,8 @@ export class Enemy extends Phaser.GameObjects.Container {
   // Burrower state
   public isBurrowed: boolean = false;
   private burrowTimer: number = 0;
-  private burrowPhase: 'above' | 'burrowing' | 'underground' | 'surfacing' = 'above';
+  private burrowPhase: 'above' | 'burrowing' | 'underground' | 'warning' | 'surfacing' = 'above';
+  private surfaceTarget: { x: number; y: number } | null = null;
 
   // Healer state
   private lastHealTime: number = 0;
@@ -211,9 +212,11 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.body.setVelocityY(-this.speed);
       }
     } else {
-      // Hover and prepare to dive
+      // Hover position - randomize to allow angled dives
+      // Sometimes hover directly above, sometimes offset to the side
+      const hoverOffset = Math.sin(time / 800) * 150; // Wider patrol range
       const targetY = this.target!.y - 150;
-      const targetX = this.target!.x + Math.sin(time / 500) * 100;
+      const targetX = this.target!.x + hoverOffset;
 
       // Move toward hover position
       const dx = targetX - this.x;
@@ -223,10 +226,17 @@ export class Enemy extends Phaser.GameObjects.Container {
         Phaser.Math.Clamp(dy * 2, -this.speed, this.speed)
       );
 
-      // Start dive if above and close horizontally
-      if (Math.abs(dx) < 50 && this.y < this.target!.y - 100) {
-        this.isDiving = true;
-        this.diveTarget = { x: this.target!.x, y: this.target!.y };
+      // Distance from actual player position
+      const playerDx = this.target!.x - this.x;
+
+      // Start dive - can dive from angles now, not just directly above
+      // Allows dives within 150px horizontal range when above player
+      if (Math.abs(playerDx) < 150 && this.y < this.target!.y - 80 && Math.abs(dy) < 30) {
+        // Random chance to dive each frame when in position
+        if (Math.random() < 0.02) {
+          this.isDiving = true;
+          this.diveTarget = { x: this.target!.x, y: this.target!.y };
+        }
       }
     }
   }
@@ -279,6 +289,14 @@ export class Enemy extends Phaser.GameObjects.Container {
       this.bossPhase = 2; // Triple shot but still slower
     } else {
       this.bossPhase = 3; // Enraged rapid triple shots
+    }
+
+    // Stuck detection - blocked from above (under a platform)
+    if (this.body.blocked.up) {
+      // Move horizontally toward player to escape from under the platform
+      const dir = this.target!.x > this.x ? 1 : -1;
+      this.body.setVelocityX(dir * this.speed * 1.5);
+      this.body.setVelocityY(0); // Stop trying to go up
     }
 
     // Stuck detection - if on platform above player and not moving much
@@ -400,9 +418,43 @@ export class Enemy extends Phaser.GameObjects.Container {
           const dist = Math.abs(this.target!.x - this.x);
           this.burrowTimer += this.scene.game.loop.delta;
 
-          if (dist < 60 || this.burrowTimer >= config.burrowDuration) {
+          if (dist < 120 || this.burrowTimer >= config.burrowDuration) {
+            // Calculate surface position - offset from player, on their platform level
+            const approachDir = this.x < this.target!.x ? -1 : 1; // Opposite of approach
+            const offset = 50 + Math.random() * 40; // 50-90px offset
+            let surfaceX = this.target!.x + (approachDir * offset);
+
+            // Clamp to screen bounds
+            surfaceX = Math.max(80, Math.min(surfaceX, 1360));
+
+            // Use player's Y position (they're likely on a platform)
+            this.surfaceTarget = { x: surfaceX, y: this.target!.y + 20 };
+            this.burrowPhase = 'warning';
+            this.burrowTimer = 0;
+          }
+        }
+        break;
+
+      case 'warning':
+        // Brief warning phase - dirt particles show where burrower will emerge
+        {
+          // Move to surface position
+          this.x = this.surfaceTarget!.x;
+          this.y = this.surfaceTarget!.y + 30; // Slightly below surface
+          this.body.setVelocity(0, 0);
+
+          this.burrowTimer += this.scene.game.loop.delta;
+
+          // Flag for GameScene to spawn dirt particles
+          if (this.burrowTimer < 100) {
+            this._showingWarning = true;
+          }
+
+          // After warning duration, surface
+          if (this.burrowTimer >= 600) { // 600ms warning
             this.burrowPhase = 'surfacing';
             this.burrowTimer = 0;
+            this._showingWarning = false;
           }
         }
         break;
@@ -413,9 +465,10 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.setAlpha(1);
         this.body.setAllowGravity(true);
         this.body.setVelocityX(0);
-        this.body.setVelocityY(-300); // Pop up
+        this.body.setVelocityY(-350); // Pop up with more force
         this.burrowPhase = 'above';
         this.burrowTimer = 0;
+        this.surfaceTarget = null;
         // Flag that we just surfaced (GameScene checks this)
         this._justSurfaced = true;
         break;
@@ -424,6 +477,8 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   // Flag for GameScene to detect surfacing event
   public _justSurfaced: boolean = false;
+  // Flag for warning dirt particles
+  public _showingWarning: boolean = false;
 
   private updateSplitter(): void {
     // Slower scurrier behavior - chase player
