@@ -202,12 +202,15 @@ export const WAVE_CONFIG = {
   bossWaveInterval: 5, // Boss every N waves
 };
 
-// Enemy stat scaling per wave - keeps progression challenging
+// Enemy stat scaling per wave - quadratic scaling to match player power growth
 export const ENEMY_SCALING = {
-  healthPerWave: 0.20,     // +20% health per wave (was 0.08)
-  damagePerWave: 0.12,     // +12% damage per wave (was 0.05)
-  speedPerWave: 0.03,      // +3% speed per wave
-  maxScaleMultiplier: 10.0, // Cap at 10x base stats (was 3.0)
+  // Quadratic formula: multiplier = 1 + steps * linear + steps² * quadratic
+  healthLinear: 0.15,        // +15% base per 2 waves
+  healthQuadratic: 0.02,     // +2% acceleration per step²
+  damageLinear: 0.10,        // +10% base per 2 waves
+  damageQuadratic: 0.01,     // +1% acceleration per step²
+  speedPerWave: 0.03,        // +3% speed per wave (linear, capped)
+  maxScaleMultiplier: 15.0,  // Cap at 15x base stats
   // Boss-specific scaling: +50% per boss fought (wave 5: +0%, wave 10: +50%, wave 15: +100%, etc.)
   bossHealthBonusPerTier: 0.5, // +50% HP per boss tier after first
 };
@@ -286,13 +289,15 @@ export const PROSPERITY_CONFIG = {
   maxProsperity: 50,             // Cap at 50 points
 };
 
-// Infinite swarm mode (activates at level 20)
+// Infinite swarm mode (activates at wave 20)
 export const INFINITE_SWARM_CONFIG = {
   baseSpawnInterval: 600,        // Starting spawn interval (ms)
-  spawnIntervalDecayRate: 0.99,  // Decays by 1% per second (faster ramp)
-  minSpawnInterval: 150,         // Floor for spawn rate (was 200)
-  statScaleRate: 0.02,           // +2% enemy stats per second (was 0.001)
-  // After 30s: enemies have +60% stats
-  // After 60s: enemies have +120% stats
-  // After 2min: enemies have +240% stats
+  minSpawnInterval: 100,         // Floor for spawn rate
+  // Tier-based quadratic scaling - steps up every N seconds
+  tierIntervalMs: 5000,          // New difficulty tier every 5 seconds
+  tierBaseBonus: 0.15,           // First tier: +15% stats
+  tierAcceleration: 0.05,        // Each tier adds +5% more than previous
+  // Example: tier 0: +0%, tier 1: +15%, tier 2: +35%, tier 3: +60%, tier 4: +90%...
+  // Formula: totalBonus = sum of (tierBaseBonus + tier * tierAcceleration) for each tier
+  spawnIntervalReduction: 30,    // Each tier reduces spawn interval by 30ms
 };

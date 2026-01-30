@@ -249,41 +249,43 @@ Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
 | Splitter | 8 | Wave 12 |
 | Healer | 5 | Wave 15 |
 
-### Stat Scaling Per Wave
-Enemies get stronger every 2 waves (capped at multiplier):
+### Stat Scaling Per Wave (Quadratic)
 
-| Stat | Per 2 Waves | Max Cap |
-|------|-------------|---------|
-| Health | +20% | 10.0x |
-| Damage | +12% | 10.0x |
-| Speed | +3% | 1.5x |
+Enemies scale with a **quadratic formula** to match player power growth:
 
-Note: Stats only increase on waves 3, 5, 7, 9, etc. (every 2nd wave). Spawn pacing also scales every 2 waves.
+```
+healthMult = 1 + steps × 0.15 + steps² × 0.02
+damageMult = 1 + steps × 0.10 + steps² × 0.01
+speedMult = 1 + steps × 0.03 (capped at 1.5x)
+```
+
+Where `steps = floor((wave - 1) / 2)`. Max multiplier: 15x.
 
 **Example: Scurrier HP by Wave**
 
-| Wave | Steps | Multiplier | HP |
-|------|-------|------------|-----|
-| 1-2 | 0 | 1.0x | 30 |
-| 3-4 | 1 | 1.2x | 36 |
-| 5-6 | 2 | 1.4x | 42 |
-| 9-10 | 4 | 1.8x | 54 |
-| 15-16 | 7 | 2.4x | 72 |
-| 19-20 | 9 | 2.8x | 84 |
-| 46+ | 22+ | 10.0x | 300 |
+| Wave | Steps | Multiplier | HP | Notes |
+|------|-------|------------|-----|-------|
+| 1-2 | 0 | 1.0x | 30 | Base |
+| 3-4 | 1 | 1.17x | 35 | |
+| 5-6 | 2 | 1.38x | 41 | 1st boss |
+| 9-10 | 4 | 1.92x | 58 | 2nd boss |
+| 15-16 | 7 | 3.03x | 91 | 3rd boss |
+| 19-20 | 9 | 3.97x | 119 | Final wave |
+
+Note: After wave 20, infinite swarm takes over with its own scaling.
 
 ### Boss HP Scaling
 
 Bosses have base HP (300 ground, 250 flying) plus:
-1. **Wave scaling** - Same as other enemies (+20% per 2 waves)
+1. **Wave scaling** - Same quadratic formula as other enemies
 2. **Tier bonus** - +50% per boss tier after the first
 
 | Wave | Boss Tier | Wave Mult | Tier Bonus | Ground Boss HP | Flying Boss HP |
 |------|-----------|-----------|------------|----------------|----------------|
-| 5 | 0 | 1.4x | 1.0x | 420 | - |
-| 10 | 1 | 1.8x | 1.5x | 810 | 675 |
-| 15 | 2 | 2.4x | 2.0x | 1,440 | 1,200 |
-| 20 | 3 | 2.8x | 2.5x | 2,100 | 1,750 |
+| 5 | 0 | 1.38x | 1.0x | 414 | - |
+| 10 | 1 | 1.92x | 1.5x | 864 | 720 |
+| 15 | 2 | 3.03x | 2.0x | 1,818 | 1,515 |
+| 20 | 3 | 3.97x | 2.5x | 2,978 | 2,481 |
 
 ---
 
@@ -528,22 +530,36 @@ A luck-like stat that affects chest drops and critical chance.
 
 ### Infinite Swarm Mode
 
-After completing wave 20 (the 4th boss fight), the game transitions to endless mode.
+After completing wave 20 (the 4th boss fight), the game transitions to endless mode with **tier-based quadratic scaling**.
 
 - **Trigger**: Completing wave 20 activates infinite swarm
-- **Spawn Rate**: Starts at 600ms, decays by 1%/sec to minimum 150ms
-- **Difficulty**: Enemy stats scale +2% per second
 - **No Wave Breaks**: Continuous spawning, no wave-end upgrades
 - **Upgrades**: Only from level-ups and treasure chests
+- **Goal**: Survive as long as possible until overwhelmed
 
-**Difficulty Timeline:**
-| Time | Enemy Stats | Spawn Rate |
-|------|-------------|------------|
-| 0s | Base | 600ms |
-| 30s | +60% | ~435ms |
-| 60s | +120% | ~315ms |
-| 2min | +240% | ~165ms |
-| 3min+ | +360%+ | 150ms (floor) |
+**Tier-Based Scaling:**
+
+Every 5 seconds, difficulty increases to a new tier. Each tier adds more than the previous:
+
+```
+Tier bonus = tier × 15% + tier × (tier-1) × 2.5%
+Spawn interval = max(100ms, 600ms - tier × 30ms)
+```
+
+| Time | Tier | Stat Bonus | Spawn Rate | Notes |
+|------|------|------------|------------|-------|
+| 0-5s | 0 | +0% | 600ms | Base difficulty |
+| 5-10s | 1 | +15% | 570ms | First step up |
+| 10-15s | 2 | +35% | 540ms | Accelerating |
+| 15-20s | 3 | +60% | 510ms | |
+| 20-25s | 4 | +90% | 480ms | |
+| 25-30s | 5 | +125% | 450ms | Getting hard |
+| 30-35s | 6 | +165% | 420ms | |
+| 45-50s | 9 | +315% | 330ms | Very hard |
+| 60s+ | 12+ | +510%+ | 240ms | Overwhelming |
+| 90s+ | 18+ | +1080%+ | 100ms | Nearly impossible |
+
+The quadratic acceleration means difficulty ramps slowly at first but becomes overwhelming quickly.
 
 ---
 

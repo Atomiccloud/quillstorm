@@ -67,14 +67,15 @@ export class Enemy extends Phaser.GameObjects.Container {
     // Calculate scaling steps (scales every N waves instead of every wave)
     const scalingSteps = Math.floor((wave - 1) / WAVE_CONFIG.scalingInterval);
 
-    // Calculate wave-based scaling with diminishing returns (capped at maxScaleMultiplier)
+    // Quadratic scaling: multiplier = 1 + steps * linear + steps² * quadratic
+    // This makes later waves scale faster to match player power growth
     const healthMultiplier = Math.min(
       ENEMY_SCALING.maxScaleMultiplier,
-      1 + scalingSteps * ENEMY_SCALING.healthPerWave
+      1 + scalingSteps * ENEMY_SCALING.healthLinear + scalingSteps * scalingSteps * ENEMY_SCALING.healthQuadratic
     );
     const damageMultiplier = Math.min(
       ENEMY_SCALING.maxScaleMultiplier,
-      1 + scalingSteps * ENEMY_SCALING.damagePerWave
+      1 + scalingSteps * ENEMY_SCALING.damageLinear + scalingSteps * scalingSteps * ENEMY_SCALING.damageQuadratic
     );
     const speedMultiplier = Math.min(
       1.5, // Lower cap for speed to keep game playable

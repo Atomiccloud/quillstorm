@@ -166,20 +166,36 @@ export class ProgressionManager {
     return this.infiniteSwarmActive;
   }
 
+  // Calculate current tier based on elapsed time
+  private getCurrentSwarmTier(currentTime: number): number {
+    if (!this.infiniteSwarmActive) return 0;
+    const elapsed = currentTime - this.infiniteSwarmStartTime;
+    return Math.floor(elapsed / INFINITE_SWARM_CONFIG.tierIntervalMs);
+  }
+
+  // Calculate cumulative difficulty bonus for a tier
+  // Sum of arithmetic series: tier * base + acceleration * (tier-1)*tier/2
+  private getTierBonus(tier: number): number {
+    if (tier <= 0) return 0;
+    const { tierBaseBonus, tierAcceleration } = INFINITE_SWARM_CONFIG;
+    return tier * tierBaseBonus + tierAcceleration * (tier - 1) * tier / 2;
+  }
+
   // Update infinite swarm difficulty (call each frame)
-  updateInfiniteSwarm(_currentTime: number, delta: number): void {
+  updateInfiniteSwarm(currentTime: number, _delta: number): void {
     if (!this.infiniteSwarmActive) return;
 
-    const elapsedSeconds = delta / 1000;
+    const tier = this.getCurrentSwarmTier(currentTime);
 
-    // Decay spawn interval (0.5% per second)
+    // Calculate difficulty multiplier based on tier
+    // Each tier adds increasing bonus: tier 1: +15%, tier 2: +20%, tier 3: +25%...
+    this.swarmDifficultyMultiplier = 1.0 + this.getTierBonus(tier);
+
+    // Reduce spawn interval based on tier
     this.currentSpawnInterval = Math.max(
       INFINITE_SWARM_CONFIG.minSpawnInterval,
-      this.currentSpawnInterval * Math.pow(INFINITE_SWARM_CONFIG.spawnIntervalDecayRate, elapsedSeconds * 60)
+      INFINITE_SWARM_CONFIG.baseSpawnInterval - (tier * INFINITE_SWARM_CONFIG.spawnIntervalReduction)
     );
-
-    // Increase difficulty multiplier (0.1% per second)
-    this.swarmDifficultyMultiplier += INFINITE_SWARM_CONFIG.statScaleRate * elapsedSeconds * 60;
   }
 
   getSwarmSpawnInterval(): number {
@@ -188,6 +204,10 @@ export class ProgressionManager {
 
   getSwarmDifficultyMultiplier(): number {
     return this.swarmDifficultyMultiplier;
+  }
+
+  getSwarmTier(currentTime: number): number {
+    return this.getCurrentSwarmTier(currentTime);
   }
 
   getSwarmDuration(currentTime: number): number {
