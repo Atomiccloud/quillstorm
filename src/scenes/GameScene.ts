@@ -1,27 +1,38 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
 import { Companion } from '../entities/Companion';
+import { XPOrb } from '../entities/XPOrb';
+import { TreasureChest } from '../entities/TreasureChest';
 import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { ProgressionManager } from '../systems/ProgressionManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
+import { StatsPanel } from '../ui/StatsPanel';
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
   private quillManager!: QuillManager;
   private waveManager!: WaveManager;
   private upgradeManager!: UpgradeManager;
+  private progressionManager!: ProgressionManager;
   private hud!: HUD;
+  private statsPanel!: StatsPanel;
 
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
+  private xpOrbs!: Phaser.GameObjects.Group;
+  private treasureChests!: Phaser.GameObjects.Group;
   private companions: Companion[] = [];
+
+  // Track upgrade source for different flows
+  private pendingUpgradeSource: 'wave' | 'chest' | 'levelup' | null = null;
 
   private waveCompleteTimer: number = 0;
   private isChoosingUpgrade: boolean = false;
@@ -38,7 +49,12 @@ export class GameScene extends Phaser.Scene {
 
     // Initialize systems
     this.upgradeManager = new UpgradeManager();
+    this.progressionManager = new ProgressionManager(this.upgradeManager);
     this.quillManager = new QuillManager(this, this.upgradeManager);
+
+    // Create XP orbs and treasure chest groups
+    this.xpOrbs = this.add.group({ runChildUpdate: true });
+    this.treasureChests = this.add.group({ runChildUpdate: true });
 
     // Create platforms
     this.createPlatforms();
@@ -55,6 +71,7 @@ export class GameScene extends Phaser.Scene {
     // Set up wave manager
     this.waveManager = new WaveManager(this);
     this.waveManager.setTarget(this.player);
+    this.waveManager.setProgressionManager(this.progressionManager);
 
     // Give quill manager access to enemies for homing quills
     this.quillManager.setEnemiesGroup(this.waveManager.enemies);
@@ -67,6 +84,10 @@ export class GameScene extends Phaser.Scene {
 
     // Create HUD
     this.hud = new HUD(this, this.player, this.quillManager, this.waveManager, this.upgradeManager);
+    this.hud.setProgressionManager(this.progressionManager);
+
+    // Create stats panel (Tab to toggle)
+    this.statsPanel = new StatsPanel(this, this.upgradeManager);
 
     // Set up collisions
     this.setupCollisions();
@@ -228,7 +249,7 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ESC', () => {
       if (this.gameOver || this.isChoosingUpgrade) return;
       this.scene.pause();
-      this.scene.launch('PauseScene');
+      this.scene.launch('PauseScene', { upgradeManager: this.upgradeManager });
     });
 
     // M to toggle mute
@@ -241,6 +262,13 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-R', () => {
       if (this.isChoosingUpgrade) return;
       this.scene.restart();
+    });
+
+    // Tab to toggle stats panel
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault(); // Prevent browser tab switching
+      if (this.gameOver || this.isChoosingUpgrade) return;
+      this.statsPanel.toggle();
     });
   }
 
@@ -275,6 +303,7 @@ export class GameScene extends Phaser.Scene {
     this.quillManager.update(time, delta);
     this.waveManager.update(time, delta);
     this.hud.update();
+    this.statsPanel.update();
 
     // Update companions
     this.companions.forEach((companion) => {
@@ -287,8 +316,8 @@ export class GameScene extends Phaser.Scene {
     // Handle new enemy mechanics (burrower AOE, healer sounds, shellback roll sounds)
     this.handleNewEnemyMechanics();
 
-    // Check for wave completion
-    if (!this.isChoosingUpgrade && this.waveManager.isWaveComplete()) {
+    // Check for wave completion (not in infinite swarm mode)
+    if (!this.isChoosingUpgrade && !this.waveManager.isInfiniteSwarm() && this.waveManager.isWaveComplete()) {
       this.waveCompleteTimer += delta;
 
       if (this.waveCompleteTimer >= WAVE_CONFIG.waveDelay) {
@@ -490,6 +519,15 @@ export class GameScene extends Phaser.Scene {
       // Chance to drop quill pickup
       if (Math.random() < 0.3) {
         this.spawnQuillPickup(enemy.x, enemy.y);
+      }
+
+      // Spawn XP orb
+      this.spawnXPOrb(enemy.x, enemy.y, enemy.isBoss());
+
+      // Chance to drop treasure chest (affected by prosperity)
+      const chestDropChance = this.progressionManager.getEffectiveChestDropChance();
+      if (Math.random() < chestDropChance) {
+        this.spawnTreasureChest(enemy.x, enemy.y);
       }
     } else {
       AudioManager.playHit();
@@ -704,8 +742,113 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private spawnXPOrb(x: number, y: number, isBoss: boolean): void {
+    const xpValue = this.progressionManager.getEnemyXPValue(isBoss, this.waveManager.currentWave);
+    const orb = new XPOrb(this, x, y, xpValue);
+    orb.setMagnetTarget(this.player);
+    this.xpOrbs.add(orb);
+
+    // Platform collision
+    this.physics.add.collider(orb, this.platforms);
+
+    // Player collection
+    this.physics.add.overlap(this.player, orb, () => {
+      if (!orb.active) return;
+      AudioManager.playXPCollect();
+
+      const levelUp = this.progressionManager.addXP(orb.getXPValue());
+      orb.destroy();
+
+      // Check for level up
+      if (levelUp) {
+        this.handleLevelUp(levelUp.newLevel);
+      }
+    });
+  }
+
+  private spawnTreasureChest(x: number, y: number): void {
+    const chest = new TreasureChest(this, x, y);
+    this.treasureChests.add(chest);
+
+    // Platform collision
+    this.physics.add.collider(chest, this.platforms);
+
+    // Player collection
+    this.physics.add.overlap(this.player, chest, () => {
+      if (chest.isCollected()) return;
+      AudioManager.playChestOpen();
+
+      chest.collect();
+
+      // Trigger chest upgrade selection
+      this.showChestUpgradeSelection();
+    });
+  }
+
+  private handleLevelUp(newLevel: number): void {
+    this.hud.showLevelUp(newLevel);
+    AudioManager.playLevelUp();
+
+    // Queue up level up upgrade selection
+    // Will be processed after current upgrade flow completes
+    if (!this.isChoosingUpgrade) {
+      this.showLevelUpUpgradeSelection();
+    }
+    // If already choosing, the pending level ups will be consumed later
+  }
+
+  private activateInfiniteSwarm(): void {
+    // Show infinite swarm start notification
+    this.hud.showInfiniteSwarmStart();
+    AudioManager.playInfiniteSwarmStart();
+
+    // Activate infinite swarm in wave manager
+    this.waveManager.activateInfiniteSwarm(this.time.now);
+  }
+
+  private showChestUpgradeSelection(): void {
+    this.isChoosingUpgrade = true;
+    this.pendingUpgradeSource = 'chest';
+
+    // Pause game and show upgrade scene with chest settings
+    this.scene.pause();
+    this.scene.launch('UpgradeScene', {
+      upgradeManager: this.upgradeManager,
+      progressionManager: this.progressionManager,
+      playerStats: {
+        health: this.player.health,
+        maxHealth: this.player.maxHealth,
+      },
+      wave: this.waveManager.currentWave,
+      source: 'chest',
+      customWeights: CHEST_CONFIG.rarityWeights,
+      guaranteeRareOrBetter: this.progressionManager.isRiggedChest(),
+    });
+  }
+
+  private showLevelUpUpgradeSelection(): void {
+    if (!this.progressionManager.consumeLevelUp()) return;
+
+    this.isChoosingUpgrade = true;
+    this.pendingUpgradeSource = 'levelup';
+
+    // Pause game and show upgrade scene
+    this.scene.pause();
+    this.scene.launch('UpgradeScene', {
+      upgradeManager: this.upgradeManager,
+      progressionManager: this.progressionManager,
+      playerStats: {
+        health: this.player.health,
+        maxHealth: this.player.maxHealth,
+      },
+      wave: this.waveManager.currentWave,
+      source: 'levelup',
+    });
+  }
+
   private showUpgradeSelection(): void {
     this.isChoosingUpgrade = true;
+    this.pendingUpgradeSource = 'wave';
     this.hud.showWaveComplete();
 
     // Pause game and show upgrade scene
@@ -717,6 +860,7 @@ export class GameScene extends Phaser.Scene {
         maxHealth: this.player.maxHealth,
       },
       wave: this.waveManager.currentWave,
+      source: 'wave',
     });
   }
 
@@ -724,15 +868,48 @@ export class GameScene extends Phaser.Scene {
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
 
+    const source = this.pendingUpgradeSource;
     this.isChoosingUpgrade = false;
+    this.pendingUpgradeSource = null;
 
     // Apply any health upgrades
     const healthBonus = this.upgradeManager.getModifier('maxHealth');
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
-    this.player.heal(20); // Small heal between waves
+
+    // Handle different upgrade sources
+    if (source === 'chest') {
+      // Chest: mark as collected for rigged tracking, resume gameplay
+      this.progressionManager.collectChest();
+      this.player.heal(10); // Small heal from chest
+      // Check for pending level ups
+      if (this.progressionManager.hasPendingLevelUp()) {
+        this.showLevelUpUpgradeSelection();
+      }
+      return;
+    }
+
+    if (source === 'levelup') {
+      // Level up: check for more pending level ups
+      if (this.progressionManager.hasPendingLevelUp()) {
+        this.showLevelUpUpgradeSelection();
+      }
+      return;
+    }
+
+    // Wave complete: proceed to next wave or infinite swarm
+    this.player.heal(20); // Heal between waves
+
+    const currentWave = this.waveManager.currentWave;
+
+    // Check for infinite swarm activation after wave 20 (4th boss)
+    if (this.progressionManager.canActivateInfiniteSwarm(currentWave)) {
+      this.time.delayedCall(500, () => {
+        this.activateInfiniteSwarm();
+      });
+      return; // Don't start another wave - infinite swarm takes over
+    }
 
     // Check if layout should change (after boss waves: 5, 10, 15, etc.)
-    const currentWave = this.waveManager.currentWave;
     if (LevelGenerator.shouldChangeLayout(currentWave)) {
       // Show layout change notification
       this.showLayoutChange(currentWave + 1);

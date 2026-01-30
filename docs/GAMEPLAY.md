@@ -419,6 +419,84 @@ The arena changes after boss waves (every 5 waves):
 
 ---
 
+## Progression System
+
+### XP and Leveling
+
+Enemies drop XP orbs on death. Collect them to level up and gain bonus upgrades.
+
+| XP Source | Base Value | Notes |
+|-----------|------------|-------|
+| Regular enemies | 5 XP | +10% per wave |
+| Boss | 50 XP | 10x multiplier |
+
+**XP Orbs:**
+- Magnetic attraction within 80px
+- Despawn after 15 seconds (warning flash at 12s)
+- Color ranges from cyan (small) to gold (large)
+
+**Level Up Formula:** `XP required = 100 × 1.15^(level-1)`
+
+| Level | XP Required |
+|-------|-------------|
+| 2 | 100 |
+| 5 | 152 |
+| 10 | 352 |
+| 15 | 813 |
+| 20 | 1,878 |
+
+**Level Up Rewards:** Each level up triggers an upgrade selection (separate from wave-end upgrades).
+
+### Treasure Chests
+
+Rare drops from enemies containing better upgrades.
+
+- **Base Drop Chance**: 1%
+- **Despawn**: 7 seconds (warning at 5s)
+- **Upgrades**: Never common, higher rare+ rates
+- **First 3 chests**: Guaranteed to contain at least one rare+ upgrade
+
+**Chest Rarity Weights:**
+| Rarity | Weight |
+|--------|--------|
+| Common | 0% |
+| Uncommon | 30% |
+| Rare | 40% |
+| Epic | 20% |
+| Legendary | 10% |
+
+### Prosperity
+
+A luck-like stat that affects multiple systems.
+
+| Prosperity | Chest Drop | Rarity Shift | Crit Bonus |
+|------------|------------|--------------|------------|
+| 0 | 1% | Base weights | +0% |
+| 10 | 6% | +10% rare+ | +5% |
+| 25 | 13.5% | +25% rare+ | +12.5% |
+| 50 (cap) | 26% | +50% rare+ | +25% |
+
+**Prosperity Upgrades:**
+| Name | Rarity | Prosperity | Other Effects |
+|------|--------|------------|---------------|
+| Lucky Find | Common | +5 | - |
+| Fortune Seeker | Uncommon | +10 | - |
+| Treasure Hunter | Rare | +15 | +5% damage |
+| Golden Touch | Epic | +25 | +10 max health |
+| Midas | Legendary | +40 | +15% damage |
+
+### Infinite Swarm Mode
+
+At player level 20, the game transitions to endless mode.
+
+- **Trigger**: Reaching level 20 activates infinite swarm
+- **Spawn Rate**: Starts at 800ms, decays to minimum 200ms
+- **Difficulty**: Enemy stats scale +0.1% per second
+- **No Wave Breaks**: Continuous spawning, no wave-end upgrades
+- **Upgrades**: Only from level-ups and treasure chests
+
+---
+
 ## Controls
 
 | Action | Keys |
@@ -431,6 +509,7 @@ The arena changes after boss waves (every 5 waves):
 | Pause | Escape |
 | Mute/Unmute | M |
 | Quick Restart | R |
+| Stats Panel | Tab |
 
 ---
 

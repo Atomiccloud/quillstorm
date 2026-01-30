@@ -170,6 +170,51 @@ export class AudioManager {
     this.playTone(90, 0.3, 'square', 0.2, 0.05);
   }
 
+  // ============ Progression System Sounds ============
+
+  // Treasure chest open - magical sparkle ascending
+  static playChestOpen(): void {
+    const notes = [523, 659, 784, 988, 1175]; // C5, E5, G5, B5, D6
+    notes.forEach((freq, i) => {
+      this.playTone(freq, 0.15, 'sine', 0.35, i * 0.06);
+    });
+    // Add sparkle
+    this.playTone(1500, 0.1, 'sine', 0.2, 0.25);
+    this.playTone(1800, 0.1, 'sine', 0.15, 0.3);
+  }
+
+  // XP orb collect - quick quiet blip
+  static playXPCollect(): void {
+    this.playTone(700, 0.04, 'sine', 0.15);
+    this.playTone(900, 0.03, 'sine', 0.1, 0.02);
+  }
+
+  // Level up - triumphant 5-note fanfare
+  static playLevelUp(): void {
+    const notes = [523, 659, 784, 1047, 1319]; // C5, E5, G5, C6, E6
+    notes.forEach((freq, i) => {
+      this.playTone(freq, 0.25, 'sine', 0.5, i * 0.12);
+    });
+    // Add bass undertone
+    this.playTone(262, 0.5, 'triangle', 0.3);
+    // Shimmer at the end
+    this.playTone(1568, 0.15, 'sine', 0.2, 0.5);
+    this.playTone(1760, 0.15, 'sine', 0.2, 0.55);
+  }
+
+  // Infinite swarm start - ominous deep drone building to tension
+  static playInfiniteSwarmStart(): void {
+    // Deep bass drone
+    this.playTone(60, 1.0, 'sawtooth', 0.4);
+    this.playTone(80, 0.8, 'square', 0.3, 0.2);
+    // Rising tension
+    this.playTone(100, 0.6, 'sawtooth', 0.35, 0.5);
+    this.playTone(120, 0.4, 'square', 0.3, 0.7);
+    // Alarm hits
+    this.playTone(200, 0.2, 'square', 0.5, 0.9);
+    this.playTone(250, 0.2, 'square', 0.5, 1.0);
+  }
+
   // ============ Volume Control ============
 
   static setVolume(volume: number): void {

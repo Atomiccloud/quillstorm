@@ -8,39 +8,55 @@ Quillstorm is built with Phaser 3 using TypeScript and Vite. The architecture fo
 
 ```
 src/
-├── main.ts                 # Game initialization, Phaser config
-├── config.ts               # All balance constants and configuration
+├── main.ts                    # Game initialization, Phaser config
+├── config.ts                  # All balance constants and configuration
 ├── entities/
-│   ├── Player.ts           # Porcupine player character
-│   ├── Enemy.ts            # All enemy types (5 types)
-│   └── Quill.ts            # Projectile/quill entity
+│   ├── Player.ts              # Porcupine player character
+│   ├── Enemy.ts               # All enemy types (5 types)
+│   ├── Quill.ts               # Projectile/quill entity
+│   └── Companion.ts           # Baby porcupine companion
 ├── systems/
-│   ├── QuillManager.ts     # Shooting, quill pool, regeneration
-│   ├── WaveManager.ts      # Enemy spawning, wave progression
-│   ├── UpgradeManager.ts   # Modifier tracking, upgrade application
-│   ├── SaveManager.ts      # LocalStorage persistence
-│   ├── AudioManager.ts     # Procedural Web Audio sounds
-│   └── LevelGenerator.ts   # Platform layout templates
+│   ├── QuillManager.ts        # Shooting, quill pool, regeneration
+│   ├── WaveManager.ts         # Enemy spawning, wave progression
+│   ├── UpgradeManager.ts      # Modifier tracking, upgrade application
+│   ├── SaveManager.ts         # LocalStorage persistence (scores + player name)
+│   ├── AudioManager.ts        # Procedural Web Audio sounds
+│   ├── LevelGenerator.ts      # Platform layout templates
+│   └── LeaderboardManager.ts  # API client, offline queue, checksum
 ├── scenes/
-│   ├── BootScene.ts        # Loading screen
-│   ├── MenuScene.ts        # Main menu
-│   ├── GameScene.ts        # Core gameplay loop
-│   ├── UpgradeScene.ts     # Upgrade selection UI
-│   ├── PauseScene.ts       # Pause menu
-│   └── GameOverScene.ts    # End screen
+│   ├── BootScene.ts           # Loading screen
+│   ├── MenuScene.ts           # Main menu
+│   ├── GameScene.ts           # Core gameplay loop
+│   ├── UpgradeScene.ts        # Upgrade selection UI
+│   ├── PauseScene.ts          # Pause menu
+│   ├── GameOverScene.ts       # End screen + score submission
+│   └── LeaderboardScene.ts    # Global/weekly leaderboard view
 ├── ui/
-│   └── HUD.ts              # Health bar, quill bar, score, wave info
+│   ├── HUD.ts                 # Health bar, quill bar, score, wave info
+│   ├── LeaderboardPanel.ts    # Scrollable leaderboard table
+│   └── NameInputModal.ts      # DOM-based name input for leaderboard
 └── data/
-    └── upgrades.ts         # 30+ upgrade definitions
+    └── upgrades.ts            # 46 upgrade definitions
+
+api/
+├── leaderboard/
+│   ├── submit.ts              # POST - Score submission (Edge Function)
+│   ├── global.ts              # GET - Global top 100 (Edge Function)
+│   └── weekly.ts              # GET - Weekly top 100 (Edge Function)
+└── _lib/
+    ├── validation.ts          # Checksum, input validation, helpers
+    └── ratelimit.ts           # Rate limiting + submission cooldown
 ```
 
 ## Scene Flow
 
 ```
 BootScene → MenuScene → GameScene ←→ UpgradeScene
-                ↓           ↓           ↓
-                ↑      PauseScene  GameOverScene
-                └──────────────────────┘
+               ↓  ↓         ↓           ↓
+               ↓  ↓    PauseScene  GameOverScene
+               ↓  ↓                     ↓
+               ↓  └── LeaderboardScene ←─┘
+               └─────────────────────────┘
 ```
 
 ## Core Systems
@@ -104,6 +120,66 @@ All game entities extend `Phaser.GameObjects.Container`:
 - Changes after boss waves
 - Minor position jitter for variety
 
+**LeaderboardManager** - Online leaderboards:
+- Submits scores to Vercel Edge Functions
+- Generates SHA256 checksum for validation
+- Offline queue with localStorage (retries on next session)
+- Fetches global and weekly top 100
+
+**ProgressionManager** - XP and leveling system:
+- Tracks XP and player level
+- Calculates XP requirements (exponential scaling)
+- Manages prosperity effects on drop rates/rarity
+- Controls infinite swarm mode activation
+- Tracks treasure chest collection and rigged chests
+
+### UI Components
+
+**HUD** - In-game information display:
+- Health bar, quill bar, XP bar
+- Wave/level display
+- Score and combo tracking
+- Infinite swarm indicator
+
+**StatsPanel** - Tab-toggleable modifier display:
+- Shows all accumulated upgrade bonuses
+- Organized by category (Combat, Defense, Movement, Special)
+- Green/red coloring for positive/negative values
+
+### Entities
+
+**XPOrb** - Collectible XP drop:
+- Magnetic attraction to player
+- Visual: cyan-to-gold based on value
+- Physics with platform collision
+
+**TreasureChest** - Rare upgrade drop:
+- 7-second despawn with warning
+- Golden pulsing glow effect
+- Triggers upgrade selection on collection
+
+## Leaderboard Backend
+
+Vercel Edge Functions backed by Vercel KV (Upstash Redis):
+
+**Storage Schema:**
+- `leaderboard:global` - Sorted set, top 100 all-time scores
+- `leaderboard:weekly:<year>:<week>` - Sorted set with TTL, resets Monday UTC
+- `ratelimit:<ip>` - Request counter with 60s TTL
+- `submission:<ip>` - Cooldown flag with 10s TTL
+
+**Security layers:**
+- Checksum validation (SHA256 of score:wave:salt)
+- Rate limiting (6 requests/60s per IP)
+- Submission cooldown (10s between submissions)
+- Score/wave bounds and proportionality check
+- Name sanitization (alphanumeric + spaces only)
+
+**Graceful degradation:**
+- All endpoints check `isKVConfigured()` before using KV
+- Dynamic `import('@vercel/kv')` prevents module-load errors
+- Returns empty results with 200 status when KV unavailable
+
 ## Physics
 
 Uses Phaser Arcade Physics:
@@ -135,7 +211,21 @@ All graphics are procedural using Phaser Graphics:
 
 ## Data Persistence
 
-LocalStorage via SaveManager:
+**LocalStorage** via SaveManager:
 - High score
 - Highest wave reached
 - Total runs
+- Player name (for leaderboard)
+- Pending leaderboard submissions (offline queue)
+
+**Vercel KV** (Upstash Redis) via LeaderboardManager:
+- Global leaderboard (top 100 all-time)
+- Weekly leaderboard (top 100, resets Monday UTC)
+- Rate limiting counters
+
+## Deployment
+
+- **Hosting**: Vercel (auto-deploys on merge to master)
+- **Preview**: PR branches get preview deployment URLs
+- **Database**: Vercel KV (Upstash Redis) - connected via Vercel dashboard
+- **Environment variables**: `KV_REST_API_URL`, `KV_REST_API_TOKEN` (set automatically by Vercel KV integration)

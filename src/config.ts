@@ -153,8 +153,8 @@ export const ENEMY_CONFIG = {
   },
   // Boss - big, mean, 3-phase fight
   boss: {
-    health: 300,
-    damage: 25,
+    health: 1200, // Significantly increased (was 300)
+    damage: 30,
     speed: 100,
     projectileSpeed: 400,
     // 3-phase fire rates: Phase 1 (100-50%), Phase 2 (50-25%), Phase 3 (<25%)
@@ -170,8 +170,8 @@ export const ENEMY_CONFIG = {
   },
   // Flying Boss - aerial menace, appears wave 10+
   flyingBoss: {
-    health: 250, // Slightly less HP since harder to hit
-    damage: 30,
+    health: 1000, // Significantly increased (was 250)
+    damage: 35,
     speed: 150, // Faster movement
     projectileSpeed: 350,
     // 3-phase fire rates like ground boss
@@ -190,24 +190,26 @@ export const ENEMY_CONFIG = {
 
 export const WAVE_CONFIG = {
   baseEnemyCount: 5,
-  enemyScalePerWave: 1.2, // Each wave has 20% more enemies
-  maxEnemiesPerWave: 100, // Cap to prevent 400+ enemy marathons
+  enemyScalePerWave: 1.15, // Each wave has 15% more enemies (was 1.2)
+  maxEnemiesPerWave: 60, // Cap to prevent marathon waves (was 100)
   // Spawn pacing - ramps from slow start to fast finish within each wave
-  spawnIntervalStart: 2000, // ms between spawns at wave start
-  spawnIntervalEnd: 500, // ms between spawns at wave end
-  spawnIntervalDecayPerWave: 50, // start interval decreases by this per scaling step
-  spawnIntervalMinStart: 800, // floor for starting interval
+  spawnIntervalStart: 1200, // ms between spawns at wave start (was 2000)
+  spawnIntervalEnd: 300, // ms between spawns at wave end (was 500)
+  spawnIntervalDecayPerWave: 100, // start interval decreases by this per scaling step (was 50)
+  spawnIntervalMinStart: 400, // floor for starting interval (was 800)
   scalingInterval: 2, // Stats and spawn pacing scale every N waves
-  waveDelay: 3000, // ms between waves
+  waveDelay: 2000, // ms between waves (was 3000)
   bossWaveInterval: 5, // Boss every N waves
 };
 
 // Enemy stat scaling per wave - keeps progression challenging
 export const ENEMY_SCALING = {
-  healthPerWave: 0.08,     // +8% health per wave
-  damagePerWave: 0.05,     // +5% damage per wave
-  speedPerWave: 0.02,      // +2% speed per wave (subtle)
-  maxScaleMultiplier: 3.0, // Cap at 3x base stats
+  healthPerWave: 0.20,     // +20% health per wave (was 0.08)
+  damagePerWave: 0.12,     // +12% damage per wave (was 0.05)
+  speedPerWave: 0.03,      // +3% speed per wave
+  maxScaleMultiplier: 10.0, // Cap at 10x base stats (was 3.0)
+  // Boss-specific scaling (applied on top of base scaling)
+  bossHealthMultiplier: 2.0, // Bosses get 2x the health scaling
 };
 
 export const UPGRADE_CONFIG = {
@@ -243,4 +245,54 @@ export const COLORS = {
     epic: 0xaa55ff,
     legendary: 0xffaa00,
   },
+  chest: 0xffd700, // Gold
+  xpOrb: 0x00ffff, // Cyan
+  xpOrbHigh: 0xffd700, // Gold for high-value orbs
+};
+
+// XP and level progression
+export const XP_CONFIG = {
+  baseXPToLevel: 100,        // XP needed for first level up
+  xpScalingFactor: 1.15,     // Each level needs 15% more XP
+  xpDropBase: 5,             // Base XP per enemy
+  xpDropBossMultiplier: 10,  // Bosses give 10x XP
+  xpOrbMagnetRange: 80,      // Pixels before orb auto-collects
+  xpOrbDespawnTime: 15000,   // 15 seconds before despawn
+  infiniteSwarmWave: 20,     // Wave threshold for infinite mode (after boss 4)
+};
+
+// Treasure chest drops
+export const CHEST_CONFIG = {
+  baseDropChance: 0.01,      // 1% base drop rate
+  despawnTime: 7000,         // 7 seconds before despawn
+  warningTime: 5000,         // Start flashing at 5 seconds
+  riggedChestCount: 3,       // First N chests guarantee rare+
+  width: 32,
+  height: 24,
+  rarityWeights: {
+    common: 0,               // Never rolls common
+    uncommon: 30,            // 30% uncommon
+    rare: 40,                // 40% rare
+    epic: 20,                // 20% epic
+    legendary: 10,           // 10% legendary
+  },
+};
+
+// Prosperity (luck) system
+export const PROSPERITY_CONFIG = {
+  chestDropBonusPerPoint: 0.005,  // +0.5% chest drop per point
+  rarityShiftPerPoint: 0.01,     // +1% rarity shift per point
+  critBonusPerPoint: 0.005,      // +0.5% crit per point
+  maxProsperity: 50,             // Cap at 50 points
+};
+
+// Infinite swarm mode (activates at level 20)
+export const INFINITE_SWARM_CONFIG = {
+  baseSpawnInterval: 600,        // Starting spawn interval (ms)
+  spawnIntervalDecayRate: 0.99,  // Decays by 1% per second (faster ramp)
+  minSpawnInterval: 150,         // Floor for spawn rate (was 200)
+  statScaleRate: 0.02,           // +2% enemy stats per second (was 0.001)
+  // After 30s: enemies have +60% stats
+  // After 60s: enemies have +120% stats
+  // After 2min: enemies have +240% stats
 };
