@@ -249,7 +249,7 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-ESC', () => {
       if (this.gameOver || this.isChoosingUpgrade) return;
       this.scene.pause();
-      this.scene.launch('PauseScene');
+      this.scene.launch('PauseScene', { upgradeManager: this.upgradeManager });
     });
 
     // M to toggle mute
@@ -303,6 +303,7 @@ export class GameScene extends Phaser.Scene {
     this.quillManager.update(time, delta);
     this.waveManager.update(time, delta);
     this.hud.update();
+    this.statsPanel.update();
 
     // Update companions
     this.companions.forEach((companion) => {

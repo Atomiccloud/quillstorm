@@ -77,6 +77,17 @@ export class StatsPanel {
     this.container.setVisible(false);
   }
 
+  getVisible(): boolean {
+    return this.isVisible;
+  }
+
+  // Call this in the game loop to keep stats fresh
+  update(): void {
+    if (this.isVisible) {
+      this.updateStats();
+    }
+  }
+
   updateStats(): void {
     // Clear old stat texts
     this.statTexts.forEach(text => text.destroy());

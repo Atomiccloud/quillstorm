@@ -190,15 +190,15 @@ export const ENEMY_CONFIG = {
 
 export const WAVE_CONFIG = {
   baseEnemyCount: 5,
-  enemyScalePerWave: 1.2, // Each wave has 20% more enemies
-  maxEnemiesPerWave: 100, // Cap to prevent 400+ enemy marathons
+  enemyScalePerWave: 1.15, // Each wave has 15% more enemies (was 1.2)
+  maxEnemiesPerWave: 60, // Cap to prevent marathon waves (was 100)
   // Spawn pacing - ramps from slow start to fast finish within each wave
-  spawnIntervalStart: 2000, // ms between spawns at wave start
-  spawnIntervalEnd: 500, // ms between spawns at wave end
-  spawnIntervalDecayPerWave: 50, // start interval decreases by this per scaling step
-  spawnIntervalMinStart: 800, // floor for starting interval
+  spawnIntervalStart: 1200, // ms between spawns at wave start (was 2000)
+  spawnIntervalEnd: 300, // ms between spawns at wave end (was 500)
+  spawnIntervalDecayPerWave: 100, // start interval decreases by this per scaling step (was 50)
+  spawnIntervalMinStart: 400, // floor for starting interval (was 800)
   scalingInterval: 2, // Stats and spawn pacing scale every N waves
-  waveDelay: 3000, // ms between waves
+  waveDelay: 2000, // ms between waves (was 3000)
   bossWaveInterval: 5, // Boss every N waves
 };
 
