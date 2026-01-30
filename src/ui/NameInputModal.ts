@@ -77,10 +77,20 @@ export class NameInputModal extends Phaser.GameObjects.Container {
       this.inputElement.style.borderColor = '#4a6741';
     });
 
+    // Stop propagation on all key events to prevent Phaser from capturing WASD, etc.
     this.inputElement.addEventListener('keydown', (e) => {
+      e.stopPropagation();
       if (e.key === 'Enter') {
         this.handleSubmit();
       }
+    });
+
+    this.inputElement.addEventListener('keyup', (e) => {
+      e.stopPropagation();
+    });
+
+    this.inputElement.addEventListener('keypress', (e) => {
+      e.stopPropagation();
     });
 
     this.inputContainer.appendChild(this.inputElement);

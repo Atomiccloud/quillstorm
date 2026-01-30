@@ -200,15 +200,11 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private async checkNameAndSubmit(): Promise<void> {
-    // Check if we have a saved name
-    if (!SaveManager.hasPlayerName()) {
-      // Show name input modal
-      this.statusText.setText('Enter your name for the leaderboard');
-      this.nameModal.show();
-    } else {
-      // Submit with existing name
-      await this.submitScore(SaveManager.getPlayerName());
-    }
+    // Always show name input modal, pre-filled with saved name if available
+    // This lets players change their name between runs
+    const savedName = SaveManager.hasPlayerName() ? SaveManager.getPlayerName() : '';
+    this.statusText.setText('Enter your name for the leaderboard');
+    this.nameModal.show(savedName);
   }
 
   private async onNameSubmitted(name: string): Promise<void> {
