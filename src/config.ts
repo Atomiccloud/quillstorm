@@ -209,7 +209,7 @@ export const ENEMY_SCALING = {
   speedPerWave: 0.03,      // +3% speed per wave
   maxScaleMultiplier: 5.0, // Cap at 5x base stats
   // Boss tier scaling: first boss (wave 5) = base HP, later bosses get bonus
-  bossHealthBonusPerTier: 0.5, // +50% HP per boss tier after the first
+  bossHealthBonusPerTier: 0.75, // +75% HP per boss tier after the first
 };
 
 export const UPGRADE_CONFIG = {
