@@ -45,10 +45,20 @@ export class WaveManager {
 
     // Boss wave every 5 waves
     if (this.currentWave % WAVE_CONFIG.bossWaveInterval === 0) {
-      queue.push('boss');
-      // First boss (wave 5) is solo, later bosses get minions
-      if (this.currentWave > 5) {
-        const minionCount = Math.floor(this.currentWave / 5);
+      const bossNumber = this.currentWave / WAVE_CONFIG.bossWaveInterval;
+
+      if (bossNumber === 1) {
+        // Wave 5: Ground boss only, no minions
+        queue.push('boss');
+      } else if (bossNumber === 2) {
+        // Wave 10: Flying boss only, no minions
+        queue.push('flyingBoss');
+      } else {
+        // Wave 15+: Both bosses with minions
+        queue.push('boss');
+        queue.push('flyingBoss');
+        // Add minions based on boss number
+        const minionCount = Math.floor(bossNumber);
         for (let i = 0; i < minionCount; i++) {
           queue.push(this.getRandomEnemyType());
         }
@@ -143,10 +153,14 @@ export class WaveManager {
     let y: number;
 
     if (type === 'boss') {
-      // Boss spawns at a random edge
+      // Ground boss spawns at a random edge on the ground
       const side = Math.random() < 0.5 ? 'left' : 'right';
       x = side === 'left' ? 80 : GAME_CONFIG.width - 80;
       y = GAME_CONFIG.height - 150;
+    } else if (type === 'flyingBoss') {
+      // Flying boss spawns at top center area
+      x = GAME_CONFIG.width / 2 + (Math.random() - 0.5) * 200;
+      y = 100;
     } else {
       // Regular enemies spawn at random edge
       const side = Math.random() < 0.5 ? 'left' : 'right';

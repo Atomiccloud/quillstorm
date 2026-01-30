@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG } from '../config';
 
-export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer';
+export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss';
 
 export class Enemy extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
@@ -28,6 +28,13 @@ export class Enemy extends Phaser.GameObjects.Container {
   private chargeTarget: { x: number; y: number } | null = null;
   private lastChargeTime: number = 0;
   private bossPhase: number = 1; // Changes behavior based on health
+  private stuckTimer: number = 0;
+  private lastX: number = 0;
+
+  // Flying boss state
+  private isDiveBombing: boolean = false;
+  private diveBombTarget: { x: number; y: number } | null = null;
+  private lastDiveTime: number = 0;
 
   // Shellback roll state
   public isRolling: boolean = false;
@@ -91,8 +98,8 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.body.setSize(config.width, config.height);
     this.body.setOffset(-config.width / 2, -config.height / 2);
 
-    // Swooper and healer fly
-    if (type === 'swooper' || type === 'healer') {
+    // Flying enemies don't have gravity
+    if (type === 'swooper' || type === 'healer' || type === 'flyingBoss') {
       this.body.setAllowGravity(false);
     } else {
       this.body.setCollideWorldBounds(true);
@@ -144,6 +151,9 @@ export class Enemy extends Phaser.GameObjects.Container {
       case 'healer':
         this.updateHealer(time);
         break;
+      case 'flyingBoss':
+        this.updateFlyingBoss(time);
+        break;
     }
 
     this.draw();
@@ -191,11 +201,14 @@ export class Enemy extends Phaser.GameObjects.Container {
         Math.sin(angle) * config.diveSpeed
       );
 
-      // End dive if close or below target
+      // End dive if close, below target, or hit something (platform/wall)
       if (this.y > this.diveTarget.y + 50 ||
-          Phaser.Math.Distance.Between(this.x, this.y, this.diveTarget.x, this.diveTarget.y) < 30) {
+          Phaser.Math.Distance.Between(this.x, this.y, this.diveTarget.x, this.diveTarget.y) < 30 ||
+          this.body.blocked.down || this.body.blocked.left || this.body.blocked.right) {
         this.isDiving = false;
         this.diveTarget = null;
+        // Immediately start recovering upward
+        this.body.setVelocityY(-this.speed);
       }
     } else {
       // Hover and prepare to dive
@@ -268,6 +281,27 @@ export class Enemy extends Phaser.GameObjects.Container {
       this.bossPhase = 3; // Enraged rapid triple shots
     }
 
+    // Stuck detection - if on platform above player and not moving much
+    const isAbovePlayer = this.y < this.target!.y - 80;
+    const isOnPlatform = this.body.blocked.down;
+    const notMovingMuch = Math.abs(this.x - this.lastX) < 5;
+
+    if (isAbovePlayer && isOnPlatform && notMovingMuch) {
+      this.stuckTimer += this.scene.game.loop.delta;
+      // If stuck for 1.5 seconds, walk toward edge to drop down
+      if (this.stuckTimer > 1500) {
+        const dir = this.target!.x > this.x ? 1 : -1;
+        this.body.setVelocityX(dir * this.speed * 1.5);
+        // Reset timer but keep trying
+        if (this.stuckTimer > 2500) {
+          this.stuckTimer = 0;
+        }
+      }
+    } else {
+      this.stuckTimer = 0;
+    }
+    this.lastX = this.x;
+
     // Handle charging attack
     if (this.isCharging && this.chargeTarget) {
       const chargeAngle = Phaser.Math.Angle.Between(this.x, this.y, this.chargeTarget.x, this.chargeTarget.y);
@@ -307,7 +341,9 @@ export class Enemy extends Phaser.GameObjects.Container {
       }
     }
 
-    // Normal movement
+    // Normal movement (skip if stuck and trying to escape)
+    if (this.stuckTimer > 1500) return;
+
     if (dist < preferredDist - 30) {
       const dir = this.target!.x > this.x ? -1 : 1;
       this.body.setVelocityX(dir * this.speed);
@@ -341,20 +377,24 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
 
       case 'burrowing':
-        // Quick transition to underground
+        // Quick transition to underground - move to ground level
         this.isBurrowed = true;
         this.setAlpha(0.15);
         this.body.setAllowGravity(false);
+        // Move to ground level (near bottom of game area)
+        this.y = 750;
         this.body.setVelocityY(0);
         this.burrowPhase = 'underground';
         this.burrowTimer = 0;
         break;
 
       case 'underground':
-        // Move toward player invisibly
+        // Move toward player invisibly along the ground
         {
           const dir = this.target!.x > this.x ? 1 : -1;
           this.body.setVelocityX(dir * this.speed * 1.5);
+          // Stay at ground level
+          this.y = 750;
 
           // Surface when close to player or timer expires
           const dist = Math.abs(this.target!.x - this.x);
@@ -461,6 +501,66 @@ export class Enemy extends Phaser.GameObjects.Container {
   // Flag for GameScene to detect heal event
   public _justHealed: boolean = false;
 
+  private updateFlyingBoss(time: number): void {
+    const config = ENEMY_CONFIG.flyingBoss;
+
+    // Update boss phase based on health (3 phases)
+    const healthPercent = this.health / this.maxHealth;
+    if (healthPercent > 0.5) {
+      this.bossPhase = 1;
+    } else if (healthPercent > 0.25) {
+      this.bossPhase = 2;
+    } else {
+      this.bossPhase = 3;
+    }
+
+    // Handle dive bomb attack
+    if (this.isDiveBombing && this.diveBombTarget) {
+      const angle = Phaser.Math.Angle.Between(this.x, this.y, this.diveBombTarget.x, this.diveBombTarget.y);
+      this.body.setVelocity(
+        Math.cos(angle) * config.diveSpeed,
+        Math.sin(angle) * config.diveSpeed
+      );
+
+      // End dive if close to target or passed it
+      if (this.y > this.diveBombTarget.y + 30 ||
+          Phaser.Math.Distance.Between(this.x, this.y, this.diveBombTarget.x, this.diveBombTarget.y) < 40) {
+        this.isDiveBombing = false;
+        this.diveBombTarget = null;
+        // Pull up after dive
+        this.body.setVelocityY(-this.speed);
+      }
+      return;
+    }
+
+    // Hovering behavior - stay above player
+    const targetY = this.target!.y - config.hoverHeight;
+    const targetX = this.target!.x + Math.sin(time / 600) * 120;
+
+    // Move toward hover position
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    this.body.setVelocity(
+      Phaser.Math.Clamp(dx * 2.5, -this.speed, this.speed),
+      Phaser.Math.Clamp(dy * 2.5, -this.speed, this.speed)
+    );
+
+    // Initiate dive bomb when above player and cooldown is up
+    // More frequent dives in phase 2/3
+    const diveChance = this.bossPhase === 3 ? 0.025 : this.bossPhase === 2 ? 0.015 : 0.01;
+    if (Math.abs(dx) < 80 && this.y < this.target!.y - 100 &&
+        time - this.lastDiveTime > config.diveCooldown) {
+      if (Math.random() < diveChance) {
+        this.isDiveBombing = true;
+        this.diveBombTarget = { x: this.target!.x, y: this.target!.y };
+        this.lastDiveTime = time;
+      }
+    }
+  }
+
+  // Flag for dive bomb event (for sound in GameScene)
+  public _justDived: boolean = false;
+
   private tryJump(): void {
     // Only jump if on the ground and player is above
     if (!this.body.blocked.down || !this.target) return;
@@ -509,6 +609,9 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
       case 'healer':
         this.drawHealer(w, h, dir, config.color);
+        break;
+      case 'flyingBoss':
+        this.drawFlyingBoss(w, h, dir, config.color);
         break;
     }
 
@@ -813,6 +916,84 @@ export class Enemy extends Phaser.GameObjects.Container {
     );
   }
 
+  private drawFlyingBoss(w: number, h: number, dir: number, color: number): void {
+    // Visual effect when dive bombing - red glow
+    if (this.isDiveBombing) {
+      this.graphics.lineStyle(4, 0xff0000, 0.8);
+      this.graphics.strokeEllipse(0, 0, w + 10, h + 10);
+    }
+
+    // Phase indicator - gets darker and angrier
+    const bodyColor = this.bossPhase === 3 ? color - 0x220022 : this.bossPhase === 2 ? color - 0x110011 : color;
+
+    // Main body - more elongated for flying
+    this.graphics.fillStyle(bodyColor);
+    this.graphics.fillEllipse(0, 0, w, h * 0.8);
+
+    // Large bat-like wings
+    this.graphics.fillStyle(bodyColor - 0x111111);
+    // Left wing
+    this.graphics.fillTriangle(
+      -w * 0.2, -h * 0.2,
+      -w * 0.7, -h * 0.5,
+      -w * 0.2, h * 0.2
+    );
+    this.graphics.fillTriangle(
+      -w * 0.7, -h * 0.5,
+      -w * 0.9, 0,
+      -w * 0.2, h * 0.2
+    );
+    // Right wing
+    this.graphics.fillTriangle(
+      w * 0.2, -h * 0.2,
+      w * 0.7, -h * 0.5,
+      w * 0.2, h * 0.2
+    );
+    this.graphics.fillTriangle(
+      w * 0.7, -h * 0.5,
+      w * 0.9, 0,
+      w * 0.2, h * 0.2
+    );
+
+    // Phase 3 enrage glow
+    if (this.bossPhase === 3) {
+      const pulse = Math.sin(this.scene.time.now / 100) * 0.2 + 0.6;
+      this.graphics.lineStyle(3, 0xff00ff, pulse);
+      this.graphics.strokeEllipse(0, 0, w * 0.6, h * 0.5);
+    }
+
+    // Head
+    this.graphics.fillStyle(bodyColor + 0x111111);
+    this.graphics.fillEllipse(w * 0.25 * dir, -h * 0.1, w * 0.3, h * 0.4);
+
+    // Glowing eyes - brighter based on phase
+    const eyeColor = this.isDiveBombing ? 0xff0000 : (this.bossPhase === 3 ? 0xff00ff : this.bossPhase === 2 ? 0xcc00cc : 0x9900ff);
+    this.graphics.fillStyle(eyeColor);
+    this.graphics.fillCircle(w * 0.3 * dir, -h * 0.15, 6);
+    this.graphics.fillCircle(w * 0.2 * dir, -h * 0.1, 5);
+    this.graphics.fillStyle(0xff0000);
+    this.graphics.fillCircle(w * 0.3 * dir, -h * 0.15, 3);
+    this.graphics.fillCircle(w * 0.2 * dir, -h * 0.1, 2);
+
+    // Horns
+    this.graphics.fillStyle(0x330033);
+    this.graphics.fillTriangle(
+      w * 0.1 * dir, -h * 0.4,
+      w * 0.15 * dir, -h * 0.7,
+      w * 0.25 * dir, -h * 0.35
+    );
+    this.graphics.fillTriangle(
+      w * 0.3 * dir, -h * 0.35,
+      w * 0.4 * dir, -h * 0.65,
+      w * 0.45 * dir, -h * 0.3
+    );
+
+    // Talons at bottom
+    this.graphics.fillStyle(0x333333);
+    this.graphics.fillTriangle(-w * 0.15, h * 0.3, -w * 0.2, h * 0.55, -w * 0.1, h * 0.35);
+    this.graphics.fillTriangle(w * 0.15, h * 0.3, w * 0.2, h * 0.55, w * 0.1, h * 0.35);
+  }
+
   private drawHealthBar(w: number): void {
     const barWidth = w;
     const barHeight = 4;
@@ -871,13 +1052,23 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   canShoot(): boolean {
-    if (this.enemyType !== 'spitter' && this.enemyType !== 'boss') return false;
+    if (this.enemyType !== 'spitter' && this.enemyType !== 'boss' && this.enemyType !== 'flyingBoss') return false;
 
     const now = this.scene.time.now;
 
     if (this.enemyType === 'boss') {
-      // Boss uses 3-phase fire rates
+      // Ground boss uses 3-phase fire rates
       const config = ENEMY_CONFIG.boss;
+      const fireRate = this.bossPhase === 1 ? config.fireRatePhase1 :
+                       this.bossPhase === 2 ? config.fireRatePhase2 :
+                       config.fireRatePhase3;
+      return now - this.lastFireTime >= fireRate * 1000;
+    }
+
+    if (this.enemyType === 'flyingBoss') {
+      // Flying boss uses 3-phase fire rates (don't shoot while diving)
+      if (this.isDiveBombing) return false;
+      const config = ENEMY_CONFIG.flyingBoss;
       const fireRate = this.bossPhase === 1 ? config.fireRatePhase1 :
                        this.bossPhase === 2 ? config.fireRatePhase2 :
                        config.fireRatePhase3;
@@ -898,15 +1089,30 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (this.enemyType === 'boss') {
       return ENEMY_CONFIG.boss.projectileSpeed;
     }
+    if (this.enemyType === 'flyingBoss') {
+      return ENEMY_CONFIG.flyingBoss.projectileSpeed;
+    }
     return 0;
   }
 
   isBoss(): boolean {
+    return this.enemyType === 'boss' || this.enemyType === 'flyingBoss';
+  }
+
+  isGroundBoss(): boolean {
     return this.enemyType === 'boss';
+  }
+
+  isFlyingBoss(): boolean {
+    return this.enemyType === 'flyingBoss';
   }
 
   isBossCharging(): boolean {
     return this.enemyType === 'boss' && this.isCharging;
+  }
+
+  isBossDiving(): boolean {
+    return this.enemyType === 'flyingBoss' && this.isDiveBombing;
   }
 
   getBossPhase(): number {
@@ -915,8 +1121,14 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   // Boss fires multiple projectiles in phase 2+ (single shot in phase 1)
   getBurstCount(): number {
-    if (this.enemyType !== 'boss') return 1;
-    return this.bossPhase >= 2 ? 3 : 1;
+    if (this.enemyType === 'boss') {
+      return this.bossPhase >= 2 ? 3 : 1;
+    }
+    if (this.enemyType === 'flyingBoss') {
+      // Flying boss: single shots in phase 1, double in phase 2, triple in phase 3
+      return this.bossPhase === 3 ? 3 : this.bossPhase === 2 ? 2 : 1;
+    }
+    return 1;
   }
 
   isSplitter(): boolean {
