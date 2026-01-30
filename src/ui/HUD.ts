@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, XP_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS } from '../config';
 import { Player } from '../entities/Player';
 import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
@@ -262,13 +262,7 @@ export class HUD {
     if (this.progressionManager) {
       const level = this.progressionManager.getCurrentLevel();
       this.levelText.setText(`Lv.${level}`);
-
-      // Gold color when near infinite swarm threshold
-      if (level >= XP_CONFIG.infiniteSwarmLevel - 2) {
-        this.levelText.setColor('#ff6600');
-      } else {
-        this.levelText.setColor('#ffd700');
-      }
+      this.levelText.setColor('#ffd700');
     }
     this.scoreText.setText(`Score: ${this.score}`);
 

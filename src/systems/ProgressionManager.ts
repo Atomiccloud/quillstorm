@@ -37,11 +37,6 @@ export class ProgressionManager {
       this.currentLevel++;
       this.pendingLevelUps++;
 
-      // Check for infinite swarm activation
-      if (this.currentLevel >= XP_CONFIG.infiniteSwarmLevel && !this.infiniteSwarmActive) {
-        // Will be activated after current wave completes
-      }
-
       return {
         newLevel: this.currentLevel,
         totalXP: this.currentXP,
@@ -155,8 +150,9 @@ export class ProgressionManager {
   }
 
   // Infinite Swarm Methods
-  canActivateInfiniteSwarm(): boolean {
-    return this.currentLevel >= XP_CONFIG.infiniteSwarmLevel && !this.infiniteSwarmActive;
+  canActivateInfiniteSwarm(currentWave: number): boolean {
+    // Trigger infinite swarm after wave 20 (4th boss)
+    return currentWave >= XP_CONFIG.infiniteSwarmWave && !this.infiniteSwarmActive;
   }
 
   activateInfiniteSwarm(currentTime: number): void {

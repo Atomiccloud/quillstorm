@@ -153,8 +153,8 @@ export const ENEMY_CONFIG = {
   },
   // Boss - big, mean, 3-phase fight
   boss: {
-    health: 300,
-    damage: 25,
+    health: 1200, // Significantly increased (was 300)
+    damage: 30,
     speed: 100,
     projectileSpeed: 400,
     // 3-phase fire rates: Phase 1 (100-50%), Phase 2 (50-25%), Phase 3 (<25%)
@@ -170,8 +170,8 @@ export const ENEMY_CONFIG = {
   },
   // Flying Boss - aerial menace, appears wave 10+
   flyingBoss: {
-    health: 250, // Slightly less HP since harder to hit
-    damage: 30,
+    health: 1000, // Significantly increased (was 250)
+    damage: 35,
     speed: 150, // Faster movement
     projectileSpeed: 350,
     // 3-phase fire rates like ground boss
@@ -204,10 +204,12 @@ export const WAVE_CONFIG = {
 
 // Enemy stat scaling per wave - keeps progression challenging
 export const ENEMY_SCALING = {
-  healthPerWave: 0.08,     // +8% health per wave
-  damagePerWave: 0.05,     // +5% damage per wave
-  speedPerWave: 0.02,      // +2% speed per wave (subtle)
-  maxScaleMultiplier: 3.0, // Cap at 3x base stats
+  healthPerWave: 0.20,     // +20% health per wave (was 0.08)
+  damagePerWave: 0.12,     // +12% damage per wave (was 0.05)
+  speedPerWave: 0.03,      // +3% speed per wave
+  maxScaleMultiplier: 10.0, // Cap at 10x base stats (was 3.0)
+  // Boss-specific scaling (applied on top of base scaling)
+  bossHealthMultiplier: 2.0, // Bosses get 2x the health scaling
 };
 
 export const UPGRADE_CONFIG = {
@@ -256,7 +258,7 @@ export const XP_CONFIG = {
   xpDropBossMultiplier: 10,  // Bosses give 10x XP
   xpOrbMagnetRange: 80,      // Pixels before orb auto-collects
   xpOrbDespawnTime: 15000,   // 15 seconds before despawn
-  infiniteSwarmLevel: 20,    // Level threshold for infinite mode
+  infiniteSwarmWave: 20,     // Wave threshold for infinite mode (after boss 4)
 };
 
 // Treasure chest drops
@@ -286,8 +288,11 @@ export const PROSPERITY_CONFIG = {
 
 // Infinite swarm mode (activates at level 20)
 export const INFINITE_SWARM_CONFIG = {
-  baseSpawnInterval: 800,        // Starting spawn interval (ms)
-  spawnIntervalDecayRate: 0.995, // Decays by 0.5% per second
-  minSpawnInterval: 200,         // Floor for spawn rate
-  statScaleRate: 0.001,          // +0.1% enemy stats per second
+  baseSpawnInterval: 600,        // Starting spawn interval (ms)
+  spawnIntervalDecayRate: 0.99,  // Decays by 1% per second (faster ramp)
+  minSpawnInterval: 150,         // Floor for spawn rate (was 200)
+  statScaleRate: 0.02,           // +2% enemy stats per second (was 0.001)
+  // After 30s: enemies have +60% stats
+  // After 60s: enemies have +120% stats
+  // After 2min: enemies have +240% stats
 };

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, XP_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -789,14 +789,6 @@ export class GameScene extends Phaser.Scene {
     this.hud.showLevelUp(newLevel);
     AudioManager.playLevelUp();
 
-    // Check for infinite swarm activation at level 20
-    if (newLevel >= XP_CONFIG.infiniteSwarmLevel && this.progressionManager.canActivateInfiniteSwarm()) {
-      // Activate infinite swarm after a brief delay
-      this.time.delayedCall(1500, () => {
-        this.activateInfiniteSwarm();
-      });
-    }
-
     // Queue up level up upgrade selection
     // Will be processed after current upgrade flow completes
     if (!this.isChoosingUpgrade) {
@@ -904,11 +896,20 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Wave complete: proceed to next wave
+    // Wave complete: proceed to next wave or infinite swarm
     this.player.heal(20); // Heal between waves
 
-    // Check if layout should change (after boss waves: 5, 10, 15, etc.)
     const currentWave = this.waveManager.currentWave;
+
+    // Check for infinite swarm activation after wave 20 (4th boss)
+    if (this.progressionManager.canActivateInfiniteSwarm(currentWave)) {
+      this.time.delayedCall(500, () => {
+        this.activateInfiniteSwarm();
+      });
+      return; // Don't start another wave - infinite swarm takes over
+    }
+
+    // Check if layout should change (after boss waves: 5, 10, 15, etc.)
     if (LevelGenerator.shouldChangeLayout(currentWave)) {
       // Show layout change notification
       this.showLayoutChange(currentWave + 1);
