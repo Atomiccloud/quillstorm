@@ -25,6 +25,7 @@ export interface UpgradeEffects {
   companionCount?: number;   // Baby porcupine companions
   homingStrength?: number;   // Projectile tracking (0-1)
   vampirism?: number;        // Heal % of damage dealt
+  prosperity?: number;       // Luck stat: chest drops, rarity, crit
 }
 
 export interface Upgrade {
@@ -411,10 +412,74 @@ export const UPGRADES: Upgrade[] = [
     effects: { shieldCharges: 5, maxHealth: 50 },
     maxStacks: 1,
   },
+
+  // ===== PROSPERITY UPGRADES =====
+  {
+    id: 'lucky_find',
+    name: 'Lucky Find',
+    description: 'Slightly increases chest drops and rarity.',
+    rarity: 'common',
+    effects: { prosperity: 5 },
+  },
+  {
+    id: 'fortune_seeker',
+    name: 'Fortune Seeker',
+    description: 'Better luck with drops and upgrade quality.',
+    rarity: 'uncommon',
+    effects: { prosperity: 10 },
+  },
+  {
+    id: 'treasure_hunter',
+    name: 'Treasure Hunter',
+    description: 'Significantly better drops, plus bonus damage.',
+    rarity: 'rare',
+    effects: { prosperity: 15, damage: 0.05 },
+  },
+  {
+    id: 'golden_touch',
+    name: 'Golden Touch',
+    description: 'Major luck boost with extra health.',
+    rarity: 'epic',
+    effects: { prosperity: 25, maxHealth: 10 },
+  },
+  {
+    id: 'midas',
+    name: 'Midas',
+    description: 'Everything you touch turns to gold! Maximum prosperity.',
+    rarity: 'legendary',
+    effects: { prosperity: 40, damage: 0.15 },
+    maxStacks: 1,
+  },
 ];
 
-export function getRandomUpgrades(count: number, upgradeManager: UpgradeManager): Upgrade[] {
-  const weights = UPGRADE_CONFIG.rarityWeights;
+export interface RarityWeights {
+  common: number;
+  uncommon: number;
+  rare: number;
+  epic: number;
+  legendary: number;
+}
+
+export interface UpgradeSelectionOptions {
+  customWeights?: Partial<RarityWeights>;
+  guaranteeRareOrBetter?: boolean;  // For "rigged" early chests
+}
+
+export function getRandomUpgrades(
+  count: number,
+  upgradeManager: UpgradeManager,
+  options?: UpgradeSelectionOptions
+): Upgrade[] {
+  // Merge custom weights with defaults
+  const baseWeights = UPGRADE_CONFIG.rarityWeights;
+  const weights: RarityWeights = {
+    common: options?.customWeights?.common ?? baseWeights.common,
+    uncommon: options?.customWeights?.uncommon ?? baseWeights.uncommon,
+    rare: options?.customWeights?.rare ?? baseWeights.rare,
+    epic: options?.customWeights?.epic ?? baseWeights.epic,
+    legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
+  };
+
   const totalWeight = weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary;
 
   const selected: Upgrade[] = [];
@@ -424,8 +489,21 @@ export function getRandomUpgrades(count: number, upgradeManager: UpgradeManager)
       const currentCount = upgradeManager.getUpgradeCount(upgrade.id);
       if (currentCount >= upgrade.maxStacks) return false;
     }
+    // If common weight is 0, exclude common upgrades
+    if (weights.common === 0 && upgrade.rarity === 'common') return false;
     return true;
   });
+
+  // If guaranteeRareOrBetter, ensure at least one rare+ upgrade
+  if (options?.guaranteeRareOrBetter && count > 0) {
+    const rareOrBetter = availableUpgrades.filter(
+      u => u.rarity === 'rare' || u.rarity === 'epic' || u.rarity === 'legendary'
+    );
+    if (rareOrBetter.length > 0) {
+      const guaranteed = rareOrBetter[Math.floor(Math.random() * rareOrBetter.length)];
+      selected.push(guaranteed);
+    }
+  }
 
   while (selected.length < count && availableUpgrades.length > 0) {
     // Roll for rarity

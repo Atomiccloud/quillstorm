@@ -243,4 +243,51 @@ export const COLORS = {
     epic: 0xaa55ff,
     legendary: 0xffaa00,
   },
+  chest: 0xffd700, // Gold
+  xpOrb: 0x00ffff, // Cyan
+  xpOrbHigh: 0xffd700, // Gold for high-value orbs
+};
+
+// XP and level progression
+export const XP_CONFIG = {
+  baseXPToLevel: 100,        // XP needed for first level up
+  xpScalingFactor: 1.15,     // Each level needs 15% more XP
+  xpDropBase: 5,             // Base XP per enemy
+  xpDropBossMultiplier: 10,  // Bosses give 10x XP
+  xpOrbMagnetRange: 80,      // Pixels before orb auto-collects
+  xpOrbDespawnTime: 15000,   // 15 seconds before despawn
+  infiniteSwarmLevel: 20,    // Level threshold for infinite mode
+};
+
+// Treasure chest drops
+export const CHEST_CONFIG = {
+  baseDropChance: 0.01,      // 1% base drop rate
+  despawnTime: 7000,         // 7 seconds before despawn
+  warningTime: 5000,         // Start flashing at 5 seconds
+  riggedChestCount: 3,       // First N chests guarantee rare+
+  width: 32,
+  height: 24,
+  rarityWeights: {
+    common: 0,               // Never rolls common
+    uncommon: 30,            // 30% uncommon
+    rare: 40,                // 40% rare
+    epic: 20,                // 20% epic
+    legendary: 10,           // 10% legendary
+  },
+};
+
+// Prosperity (luck) system
+export const PROSPERITY_CONFIG = {
+  chestDropBonusPerPoint: 0.005,  // +0.5% chest drop per point
+  rarityShiftPerPoint: 0.01,     // +1% rarity shift per point
+  critBonusPerPoint: 0.005,      // +0.5% crit per point
+  maxProsperity: 50,             // Cap at 50 points
+};
+
+// Infinite swarm mode (activates at level 20)
+export const INFINITE_SWARM_CONFIG = {
+  baseSpawnInterval: 800,        // Starting spawn interval (ms)
+  spawnIntervalDecayRate: 0.995, // Decays by 0.5% per second
+  minSpawnInterval: 200,         // Floor for spawn rate
+  statScaleRate: 0.001,          // +0.1% enemy stats per second
 };

@@ -21,7 +21,8 @@ export type ModifierType =
   | 'shieldCharges'
   | 'companionCount'
   | 'homingStrength'
-  | 'vampirism';
+  | 'vampirism'
+  | 'prosperity';
 
 export class UpgradeManager {
   private upgrades: Upgrade[] = [];
@@ -53,6 +54,7 @@ export class UpgradeManager {
     this.modifiers.set('companionCount', 0);
     this.modifiers.set('homingStrength', 0);
     this.modifiers.set('vampirism', 0);
+    this.modifiers.set('prosperity', 0);
   }
 
   addUpgrade(upgrade: Upgrade): void {
@@ -127,6 +129,9 @@ export class UpgradeManager {
       }
       if (effects.vampirism !== undefined) {
         this.addModifier('vampirism', effects.vampirism);
+      }
+      if (effects.prosperity !== undefined) {
+        this.addModifier('prosperity', effects.prosperity);
       }
     }
   }
@@ -209,6 +214,9 @@ export class UpgradeManager {
     }
     if (this.modifiers.get('vampirism')! !== 0) {
       summary.push({ name: 'Lifesteal', value: formatPercent(this.modifiers.get('vampirism')!) });
+    }
+    if (this.modifiers.get('prosperity')! !== 0) {
+      summary.push({ name: 'Prosperity', value: formatFlat(this.modifiers.get('prosperity')!) });
     }
 
     return summary;

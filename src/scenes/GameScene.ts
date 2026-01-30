@@ -11,6 +11,7 @@ import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
+import { StatsPanel } from '../ui/StatsPanel';
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -18,6 +19,7 @@ export class GameScene extends Phaser.Scene {
   private waveManager!: WaveManager;
   private upgradeManager!: UpgradeManager;
   private hud!: HUD;
+  private statsPanel!: StatsPanel;
 
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
@@ -67,6 +69,9 @@ export class GameScene extends Phaser.Scene {
 
     // Create HUD
     this.hud = new HUD(this, this.player, this.quillManager, this.waveManager, this.upgradeManager);
+
+    // Create stats panel (Tab to toggle)
+    this.statsPanel = new StatsPanel(this, this.upgradeManager);
 
     // Set up collisions
     this.setupCollisions();
@@ -241,6 +246,13 @@ export class GameScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-R', () => {
       if (this.isChoosingUpgrade) return;
       this.scene.restart();
+    });
+
+    // Tab to toggle stats panel
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault(); // Prevent browser tab switching
+      if (this.gameOver || this.isChoosingUpgrade) return;
+      this.statsPanel.toggle();
     });
   }
 
