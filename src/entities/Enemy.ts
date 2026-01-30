@@ -82,10 +82,17 @@ export class Enemy extends Phaser.GameObjects.Container {
     );
 
     // Apply infinite swarm difficulty multiplier on top of wave scaling
-    // Bosses get extra health scaling to make them feel like proper challenges
+    // Bosses use tier-based scaling: first boss (wave 5) = base HP, later bosses get bonus
     const isBoss = type === 'boss' || type === 'flyingBoss';
-    const bossBonus = isBoss ? ENEMY_SCALING.bossHealthMultiplier : 1;
-    this.health = Math.floor(config.health * healthMultiplier * difficultyMultiplier * bossBonus);
+    let bossBonus = 1;
+    if (isBoss) {
+      // Boss tier: wave 5 = tier 0, wave 10 = tier 1, wave 15 = tier 2, etc.
+      const bossTier = Math.max(0, Math.floor(wave / WAVE_CONFIG.bossWaveInterval) - 1);
+      bossBonus = 1 + (bossTier * ENEMY_SCALING.bossHealthBonusPerTier);
+    }
+    // Note: Bosses don't get wave-based healthMultiplier, only tier bonus
+    const effectiveHealthMult = isBoss ? bossBonus : healthMultiplier;
+    this.health = Math.floor(config.health * effectiveHealthMult * difficultyMultiplier);
     this.maxHealth = this.health;
     this.damage = Math.floor(config.damage * damageMultiplier * difficultyMultiplier);
     this.speed = Math.floor(config.speed * speedMultiplier * Math.min(difficultyMultiplier, 1.3));
