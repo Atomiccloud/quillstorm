@@ -1,8 +1,17 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS, UPGRADE_CONFIG } from '../config';
-import { Upgrade, getRandomUpgrades } from '../data/upgrades';
+import { Upgrade, getRandomUpgrades, RarityWeights, UpgradeSelectionOptions } from '../data/upgrades';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { AudioManager } from '../systems/AudioManager';
+
+interface UpgradeSceneData {
+  upgradeManager: UpgradeManager;
+  playerStats: { health: number; maxHealth: number };
+  wave: number;
+  source?: 'wave' | 'chest' | 'levelup';
+  customWeights?: Partial<RarityWeights>;
+  guaranteeRareOrBetter?: boolean;
+}
 
 export class UpgradeScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
@@ -11,16 +20,20 @@ export class UpgradeScene extends Phaser.Scene {
     super({ key: 'UpgradeScene' });
   }
 
-  create(data: { upgradeManager: UpgradeManager; playerStats: any; wave: number }): void {
+  create(data: UpgradeSceneData): void {
     this.upgradeManager = data.upgradeManager;
+    const source = data.source || 'wave';
 
     const centerX = GAME_CONFIG.width / 2;
 
-    // Title
-    this.add.text(centerX, 60, `WAVE ${data.wave} COMPLETE!`, {
+    // Title based on source
+    const titleText = this.getTitleForSource(source, data.wave);
+    const titleColor = this.getTitleColorForSource(source);
+
+    this.add.text(centerX, 60, titleText, {
       fontSize: '36px',
       fontFamily: 'Arial Black, sans-serif',
-      color: '#ffffff',
+      color: titleColor,
     }).setOrigin(0.5);
 
     this.add.text(centerX, 110, 'Choose an upgrade:', {
@@ -28,8 +41,16 @@ export class UpgradeScene extends Phaser.Scene {
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    // Get random upgrades
-    const upgrades = getRandomUpgrades(UPGRADE_CONFIG.choicesPerUpgrade, this.upgradeManager);
+    // Get random upgrades with optional custom weights
+    const options: UpgradeSelectionOptions = {};
+    if (data.customWeights) {
+      options.customWeights = data.customWeights;
+    }
+    if (data.guaranteeRareOrBetter) {
+      options.guaranteeRareOrBetter = true;
+    }
+
+    const upgrades = getRandomUpgrades(UPGRADE_CONFIG.choicesPerUpgrade, this.upgradeManager, options);
 
     // Display upgrade cards
     const cardWidth = 280;
@@ -137,6 +158,15 @@ export class UpgradeScene extends Phaser.Scene {
       graphics.fillCircle(x - 10, y - 5, 12);
       graphics.fillCircle(x + 10, y - 5, 12);
       graphics.fillTriangle(x - 20, y, x + 20, y, x, y + 25);
+    } else if (upgrade.effects.prosperity) {
+      // Prosperity: golden clover/coin icon
+      graphics.fillStyle(0xffd700, 0.9);
+      // Four leaf clover shape
+      graphics.fillCircle(x, y - 12, 10);
+      graphics.fillCircle(x - 12, y, 10);
+      graphics.fillCircle(x + 12, y, 10);
+      graphics.fillCircle(x, y + 12, 10);
+      graphics.fillCircle(x, y, 8);
     } else {
       // Default star icon
       this.drawStar(graphics, x, y, 5, 20, 10);
@@ -198,6 +228,27 @@ export class UpgradeScene extends Phaser.Scene {
     if (upgrade.effects.piercing) {
       effects.push(`Pierce: +${upgrade.effects.piercing} enemies`);
     }
+    if (upgrade.effects.maxHealth) {
+      effects.push(`Max HP: +${upgrade.effects.maxHealth}`);
+    }
+    if (upgrade.effects.prosperity) {
+      effects.push(`Prosperity: +${upgrade.effects.prosperity}`);
+    }
+    if (upgrade.effects.shieldCharges) {
+      effects.push(`Shield: +${upgrade.effects.shieldCharges} charges`);
+    }
+    if (upgrade.effects.companionCount) {
+      effects.push(`Companions: +${upgrade.effects.companionCount}`);
+    }
+    if (upgrade.effects.vampirism) {
+      effects.push(`Lifesteal: +${Math.round(upgrade.effects.vampirism * 100)}%`);
+    }
+    if (upgrade.effects.explosionRadius) {
+      effects.push(`Explosion: ${upgrade.effects.explosionRadius}px`);
+    }
+    if (upgrade.effects.homingStrength) {
+      effects.push(`Homing: +${Math.round(upgrade.effects.homingStrength * 100)}%`);
+    }
 
     return effects.join('\n') || 'Special effect';
   }
@@ -207,5 +258,29 @@ export class UpgradeScene extends Phaser.Scene {
     this.upgradeManager.addUpgrade(upgrade);
     this.scene.stop();
     this.scene.resume('GameScene');
+  }
+
+  private getTitleForSource(source: 'wave' | 'chest' | 'levelup', wave: number): string {
+    switch (source) {
+      case 'chest':
+        return 'TREASURE FOUND!';
+      case 'levelup':
+        return 'LEVEL UP!';
+      case 'wave':
+      default:
+        return `WAVE ${wave} COMPLETE!`;
+    }
+  }
+
+  private getTitleColorForSource(source: 'wave' | 'chest' | 'levelup'): string {
+    switch (source) {
+      case 'chest':
+        return '#ffd700'; // Gold for treasure
+      case 'levelup':
+        return '#00ffff'; // Cyan for level up
+      case 'wave':
+      default:
+        return '#ffffff'; // White for wave complete
+    }
   }
 }

@@ -56,7 +56,8 @@ export class Enemy extends Phaser.GameObjects.Container {
     x: number,
     y: number,
     type: EnemyType,
-    wave: number = 1
+    wave: number = 1,
+    difficultyMultiplier: number = 1.0
   ) {
     super(scene, x, y);
 
@@ -80,10 +81,11 @@ export class Enemy extends Phaser.GameObjects.Container {
       1 + scalingSteps * ENEMY_SCALING.speedPerWave
     );
 
-    this.health = Math.floor(config.health * healthMultiplier);
+    // Apply infinite swarm difficulty multiplier on top of wave scaling
+    this.health = Math.floor(config.health * healthMultiplier * difficultyMultiplier);
     this.maxHealth = this.health;
-    this.damage = Math.floor(config.damage * damageMultiplier);
-    this.speed = Math.floor(config.speed * speedMultiplier);
+    this.damage = Math.floor(config.damage * damageMultiplier * difficultyMultiplier);
+    this.speed = Math.floor(config.speed * speedMultiplier * Math.min(difficultyMultiplier, 1.3));
     this.points = config.points;
 
     if (type === 'shellback') {

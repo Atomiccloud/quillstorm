@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { WAVE_CONFIG, GAME_CONFIG } from '../config';
+import { WAVE_CONFIG, GAME_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
 import { Enemy, EnemyType } from '../entities/Enemy';
+import { ProgressionManager } from './ProgressionManager';
 
 export class WaveManager {
   private scene: Phaser.Scene;
@@ -13,6 +14,10 @@ export class WaveManager {
   private totalSpawns: number = 0; // Total enemies to spawn this wave
   private spawnedCount: number = 0; // How many have been spawned so far
   private target: Phaser.GameObjects.Container | null = null;
+
+  // Infinite swarm state
+  private infiniteSwarmActive: boolean = false;
+  private progressionManager: ProgressionManager | null = null;
 
   // Callback for when a splitter dies - GameScene sets this
   public onSplitterDeath: ((x: number, y: number) => void) | null = null;
@@ -27,6 +32,24 @@ export class WaveManager {
 
   setTarget(target: Phaser.GameObjects.Container): void {
     this.target = target;
+  }
+
+  setProgressionManager(progressionManager: ProgressionManager): void {
+    this.progressionManager = progressionManager;
+  }
+
+  activateInfiniteSwarm(currentTime: number): void {
+    this.infiniteSwarmActive = true;
+    this.isWaveActive = true;
+    this.spawnTimer = 0;
+    // Initialize progression manager's infinite swarm state
+    if (this.progressionManager) {
+      this.progressionManager.activateInfiniteSwarm(currentTime);
+    }
+  }
+
+  isInfiniteSwarm(): boolean {
+    return this.infiniteSwarmActive;
   }
 
   startWave(): void {
@@ -122,21 +145,37 @@ export class WaveManager {
     return startInterval + (endInterval - startInterval) * progress;
   }
 
-  update(_time: number, delta: number): void {
+  update(time: number, delta: number): void {
     if (!this.isWaveActive) return;
 
-    // Spawn enemies from queue with dynamic interval
-    this.spawnTimer += delta;
-    const interval = this.getCurrentSpawnInterval();
-    if (this.spawnQueue.length > 0 && this.spawnTimer >= interval) {
-      this.spawnTimer = 0;
-      this.spawnedCount++;
-      this.spawnEnemy(this.spawnQueue.shift()!);
-    }
+    // Handle infinite swarm mode
+    if (this.infiniteSwarmActive) {
+      // Update progression manager's swarm difficulty
+      if (this.progressionManager) {
+        this.progressionManager.updateInfiniteSwarm(time, delta);
+      }
 
-    // Check if wave is complete
-    if (this.spawnQueue.length === 0 && this.enemies.getLength() === 0) {
-      this.isWaveActive = false;
+      // Spawn enemies continuously using progression manager's interval
+      this.spawnTimer += delta;
+      const interval = this.progressionManager?.getSwarmSpawnInterval() ?? INFINITE_SWARM_CONFIG.baseSpawnInterval;
+      if (this.spawnTimer >= interval) {
+        this.spawnTimer = 0;
+        this.spawnInfiniteSwarmEnemy();
+      }
+    } else {
+      // Normal wave mode - spawn enemies from queue with dynamic interval
+      this.spawnTimer += delta;
+      const interval = this.getCurrentSpawnInterval();
+      if (this.spawnQueue.length > 0 && this.spawnTimer >= interval) {
+        this.spawnTimer = 0;
+        this.spawnedCount++;
+        this.spawnEnemy(this.spawnQueue.shift()!);
+      }
+
+      // Check if wave is complete
+      if (this.spawnQueue.length === 0 && this.enemies.getLength() === 0) {
+        this.isWaveActive = false;
+      }
     }
 
     // Clean up dead enemies
@@ -146,6 +185,28 @@ export class WaveManager {
         e.destroy();
       }
     });
+  }
+
+  private spawnInfiniteSwarmEnemy(): void {
+    // Use difficulty multiplier for scaled enemy stats
+    const type = this.getRandomEnemyType();
+    const difficultyMult = this.progressionManager?.getSwarmDifficultyMultiplier() ?? 1.0;
+
+    let x: number;
+    let y: number;
+
+    // Random edge spawn
+    const side = Math.random() < 0.5 ? 'left' : 'right';
+    x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
+    // Flying enemies spawn at top
+    y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
+
+    // Use very high wave for unlocking all enemy types (wave 100)
+    const enemy = new Enemy(this.scene, x, y, type, 100, difficultyMult);
+    if (this.target) {
+      enemy.setTarget(this.target);
+    }
+    this.enemies.add(enemy);
   }
 
   private spawnEnemy(type: EnemyType): void {
@@ -205,6 +266,8 @@ export class WaveManager {
     this.spawnQueue = [];
     this.totalSpawns = 0;
     this.spawnedCount = 0;
+    this.infiniteSwarmActive = false;
+    this.spawnTimer = 0;
     this.enemies.clear(true, true);
   }
 }
