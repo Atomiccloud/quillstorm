@@ -855,6 +855,7 @@ export class GameScene extends Phaser.Scene {
     this.scene.pause();
     this.scene.launch('UpgradeScene', {
       upgradeManager: this.upgradeManager,
+      progressionManager: this.progressionManager,
       playerStats: {
         health: this.player.health,
         maxHealth: this.player.maxHealth,

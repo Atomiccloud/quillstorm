@@ -271,19 +271,19 @@ export const CHEST_CONFIG = {
   height: 24,
   rarityWeights: {
     common: 0,               // Never rolls common
-    uncommon: 30,            // 30% uncommon
-    rare: 40,                // 40% rare
-    epic: 20,                // 20% epic
-    legendary: 10,           // 10% legendary
+    uncommon: 45,            // 45% uncommon
+    rare: 35,                // 35% rare
+    epic: 15,                // 15% epic
+    legendary: 5,            // 5% legendary
   },
 };
 
 // Prosperity (luck) system
 export const PROSPERITY_CONFIG = {
-  chestDropBonusPerPoint: 0.005,  // +0.5% chest drop per point
-  rarityShiftPerPoint: 0.01,     // +1% rarity shift per point
-  critBonusPerPoint: 0.005,      // +0.5% crit per point
-  maxProsperity: 50,             // Cap at 50 points
+  chestDropBonusPerPoint: 0.002,  // +0.2% chest drop per point
+  rarityShiftPerPoint: 0.005,     // +0.5% rarity shift per point
+  critBonusPerPoint: 0.002,       // +0.2% crit per point
+  maxProsperity: 200,             // Soft cap for display (no hard limit)
 };
 
 // Infinite swarm mode (activates at level 20)

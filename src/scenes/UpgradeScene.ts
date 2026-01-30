@@ -2,10 +2,12 @@ import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS, UPGRADE_CONFIG } from '../config';
 import { Upgrade, getRandomUpgrades, RarityWeights, UpgradeSelectionOptions } from '../data/upgrades';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { ProgressionManager } from '../systems/ProgressionManager';
 import { AudioManager } from '../systems/AudioManager';
 
 interface UpgradeSceneData {
   upgradeManager: UpgradeManager;
+  progressionManager?: ProgressionManager;
   playerStats: { health: number; maxHealth: number };
   wave: number;
   source?: 'wave' | 'chest' | 'levelup';
@@ -41,13 +43,16 @@ export class UpgradeScene extends Phaser.Scene {
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    // Get random upgrades with optional custom weights
+    // Get random upgrades with optional custom weights and prosperity modifier
     const options: UpgradeSelectionOptions = {};
     if (data.customWeights) {
       options.customWeights = data.customWeights;
     }
     if (data.guaranteeRareOrBetter) {
       options.guaranteeRareOrBetter = true;
+    }
+    if (data.progressionManager) {
+      options.progressionManager = data.progressionManager;
     }
 
     const upgrades = getRandomUpgrades(UPGRADE_CONFIG.choicesPerUpgrade, this.upgradeManager, options);
