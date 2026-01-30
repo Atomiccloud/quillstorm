@@ -82,9 +82,14 @@ export class Enemy extends Phaser.GameObjects.Container {
     );
 
     // Apply infinite swarm difficulty multiplier on top of wave scaling
-    // Bosses get extra health scaling to make them feel like proper challenges
+    // Bosses get additional HP scaling per tier (wave 5: +0%, wave 10: +50%, wave 15: +100%, etc.)
     const isBoss = type === 'boss' || type === 'flyingBoss';
-    const bossBonus = isBoss ? ENEMY_SCALING.bossHealthMultiplier : 1;
+    let bossBonus = 1;
+    if (isBoss) {
+      // Calculate boss tier (0 for wave 5, 1 for wave 10, 2 for wave 15, etc.)
+      const bossTier = Math.max(0, Math.floor(wave / WAVE_CONFIG.bossWaveInterval) - 1);
+      bossBonus = 1 + (bossTier * ENEMY_SCALING.bossHealthBonusPerTier);
+    }
     this.health = Math.floor(config.health * healthMultiplier * difficultyMultiplier * bossBonus);
     this.maxHealth = this.health;
     this.damage = Math.floor(config.damage * damageMultiplier * difficultyMultiplier);
@@ -304,19 +309,31 @@ export class Enemy extends Phaser.GameObjects.Container {
       this.body.setVelocityY(0); // Stop trying to go up
     }
 
-    // Stuck detection - if on platform above player and not moving much
+    // Stuck detection - not moving much toward player
+    const notMovingMuch = Math.abs(this.x - this.lastX) < 3;
+    const isOnGround = this.body.blocked.down;
+    const isBlockedHorizontally = this.body.blocked.left || this.body.blocked.right;
     const isAbovePlayer = this.y < this.target!.y - 80;
-    const isOnPlatform = this.body.blocked.down;
-    const notMovingMuch = Math.abs(this.x - this.lastX) < 5;
 
-    if (isAbovePlayer && isOnPlatform && notMovingMuch) {
+    // Track if we're stuck (not moving, on ground, and either blocked or above player)
+    if (notMovingMuch && isOnGround && (isBlockedHorizontally || isAbovePlayer)) {
       this.stuckTimer += this.scene.game.loop.delta;
-      // If stuck for 1.5 seconds, walk toward edge to drop down
-      if (this.stuckTimer > 1500) {
-        const dir = this.target!.x > this.x ? 1 : -1;
-        this.body.setVelocityX(dir * this.speed * 1.5);
-        // Reset timer but keep trying
-        if (this.stuckTimer > 2500) {
+
+      // If stuck for 0.8 seconds, try to escape
+      if (this.stuckTimer > 800) {
+        // If blocked horizontally, jump to get over obstacle
+        if (isBlockedHorizontally) {
+          this.body.setVelocityY(-600); // Strong jump to clear obstacles
+          const dir = this.target!.x > this.x ? 1 : -1;
+          this.body.setVelocityX(dir * this.speed * 1.5);
+        } else if (isAbovePlayer) {
+          // Walk toward player to fall off platform edge
+          const dir = this.target!.x > this.x ? 1 : -1;
+          this.body.setVelocityX(dir * this.speed * 2);
+        }
+
+        // Reset stuck timer periodically
+        if (this.stuckTimer > 1500) {
           this.stuckTimer = 0;
         }
       }

@@ -881,6 +881,7 @@ export class GameScene extends Phaser.Scene {
       // Chest: mark as collected for rigged tracking, resume gameplay
       this.progressionManager.collectChest();
       this.player.heal(10); // Small heal from chest
+      this.updateCompanions(); // Spawn any new companions immediately
       // Check for pending level ups
       if (this.progressionManager.hasPendingLevelUp()) {
         this.showLevelUpUpgradeSelection();
@@ -890,6 +891,7 @@ export class GameScene extends Phaser.Scene {
 
     if (source === 'levelup') {
       // Level up: check for more pending level ups
+      this.updateCompanions(); // Spawn any new companions immediately
       if (this.progressionManager.hasPendingLevelUp()) {
         this.showLevelUpUpgradeSelection();
       }

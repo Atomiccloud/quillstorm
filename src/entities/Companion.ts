@@ -93,7 +93,7 @@ export class Companion extends Phaser.GameObjects.Container {
       enemies.getChildren().forEach((enemy) => {
         const e = enemy as Phaser.GameObjects.Container;
         const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
-        if (dist < nearestDist && dist < 400) { // Only target enemies within range
+        if (dist < nearestDist && dist < 800) { // Target enemies within 800px (most of screen)
           nearestDist = dist;
           nearestEnemy = enemy;
         }

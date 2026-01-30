@@ -12,13 +12,16 @@ src/
 ├── config.ts                  # All balance constants and configuration
 ├── entities/
 │   ├── Player.ts              # Porcupine player character
-│   ├── Enemy.ts               # All enemy types (5 types)
+│   ├── Enemy.ts               # All enemy types (8 regular + 2 boss)
 │   ├── Quill.ts               # Projectile/quill entity
-│   └── Companion.ts           # Baby porcupine companion
+│   ├── Companion.ts           # Baby porcupine companion
+│   ├── XPOrb.ts               # XP collectible drop
+│   └── TreasureChest.ts       # Rare upgrade chest
 ├── systems/
 │   ├── QuillManager.ts        # Shooting, quill pool, regeneration
-│   ├── WaveManager.ts         # Enemy spawning, wave progression
+│   ├── WaveManager.ts         # Enemy spawning, wave progression, infinite swarm
 │   ├── UpgradeManager.ts      # Modifier tracking, upgrade application
+│   ├── ProgressionManager.ts  # XP, levels, prosperity, chests, infinite swarm
 │   ├── SaveManager.ts         # LocalStorage persistence (scores + player name)
 │   ├── AudioManager.ts        # Procedural Web Audio sounds
 │   ├── LevelGenerator.ts      # Platform layout templates
@@ -32,7 +35,8 @@ src/
 │   ├── GameOverScene.ts       # End screen + score submission
 │   └── LeaderboardScene.ts    # Global/weekly leaderboard view
 ├── ui/
-│   ├── HUD.ts                 # Health bar, quill bar, score, wave info
+│   ├── HUD.ts                 # Health bar, quill bar, XP bar, wave info
+│   ├── StatsPanel.ts          # Tab-toggleable stats display
 │   ├── LeaderboardPanel.ts    # Scrollable leaderboard table
 │   └── NameInputModal.ts      # DOM-based name input for leaderboard
 └── data/

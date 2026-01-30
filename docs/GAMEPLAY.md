@@ -141,8 +141,8 @@ Your quill percentage determines your state:
 - **Unlocked**: Wave 15
 
 ### Boss (Dark Red)
-- **Health**: 300
-- **Damage**: 25 (contact)
+- **Health**: 300 base (scales with waves and tier bonus - see Boss HP Scaling)
+- **Damage**: 30 (contact)
 - **Speed**: 100
 - **Projectile Speed**: 400
 - **Charge Speed**: 350
@@ -171,8 +171,8 @@ Your quill percentage determines your state:
 ---
 
 ### Flying Boss (Purple)
-- **Health**: 250
-- **Damage**: 30 (contact)
+- **Health**: 250 base (scales with waves and tier bonus - see Boss HP Scaling)
+- **Damage**: 35 (contact)
 - **Speed**: 150
 - **Projectile Speed**: 350
 - **Dive Speed**: 500
@@ -201,19 +201,19 @@ Your quill percentage determines your state:
 
 ### Enemy Count Formula
 ```
-count = min(100, 5 × (1.2 ^ (wave - 1)))
+count = min(60, 5 × (1.15 ^ (wave - 1)))
 ```
 
-Capped at 100 enemies per wave to prevent excessively long waves.
+Capped at 60 enemies per wave to prevent marathon waves.
 
 | Wave | Enemies | Boss(es) |
 |------|---------|----------|
 | 1 | 5 | None |
 | 5 | 1 | Ground Boss (solo) |
 | 10 | 1 | Flying Boss (solo) |
-| 15 | 5 | Both + 3 minions |
-| 20 | 6 | Both + 4 minions |
-| 25+ | 7+ | Both + 5+ minions |
+| 15 | 5 | Both + minions |
+| 20 | 6 | Both + minions |
+| 25+ | 7+ | Both + minions |
 
 ### Spawn Pacing
 
@@ -221,11 +221,11 @@ Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
 
 | Phase | Interval | Notes |
 |-------|----------|-------|
-| Wave Start | 2000ms between spawns | Slow trickle, time to breathe |
-| Wave End | 500ms between spawns | Intense finale |
+| Wave Start | 1200ms between spawns | Opening pace |
+| Wave End | 300ms between spawns | Intense finale |
 
-- Starting interval decreases by 50ms every 2 waves (floor: 800ms)
-- Example: Wave 1-2 spawns 2000ms→500ms, Wave 9-10 starts at 1800ms→500ms
+- Starting interval decreases by 100ms every 2 waves (floor: 400ms)
+- Example: Wave 1-2 starts at 1200ms, Wave 9-10 starts at 800ms
 
 ### Enemy Unlocking
 - **Wave 1**: Scurrier only
@@ -254,11 +254,36 @@ Enemies get stronger every 2 waves (capped at multiplier):
 
 | Stat | Per 2 Waves | Max Cap |
 |------|-------------|---------|
-| Health | +8% | 3.0x |
-| Damage | +5% | 3.0x |
-| Speed | +2% | 1.5x |
+| Health | +20% | 10.0x |
+| Damage | +12% | 10.0x |
+| Speed | +3% | 1.5x |
 
-Note: Stats only increase on waves 3, 5, 7, 9, etc. Spawn pacing also scales every 2 waves.
+Note: Stats only increase on waves 3, 5, 7, 9, etc. (every 2nd wave). Spawn pacing also scales every 2 waves.
+
+**Example: Scurrier HP by Wave**
+
+| Wave | Steps | Multiplier | HP |
+|------|-------|------------|-----|
+| 1-2 | 0 | 1.0x | 30 |
+| 3-4 | 1 | 1.2x | 36 |
+| 5-6 | 2 | 1.4x | 42 |
+| 9-10 | 4 | 1.8x | 54 |
+| 15-16 | 7 | 2.4x | 72 |
+| 19-20 | 9 | 2.8x | 84 |
+| 46+ | 22+ | 10.0x | 300 |
+
+### Boss HP Scaling
+
+Bosses have base HP (300 ground, 250 flying) plus:
+1. **Wave scaling** - Same as other enemies (+20% per 2 waves)
+2. **Tier bonus** - +50% per boss tier after the first
+
+| Wave | Boss Tier | Wave Mult | Tier Bonus | Ground Boss HP | Flying Boss HP |
+|------|-----------|-----------|------------|----------------|----------------|
+| 5 | 0 | 1.4x | 1.0x | 420 | - |
+| 10 | 1 | 1.8x | 1.5x | 810 | 675 |
+| 15 | 2 | 2.4x | 2.0x | 1,440 | 1,200 |
+| 20 | 3 | 2.8x | 2.5x | 2,100 | 1,750 |
 
 ---
 
@@ -267,13 +292,22 @@ Note: Stats only increase on waves 3, 5, 7, 9, etc. Spawn pacing also scales eve
 ### Rarity System
 Upgrades are offered after each wave. Rarity determines power level.
 
-| Rarity | Drop Rate | Color |
-|--------|-----------|-------|
-| Common | 60% | Gray |
-| Uncommon | 25% | Green |
-| Rare | 10% | Blue |
-| Epic | 4% | Purple |
-| Legendary | 1% | Orange |
+**Base Rarity Weights:**
+| Rarity | Weight | Probability | Color |
+|--------|--------|-------------|-------|
+| Common | 60 | 60% | Gray |
+| Uncommon | 25 | 25% | Green |
+| Rare | 10 | 10% | Blue |
+| Epic | 4 | 4% | Purple |
+| Legendary | 1 | 1% | Orange |
+
+**Formula:** Roll random 0-100, select rarity based on cumulative weights.
+
+**Upgrade Selection Rules:**
+1. Roll rarity based on weights
+2. Filter to upgrades of that rarity not at max stacks
+3. Pick randomly from filtered list
+4. Repeat for each choice (3 choices per wave)
 
 ---
 
@@ -373,7 +407,8 @@ Upgrades are offered after each wave. Rarity determines power level.
 - Follow the player in formation
 - Auto-shoot at nearest enemy every 2 seconds
 - Deal base 10 damage (scales with 50% of damage upgrades)
-- Range: 400px targeting range
+- Range: 800px targeting range (most of screen)
+- Spawn immediately when upgrade is selected (from any source)
 
 ### Explosion AOE
 - Obtained through upgrades (Explosive Tips, Cluster Bombs, Devastation, Nuclear Quills)
@@ -467,14 +502,20 @@ Rare drops from enemies containing better upgrades.
 
 ### Prosperity
 
-A luck-like stat that affects multiple systems.
+A luck-like stat that affects chest drops and critical chance.
 
-| Prosperity | Chest Drop | Rarity Shift | Crit Bonus |
-|------------|------------|--------------|------------|
-| 0 | 1% | Base weights | +0% |
-| 10 | 6% | +10% rare+ | +5% |
-| 25 | 13.5% | +25% rare+ | +12.5% |
-| 50 (cap) | 26% | +50% rare+ | +25% |
+| Prosperity | Chest Drop Chance | Crit Bonus |
+|------------|-------------------|------------|
+| 0 | 1% | +0% |
+| 10 | 6% | +5% |
+| 25 | 13.5% | +12.5% |
+| 50 (cap) | 26% | +25% |
+
+**Formula:**
+- Chest drop: `1% + (prosperity × 0.5%)`
+- Crit bonus: `prosperity × 0.5%`
+
+*Note: A rarity shift system is defined but not currently active. Upgrade rarity uses base weights.*
 
 **Prosperity Upgrades:**
 | Name | Rarity | Prosperity | Other Effects |
@@ -487,13 +528,22 @@ A luck-like stat that affects multiple systems.
 
 ### Infinite Swarm Mode
 
-At player level 20, the game transitions to endless mode.
+After completing wave 20 (the 4th boss fight), the game transitions to endless mode.
 
-- **Trigger**: Reaching level 20 activates infinite swarm
-- **Spawn Rate**: Starts at 800ms, decays to minimum 200ms
-- **Difficulty**: Enemy stats scale +0.1% per second
+- **Trigger**: Completing wave 20 activates infinite swarm
+- **Spawn Rate**: Starts at 600ms, decays by 1%/sec to minimum 150ms
+- **Difficulty**: Enemy stats scale +2% per second
 - **No Wave Breaks**: Continuous spawning, no wave-end upgrades
 - **Upgrades**: Only from level-ups and treasure chests
+
+**Difficulty Timeline:**
+| Time | Enemy Stats | Spawn Rate |
+|------|-------------|------------|
+| 0s | Base | 600ms |
+| 30s | +60% | ~435ms |
+| 60s | +120% | ~315ms |
+| 2min | +240% | ~165ms |
+| 3min+ | +360%+ | 150ms (floor) |
 
 ---
 

@@ -153,7 +153,7 @@ export const ENEMY_CONFIG = {
   },
   // Boss - big, mean, 3-phase fight
   boss: {
-    health: 1200, // Significantly increased (was 300)
+    health: 300, // Base HP - scales with waves via ENEMY_SCALING
     damage: 30,
     speed: 100,
     projectileSpeed: 400,
@@ -170,7 +170,7 @@ export const ENEMY_CONFIG = {
   },
   // Flying Boss - aerial menace, appears wave 10+
   flyingBoss: {
-    health: 1000, // Significantly increased (was 250)
+    health: 250, // Base HP - scales with waves via ENEMY_SCALING
     damage: 35,
     speed: 150, // Faster movement
     projectileSpeed: 350,
@@ -208,8 +208,8 @@ export const ENEMY_SCALING = {
   damagePerWave: 0.12,     // +12% damage per wave (was 0.05)
   speedPerWave: 0.03,      // +3% speed per wave
   maxScaleMultiplier: 10.0, // Cap at 10x base stats (was 3.0)
-  // Boss-specific scaling (applied on top of base scaling)
-  bossHealthMultiplier: 2.0, // Bosses get 2x the health scaling
+  // Boss-specific scaling: +50% per boss fought (wave 5: +0%, wave 10: +50%, wave 15: +100%, etc.)
+  bossHealthBonusPerTier: 0.5, // +50% HP per boss tier after first
 };
 
 export const UPGRADE_CONFIG = {
