@@ -280,10 +280,10 @@ export const CHEST_CONFIG = {
 
 // Prosperity (luck) system
 export const PROSPERITY_CONFIG = {
-  chestDropBonusPerPoint: 0.005,  // +0.5% chest drop per point
-  rarityShiftPerPoint: 0.01,     // +1% rarity shift per point
-  critBonusPerPoint: 0.005,      // +0.5% crit per point
-  maxProsperity: 50,             // Cap at 50 points
+  chestDropBonusPerPoint: 0.002,  // +0.2% chest drop per point
+  rarityShiftPerPoint: 0.005,     // +0.5% rarity shift per point
+  critBonusPerPoint: 0.002,       // +0.2% crit per point
+  maxProsperity: 200,             // Soft cap for display (no hard limit)
 };
 
 // Infinite swarm mode (activates at level 20)

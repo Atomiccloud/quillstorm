@@ -467,21 +467,22 @@ Rare drops from enemies containing better upgrades.
 
 ### Prosperity
 
-A luck-like stat (inspired by Vampire Survivors) that affects **everything**: chest drops, critical chance, AND upgrade rarity.
+A luck-like stat (inspired by Vampire Survivors) that affects **everything**: chest drops, critical chance, AND upgrade rarity. Stacks infinitely with diminishing returns per point.
 
 **Core Formulas:**
-- Chest drop: `1% + (prosperity × 0.5%)`
-- Crit bonus: `prosperity × 0.5%`
-- Rarity shift: Transfers weight from common/uncommon to rare/epic/legendary
+- Chest drop: `1% + (prosperity × 0.2%)`
+- Crit bonus: `prosperity × 0.2%`
+- Rarity shift: `prosperity × 0.5%` transferred to rare+
 
 **Summary Table:**
 
 | Prosperity | Chest Drop | Crit Bonus | Rarity Shift |
 |------------|------------|------------|--------------|
 | 0 | 1% | +0% | None |
-| 10 | 6% | +5% | Slight |
-| 25 | 13.5% | +12.5% | Moderate |
-| 50 (cap) | 26% | +25% | Maximum |
+| 25 | 6% | +5% | 12.5% |
+| 50 | 11% | +10% | 25% |
+| 100 | 21% | +20% | 50% |
+| 150 | 31% | +30% | 75% |
 
 ---
 
@@ -490,7 +491,7 @@ A luck-like stat (inspired by Vampire Survivors) that affects **everything**: ch
 Prosperity shifts weight from lower rarities to higher ones:
 
 ```
-shift = prosperity × 1%
+shift = prosperity × 0.5%
 
 Common loses: common_weight × shift × 50%
 Uncommon loses: uncommon_weight × shift × 30%
@@ -506,20 +507,11 @@ Legendary gains: transferred × 20%
 | Prosperity | Common | Uncommon | Rare | Epic | Legendary |
 |------------|--------|----------|------|------|-----------|
 | 0 | 60% | 25% | 10% | 4% | 1% |
-| 10 | 57% | 24.25% | 11.81% | 5.09% | 1.36% |
-| 25 | 52.5% | 23.13% | 14.53% | 6.72% | 1.88% |
-| 50 | 45% | 21.25% | 19.06% | 9.44% | 3.25% |
+| 50 | 52.5% | 23.1% | 12.3% | 5.5% | 1.6% |
+| 100 | 45% | 21.3% | 14.5% | 7% | 2.2% |
+| 150 | 37.5% | 19.4% | 16.8% | 8.4% | 2.9% |
 
-At 50 prosperity, you have **3x** the legendary chance and nearly **2x** the epic chance!
-
-**Example: Chest Upgrades (base 0/45/35/15/5)**
-
-| Prosperity | Common | Uncommon | Rare | Epic | Legendary |
-|------------|--------|----------|------|------|-----------|
-| 0 | 0% | 45% | 35% | 15% | 5% |
-| 10 | 0% | 43.65% | 36.35% | 15.81% | 5.54% |
-| 25 | 0% | 41.63% | 38.38% | 16.97% | 6.35% |
-| 50 | 0% | 38.25% | 41.75% | 18.45% | 7.55% |
+At 150 prosperity, you have **~3x** the legendary chance!
 
 ---
 
@@ -533,7 +525,7 @@ At 50 prosperity, you have **3x** the legendary chance and nearly **2x** the epi
 | Midas | Legendary | +40 | +15% damage |
 
 **Strategy Tips:**
-- Prosperity stacks from multiple upgrades (max 50)
+- Prosperity stacks infinitely - no cap!
 - Early prosperity snowballs into better upgrades later
 - High prosperity makes chest drops much more rewarding
 - Combined with crit bonuses, prosperity is a powerful scaling stat

@@ -449,7 +449,6 @@ export const UPGRADES: Upgrade[] = [
     description: 'Everything you touch turns to gold! Maximum prosperity.',
     rarity: 'legendary',
     effects: { prosperity: 40, damage: 0.15 },
-    maxStacks: 1,
   },
 ];
 
