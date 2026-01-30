@@ -68,10 +68,12 @@ Your quill percentage determines your state:
 - **Speed**: 200 (hover), 400 (dive)
 - **Points**: 25
 - **Behavior**:
-  - Hovers ~150px above player
-  - Dive-bombs at player periodically
+  - Hovers ~150px above player with wide patrol range (±150px)
+  - Dive-bombs at player from various angles, not just directly above
+  - Can dive under platforms to reach players below
   - Ignores platform collision when hovering (phases through)
   - Only collides with platforms when diving
+  - Recovers upward immediately if hitting a platform during dive
 - **Unlocked**: Wave 3
 
 ### Shellback (Gray)
@@ -85,6 +87,7 @@ Your quill percentage determines your state:
 - **Special**: Blocks 90° frontal arc damage - attack from behind!
 - **Roll Attack**: Periodically curls into a ball and rolls toward player
   - Fully invincible during roll
+  - Deals 20 damage with strong knockback and screen shake
   - Lasts 2 seconds, 6 second cooldown
   - Triggers at 100-400px range
   - Visual: spinning ball with yellow invincibility glow
@@ -98,8 +101,10 @@ Your quill percentage determines your state:
 - **Behavior**:
   - Cycles between above-ground and underground phases
   - Above ground: chases player like a scurrier (4 seconds)
-  - Burrows underground: nearly invisible (alpha 0.15), immune to damage, phases through platforms
+  - Burrows underground: nearly invisible (alpha 0.15), immune to damage
   - Moves toward player at 1.5x speed while burrowed (3 seconds)
+  - **Warning Phase**: Dirt particles and ground rumble appear 600ms before surfacing
+  - Surfaces on the player's platform level, offset 50-90px to the left or right
   - Surfaces with AOE damage (60px radius, 20 damage)
   - Visual: dark brown mole with claws, dirt burst on surfacing
 - **Unlocked**: Wave 8
@@ -159,8 +164,36 @@ Your quill percentage determines your state:
 - **Enrage Glow**: In phase 3, boss pulses with orange/red glow
 
 **Boss Wave Spawning:**
-- Wave 5: Boss spawns ALONE (no minions)
-- Wave 10+: Boss spawns with minions (wave/5 minions)
+- Wave 5: Ground Boss spawns ALONE (no minions)
+- Wave 10: Flying Boss spawns ALONE (no minions)
+- Wave 15+: BOTH bosses spawn together with minions
+
+---
+
+### Flying Boss (Purple)
+- **Health**: 250
+- **Damage**: 30 (contact)
+- **Speed**: 150
+- **Projectile Speed**: 350
+- **Dive Speed**: 500
+- **Points**: 600
+- **Appears**: Wave 10, then every 5 waves (with ground boss from wave 15+)
+
+**Three-Phase Fight:**
+
+| Phase | HP | Fire Rate | Projectiles | Behavior |
+|-------|-----|-----------|-------------|----------|
+| Phase 1 | >50% | 2.0 sec | 1 | Hovers 180px above player, slow shots |
+| Phase 2 | 25-50% | 1.4 sec | 2 | Double shots, more frequent dives |
+| Phase 3 | ≤25% | 0.7 sec | 3 | Enraged! Rapid triple shots, relentless dive bombs |
+
+**Special Abilities:**
+- **Hovering**: Floats above player, completely ignores all platforms
+- **Dive Bomb**: Swoops down at high speed toward player (5 second cooldown, more frequent in later phases)
+- **Platform Immunity**: Phases through all platforms - cannot be trapped or blocked
+- **Enrage Glow**: In phase 3, pulses with magenta glow
+
+**Visual**: Large bat-like creature with wings, horns, and talons
 
 ---
 
@@ -173,14 +206,14 @@ count = min(100, 5 × (1.2 ^ (wave - 1)))
 
 Capped at 100 enemies per wave to prevent excessively long waves.
 
-| Wave | Enemies |
-|------|---------|
-| 1 | 5 |
-| 5 | 10 (Boss solo) |
-| 10 | 24 (Boss + 2 minions) |
-| 15 | 48 (Boss + 3 minions) |
-| 20 | 95 (Boss + 4 minions) |
-| 25+ | 100 (capped) |
+| Wave | Enemies | Boss(es) |
+|------|---------|----------|
+| 1 | 5 | None |
+| 5 | 1 | Ground Boss (solo) |
+| 10 | 1 | Flying Boss (solo) |
+| 15 | 5 | Both + 3 minions |
+| 20 | 6 | Both + 4 minions |
+| 25+ | 7+ | Both + 5+ minions |
 
 ### Spawn Pacing
 
