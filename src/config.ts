@@ -204,12 +204,12 @@ export const WAVE_CONFIG = {
 
 // Enemy stat scaling per wave - keeps progression challenging
 export const ENEMY_SCALING = {
-  healthPerWave: 0.20,     // +20% health per wave (was 0.08)
-  damagePerWave: 0.12,     // +12% damage per wave (was 0.05)
+  healthPerWave: 0.15,     // +15% health per scaling step
+  damagePerWave: 0.10,     // +10% damage per scaling step
   speedPerWave: 0.03,      // +3% speed per wave
-  maxScaleMultiplier: 10.0, // Cap at 10x base stats (was 3.0)
-  // Boss-specific scaling (applied on top of base scaling)
-  bossHealthMultiplier: 2.0, // Bosses get 2x the health scaling
+  maxScaleMultiplier: 5.0, // Cap at 5x base stats
+  // Boss tier scaling: first boss (wave 5) = base HP, later bosses get bonus
+  bossHealthBonusPerTier: 0.75, // +75% HP per boss tier after the first
 };
 
 export const UPGRADE_CONFIG = {
