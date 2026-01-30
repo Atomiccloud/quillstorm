@@ -208,8 +208,9 @@ export const ENEMY_SCALING = {
   damagePerWave: 0.10,     // +10% damage per scaling step
   speedPerWave: 0.03,      // +3% speed per wave
   maxScaleMultiplier: 5.0, // Cap at 5x base stats
-  // Boss tier scaling: first boss (wave 5) = base HP, later bosses get bonus
-  bossHealthBonusPerTier: 0.75, // +75% HP per boss tier after the first
+  // Boss tier scaling: quadratic formula = 1 + (tier^2 * factor)
+  // Wave 5 (tier 0): 300 HP, Wave 10: 525, Wave 15: 1200, Wave 20: 2325
+  bossHealthTierFactor: 0.75, // Quadratic scaling factor per tier^2
 };
 
 export const UPGRADE_CONFIG = {

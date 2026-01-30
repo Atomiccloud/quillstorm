@@ -87,8 +87,10 @@ export class Enemy extends Phaser.GameObjects.Container {
     let bossBonus = 1;
     if (isBoss) {
       // Boss tier: wave 5 = tier 0, wave 10 = tier 1, wave 15 = tier 2, etc.
+      // Quadratic scaling: multiplier = 1 + (tier^2 * factor)
+      // Wave 5 (tier 0): 300 HP, Wave 10: 525, Wave 15: 1200, Wave 20: 2325
       const bossTier = Math.max(0, Math.floor(wave / WAVE_CONFIG.bossWaveInterval) - 1);
-      bossBonus = 1 + (bossTier * ENEMY_SCALING.bossHealthBonusPerTier);
+      bossBonus = 1 + (bossTier * bossTier * ENEMY_SCALING.bossHealthTierFactor);
     }
     // Note: Bosses don't get wave-based healthMultiplier, only tier bonus
     const effectiveHealthMult = isBoss ? bossBonus : healthMultiplier;
