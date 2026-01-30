@@ -271,10 +271,10 @@ export const CHEST_CONFIG = {
   height: 24,
   rarityWeights: {
     common: 0,               // Never rolls common
-    uncommon: 30,            // 30% uncommon
-    rare: 40,                // 40% rare
-    epic: 20,                // 20% epic
-    legendary: 10,           // 10% legendary
+    uncommon: 45,            // 45% uncommon
+    rare: 35,                // 35% rare
+    epic: 15,                // 15% epic
+    legendary: 5,            // 5% legendary
   },
 };
 

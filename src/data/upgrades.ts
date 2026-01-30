@@ -1,5 +1,6 @@
 import { UPGRADE_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { ProgressionManager } from '../systems/ProgressionManager';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
@@ -463,6 +464,7 @@ export interface RarityWeights {
 export interface UpgradeSelectionOptions {
   customWeights?: Partial<RarityWeights>;
   guaranteeRareOrBetter?: boolean;  // For "rigged" early chests
+  progressionManager?: ProgressionManager;  // For prosperity-based rarity shifts
 }
 
 export function getRandomUpgrades(
@@ -472,13 +474,19 @@ export function getRandomUpgrades(
 ): Upgrade[] {
   // Merge custom weights with defaults
   const baseWeights = UPGRADE_CONFIG.rarityWeights;
-  const weights: RarityWeights = {
+  let weights: RarityWeights = {
     common: options?.customWeights?.common ?? baseWeights.common,
     uncommon: options?.customWeights?.uncommon ?? baseWeights.uncommon,
     rare: options?.customWeights?.rare ?? baseWeights.rare,
     epic: options?.customWeights?.epic ?? baseWeights.epic,
     legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
   };
+
+  // Apply prosperity-based rarity shift if progressionManager is provided
+  if (options?.progressionManager) {
+    const excludeCommon = options.customWeights?.common === 0;
+    weights = options.progressionManager.getModifiedRarityWeights(weights, excludeCommon);
+  }
 
   const totalWeight = weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary;
 
