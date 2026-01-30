@@ -168,6 +168,24 @@ export const ENEMY_CONFIG = {
     chargeSpeed: 350, // Speed during charge attack
     chargeCooldown: 4000, // ms between charges
   },
+  // Flying Boss - aerial menace, appears wave 10+
+  flyingBoss: {
+    health: 250, // Slightly less HP since harder to hit
+    damage: 30,
+    speed: 150, // Faster movement
+    projectileSpeed: 350,
+    // 3-phase fire rates like ground boss
+    fireRatePhase1: 2.0, // Slow shots while hovering
+    fireRatePhase2: 1.4, // Faster shots
+    fireRatePhase3: 0.7, // Rapid fire
+    points: 600,
+    color: 0x800080, // Purple
+    width: 90,
+    height: 60,
+    diveSpeed: 500, // Dive bomb attack speed
+    diveCooldown: 5000, // ms between dive bombs
+    hoverHeight: 180, // Preferred height above player
+  },
 };
 
 export const WAVE_CONFIG = {

@@ -127,6 +127,10 @@ export class GameScene extends Phaser.Scene {
         if (enemy.enemyType === 'swooper') {
           return enemy.isDiving;
         }
+        // Flying boss never collides with platforms
+        if (enemy.enemyType === 'flyingBoss') {
+          return false;
+        }
         if (enemy.enemyType === 'healer') {
           return false;
         }
@@ -153,6 +157,10 @@ export class GameScene extends Phaser.Scene {
         // Swoopers can phase through platforms when hovering, only collide when diving
         if (enemy.enemyType === 'swooper') {
           return enemy.isDiving;
+        }
+        // Flying boss never collides with platforms
+        if (enemy.enemyType === 'flyingBoss') {
+          return false;
         }
         // Healers float, no platform collision
         if (enemy.enemyType === 'healer') {
@@ -340,6 +348,12 @@ export class GameScene extends Phaser.Scene {
       const enemy = enemyObj as Enemy;
       if (enemy.isDead()) return;
 
+      // Burrower warning - show dirt particles before surfacing
+      if (enemy._showingWarning) {
+        enemy._showingWarning = false;
+        this.spawnDirtWarning(enemy.x, enemy.y + 30);
+      }
+
       // Burrower surfacing AOE
       if (enemy._justSurfaced) {
         enemy._justSurfaced = false;
@@ -394,6 +408,36 @@ export class GameScene extends Phaser.Scene {
       duration: 350,
       ease: 'Power1',
       onComplete: () => ring.destroy(),
+    });
+  }
+
+  private spawnDirtWarning(x: number, y: number): void {
+    // Small dirt particles bubbling up to warn player
+    for (let i = 0; i < 4; i++) {
+      const offsetX = (Math.random() - 0.5) * 30;
+      const dirt = this.add.circle(x + offsetX, y, 4, 0x8b6914);
+
+      this.tweens.add({
+        targets: dirt,
+        y: y - 15 - Math.random() * 10,
+        alpha: 0,
+        scale: 0.5,
+        duration: 300 + Math.random() * 200,
+        ease: 'Power1',
+        onComplete: () => dirt.destroy(),
+      });
+    }
+
+    // Rumble indicator on ground
+    const rumble = this.add.ellipse(x, y, 40, 10, 0x654321, 0.4);
+    this.tweens.add({
+      targets: rumble,
+      scaleX: 1.2,
+      scaleY: 0.8,
+      yoyo: true,
+      repeat: 2,
+      duration: 150,
+      onComplete: () => rumble.destroy(),
     });
   }
 
@@ -463,10 +507,22 @@ export class GameScene extends Phaser.Scene {
     // Burrowed enemies don't deal contact damage
     if (enemy.isBurrowed) return;
 
-    // Rolling shellback deals roll damage instead of normal damage
-    const damage = enemy.isRolling ? enemy.getRollDamage() : enemy.damage;
+    // Rolling shellback deals roll damage and knockback
+    if (enemy.isRolling) {
+      const damage = enemy.getRollDamage();
+      if (this.player.takeDamage(damage)) {
+        AudioManager.playPlayerDamage();
+        // Strong knockback from roll attack
+        const knockbackDir = this.player.x > enemy.x ? 1 : -1;
+        const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+        playerBody.setVelocity(knockbackDir * 400, -200);
+        // Screen shake for impact
+        this.cameras.main.shake(100, 0.01);
+      }
+      return;
+    }
 
-    if (this.player.takeDamage(damage)) {
+    if (this.player.takeDamage(enemy.damage)) {
       AudioManager.playPlayerDamage();
     }
   }
