@@ -167,19 +167,21 @@ export class ProgressionManager {
   }
 
   // Update infinite swarm difficulty (call each frame)
-  updateInfiniteSwarm(_currentTime: number, delta: number): void {
+  updateInfiniteSwarm(currentTime: number, delta: number): void {
     if (!this.infiniteSwarmActive) return;
 
     const elapsedSeconds = delta / 1000;
 
-    // Decay spawn interval (0.5% per second)
+    // Decay spawn interval (1% per second)
     this.currentSpawnInterval = Math.max(
       INFINITE_SWARM_CONFIG.minSpawnInterval,
       this.currentSpawnInterval * Math.pow(INFINITE_SWARM_CONFIG.spawnIntervalDecayRate, elapsedSeconds * 60)
     );
 
-    // Increase difficulty multiplier (0.1% per second)
-    this.swarmDifficultyMultiplier += INFINITE_SWARM_CONFIG.statScaleRate * elapsedSeconds * 60;
+    // Quadratic difficulty scaling: multiplier = 1 + (totalSeconds / interval)^2
+    const totalSeconds = (currentTime - this.infiniteSwarmStartTime) / 1000;
+    const tiers = totalSeconds / INFINITE_SWARM_CONFIG.statScaleInterval;
+    this.swarmDifficultyMultiplier = 1 + (tiers * tiers);
   }
 
   getSwarmSpawnInterval(): number {

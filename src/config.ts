@@ -153,7 +153,7 @@ export const ENEMY_CONFIG = {
   },
   // Boss - big, mean, 3-phase fight
   boss: {
-    health: 1200, // Significantly increased (was 300)
+    health: 300, // Base HP for wave 5 boss (scales with tier)
     damage: 30,
     speed: 100,
     projectileSpeed: 400,
@@ -290,9 +290,11 @@ export const PROSPERITY_CONFIG = {
 export const INFINITE_SWARM_CONFIG = {
   baseSpawnInterval: 600,        // Starting spawn interval (ms)
   spawnIntervalDecayRate: 0.99,  // Decays by 1% per second (faster ramp)
-  minSpawnInterval: 150,         // Floor for spawn rate (was 200)
-  statScaleRate: 0.02,           // +2% enemy stats per second (was 0.001)
-  // After 30s: enemies have +60% stats
-  // After 60s: enemies have +120% stats
-  // After 2min: enemies have +240% stats
+  minSpawnInterval: 10,          // Floor: 100 enemies/sec maximum chaos
+  // Quadratic scaling: multiplier = 1 + (seconds/30)^2
+  // After 30s: 2x stats
+  // After 60s: 5x stats
+  // After 90s: 10x stats
+  // After 2min: 17x stats
+  statScaleInterval: 30,         // Seconds per "tier" of scaling
 };
