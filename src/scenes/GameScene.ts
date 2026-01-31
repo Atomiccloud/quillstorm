@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
 import { Companion } from '../entities/Companion';
 import { XPOrb } from '../entities/XPOrb';
 import { TreasureChest } from '../entities/TreasureChest';
+import { Pinecone } from '../entities/Pinecone';
 import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
@@ -29,6 +30,7 @@ export class GameScene extends Phaser.Scene {
   private enemyProjectiles!: Phaser.Physics.Arcade.Group;
   private xpOrbs!: Phaser.GameObjects.Group;
   private treasureChests!: Phaser.GameObjects.Group;
+  private pinecones!: Phaser.GameObjects.Group;
   private companions: Companion[] = [];
 
   // Track upgrade source for different flows
@@ -52,9 +54,10 @@ export class GameScene extends Phaser.Scene {
     this.progressionManager = new ProgressionManager(this.upgradeManager);
     this.quillManager = new QuillManager(this, this.upgradeManager);
 
-    // Create XP orbs and treasure chest groups
+    // Create XP orbs, treasure chest, and pinecone groups
     this.xpOrbs = this.add.group({ runChildUpdate: true });
     this.treasureChests = this.add.group({ runChildUpdate: true });
+    this.pinecones = this.add.group({ runChildUpdate: true });
 
     // Create platforms
     this.createPlatforms();
@@ -529,6 +532,19 @@ export class GameScene extends Phaser.Scene {
       if (Math.random() < chestDropChance) {
         this.spawnTreasureChest(enemy.x, enemy.y);
       }
+
+      // Pinecone drops - guaranteed from bosses, chance from regular enemies
+      if (enemy.isBoss()) {
+        const pineconeCount = Phaser.Math.Between(PINECONE_CONFIG.bossDropMin, PINECONE_CONFIG.bossDropMax);
+        for (let i = 0; i < pineconeCount; i++) {
+          this.spawnPinecone(enemy.x + (i - 1) * 20, enemy.y);
+        }
+      } else {
+        const pineconeDropChance = this.progressionManager.getEffectivePineconeDropChance();
+        if (Math.random() < pineconeDropChance) {
+          this.spawnPinecone(enemy.x, enemy.y);
+        }
+      }
     } else {
       AudioManager.playHit();
     }
@@ -782,7 +798,50 @@ export class GameScene extends Phaser.Scene {
 
       // Trigger chest upgrade selection
       this.showChestUpgradeSelection();
+
+      // Bonus pinecone from chests
+      if (PINECONE_CONFIG.chestBonus > 0) {
+        this.spawnPinecone(chest.x, chest.y);
+      }
     });
+  }
+
+  private spawnPinecone(x: number, y: number, value: number = 1): void {
+    const pinecone = new Pinecone(this, x, y, value);
+    pinecone.setMagnetTarget(this.player);
+    this.pinecones.add(pinecone);
+
+    // Platform collision
+    this.physics.add.collider(pinecone, this.platforms);
+
+    // Player collection
+    this.physics.add.overlap(this.player, pinecone, () => {
+      if (!pinecone.active) return;
+      AudioManager.playPineconeCollect();
+
+      this.progressionManager.addPinecones(pinecone.getValue());
+      this.spawnPineconeCollectParticles(pinecone.x, pinecone.y);
+      pinecone.destroy();
+    });
+  }
+
+  private spawnPineconeCollectParticles(x: number, y: number): void {
+    // Burst of golden particles on pinecone collection
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const particle = this.add.circle(x, y, 3, 0xdaa520);
+
+      this.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * 30,
+        y: y + Math.sin(angle) * 30,
+        alpha: 0,
+        scale: 0,
+        duration: 250,
+        ease: 'Power2',
+        onComplete: () => particle.destroy(),
+      });
+    }
   }
 
   private handleLevelUp(newLevel: number): void {
@@ -968,6 +1027,9 @@ export class GameScene extends Phaser.Scene {
     // Submit score
     const isNewHighScore = SaveManager.submitRun(this.hud.score, this.waveManager.currentWave);
 
+    // Get session pinecones before transitioning
+    const sessionPinecones = this.progressionManager.getSessionPinecones();
+
     // Show game over screen
     this.time.delayedCall(1000, () => {
       this.scene.start('GameOverScene', {
@@ -977,6 +1039,7 @@ export class GameScene extends Phaser.Scene {
         isNewHighScore,
         highScore: SaveManager.getHighScore(),
         highestWave: SaveManager.getHighestWave(),
+        sessionPinecones,
       });
     });
   }

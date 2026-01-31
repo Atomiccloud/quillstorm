@@ -189,6 +189,13 @@ export class AudioManager {
     this.playTone(900, 0.03, 'sine', 0.1, 0.02);
   }
 
+  // Pinecone collect - satisfying coin-like chime
+  static playPineconeCollect(): void {
+    this.playTone(880, 0.08, 'sine', 0.35);
+    this.playTone(1100, 0.06, 'sine', 0.25, 0.04);
+    this.playTone(1320, 0.1, 'sine', 0.2, 0.08);
+  }
+
   // Level up - triumphant 5-note fanfare
   static playLevelUp(): void {
     const notes = [523, 659, 784, 1047, 1319]; // C5, E5, G5, C6, E6

@@ -25,6 +25,7 @@ export class HUD {
   private stateText!: Phaser.GameObjects.Text;
   private aimLine!: Phaser.GameObjects.Graphics;
   private infiniteSwarmText!: Phaser.GameObjects.Text;
+  private pineconeText!: Phaser.GameObjects.Text;
 
   private progressionManager: ProgressionManager | null = null;
   public score: number = 0;
@@ -83,6 +84,13 @@ export class HUD {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#888888',
+    }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+
+    // Pinecone counter (currency)
+    this.pineconeText = this.scene.add.text(GAME_CONFIG.width - 20, 75, '0', {
+      fontSize: '18px',
+      fontFamily: 'Arial',
+      color: '#daa520', // Goldenrod
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
 
     // Quill state text
@@ -282,6 +290,12 @@ export class HUD {
     const currentQuills = Math.floor(this.quillManager.currentQuills);
     const maxQuills = this.quillManager.maxQuills;
     this.stateText.setText(this.stateText.text + `\nQuills: ${currentQuills}/${maxQuills}`);
+
+    // Update pinecone display
+    if (this.progressionManager) {
+      const pinecones = this.progressionManager.getSessionPinecones();
+      this.pineconeText.setText(`🌰 ${pinecones}`);
+    }
   }
 
   private drawAimLine(): void {
@@ -484,5 +498,6 @@ export class HUD {
     this.stateText.destroy();
     this.aimLine.destroy();
     this.infiniteSwarmText.destroy();
+    this.pineconeText.destroy();
   }
 }

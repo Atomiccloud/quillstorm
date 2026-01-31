@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { LeaderboardManager, SubmissionResult } from '../systems/LeaderboardManager';
+import { getCosmeticManager } from '../systems/CosmeticManager';
 import { NameInputModal } from '../ui/NameInputModal';
 
 interface GameOverData {
@@ -12,6 +13,7 @@ interface GameOverData {
   isNewHighScore?: boolean;
   highScore?: number;
   highestWave?: number;
+  sessionPinecones?: number;
 }
 
 export class GameOverScene extends Phaser.Scene {
@@ -29,6 +31,12 @@ export class GameOverScene extends Phaser.Scene {
     this.gameData = data;
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
+
+    // Add session pinecones to player's total
+    if (data.sessionPinecones && data.sessionPinecones > 0) {
+      const cosmeticManager = getCosmeticManager();
+      cosmeticManager.addPinecones(data.sessionPinecones);
+    }
 
     const title = data.victory ? 'VICTORY!' : 'GAME OVER';
     const titleColor = data.victory ? '#ffaa00' : '#ff4444';
@@ -72,15 +80,23 @@ export class GameOverScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
+    // Pinecones earned this run
+    if (data.sessionPinecones && data.sessionPinecones > 0) {
+      this.add.text(centerX, centerY + 55, `+${data.sessionPinecones}`, {
+        fontSize: '22px',
+        color: '#daa520',
+      }).setOrigin(0.5);
+    }
+
     // Rank display (hidden initially)
-    this.rankText = this.add.text(centerX, centerY + 60, '', {
+    this.rankText = this.add.text(centerX, centerY + 85, '', {
       fontSize: '20px',
       color: '#88ff88',
     });
     this.rankText.setOrigin(0.5);
 
     // Status text for submission
-    this.statusText = this.add.text(centerX, centerY + 90, '', {
+    this.statusText = this.add.text(centerX, centerY + 115, '', {
       fontSize: '16px',
       color: '#666666',
     });
@@ -88,12 +104,12 @@ export class GameOverScene extends Phaser.Scene {
 
     // High score display
     if (data.highScore !== undefined) {
-      this.add.text(centerX, centerY + 120, `High Score: ${data.highScore.toLocaleString()}`, {
+      this.add.text(centerX, centerY + 145, `High Score: ${data.highScore.toLocaleString()}`, {
         fontSize: '18px',
         color: '#aaaaaa',
       }).setOrigin(0.5);
 
-      this.add.text(centerX, centerY + 145, `Best Wave: ${data.highestWave}`, {
+      this.add.text(centerX, centerY + 170, `Best Wave: ${data.highestWave}`, {
         fontSize: '18px',
         color: '#aaaaaa',
       }).setOrigin(0.5);
