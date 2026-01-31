@@ -171,8 +171,8 @@ Your quill percentage determines your state:
 ---
 
 ### Flying Boss (Purple)
-- **Health**: 250
-- **Damage**: 30 (contact)
+- **Health**: 1,000 (base, scales with boss tier)
+- **Damage**: 35 (contact)
 - **Speed**: 150
 - **Projectile Speed**: 350
 - **Dive Speed**: 500
@@ -201,10 +201,10 @@ Your quill percentage determines your state:
 
 ### Enemy Count Formula
 ```
-count = min(100, 5 × (1.2 ^ (wave - 1)))
+count = min(60, 5 × (1.15 ^ (wave - 1)))
 ```
 
-Capped at 100 enemies per wave to prevent excessively long waves.
+Capped at 60 enemies per wave to prevent excessively long waves.
 
 | Wave | Enemies | Boss(es) |
 |------|---------|----------|
@@ -254,11 +254,30 @@ Enemies get stronger every 2 waves (capped at multiplier):
 
 | Stat | Per 2 Waves | Max Cap |
 |------|-------------|---------|
-| Health | +8% | 3.0x |
-| Damage | +5% | 3.0x |
-| Speed | +2% | 1.5x |
+| Health | +15% | 5.0x |
+| Damage | +10% | 5.0x |
+| Speed | +3% | 5.0x |
 
 Note: Stats only increase on waves 3, 5, 7, 9, etc. Spawn pacing also scales every 2 waves.
+
+### Boss HP Scaling
+
+Bosses use **quadratic HP scaling** to stay challenging in later waves:
+
+```
+HP = baseHP × (1 + tier² × 0.75)
+```
+
+Where `tier = (wave / 5) - 1`:
+
+| Wave | Boss Tier | Ground Boss HP | Flying Boss HP |
+|------|-----------|----------------|----------------|
+| 5 | 0 | 300 | - |
+| 10 | 1 | 525 | 1,750 |
+| 15 | 2 | 1,200 | 4,000 |
+| 20 | 3 | 2,325 | 7,750 |
+
+Flying Boss has 1,000 base HP (vs 300 for Ground Boss).
 
 ---
 
@@ -532,13 +551,25 @@ At 150 prosperity, you have **~3x** the legendary chance!
 
 ### Infinite Swarm Mode
 
-At player level 20, the game transitions to endless mode.
+After defeating the wave 20 boss (4th boss), the game transitions to endless mode.
 
-- **Trigger**: Reaching level 20 activates infinite swarm
-- **Spawn Rate**: Starts at 800ms, decays to minimum 200ms
-- **Difficulty**: Enemy stats scale +0.1% per second
+- **Trigger**: Completing wave 20 activates infinite swarm (max wave is 20)
+- **Spawn Rate**: Starts at 600ms, decays by 1% per second (floor: 10ms)
+- **Difficulty**: Quadratic scaling - `multiplier = 1 + (seconds/30)²`
 - **No Wave Breaks**: Continuous spawning, no wave-end upgrades
 - **Upgrades**: Only from level-ups and treasure chests
+
+**Difficulty Curve:**
+
+| Time | Stat Multiplier | Spawn Interval |
+|------|-----------------|----------------|
+| 0s | 1.0x | 600ms |
+| 30s | 2.0x | ~360ms |
+| 60s | 5.0x | ~215ms |
+| 90s | 10.0x | ~130ms |
+| 2min | 17.0x | ~75ms |
+
+The quadratic scaling makes late-game survival increasingly challenging without sudden difficulty spikes.
 
 ---
 

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { WAVE_CONFIG, GAME_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
+import { WAVE_CONFIG, GAME_CONFIG, INFINITE_SWARM_CONFIG, XP_CONFIG } from '../config';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { ProgressionManager } from './ProgressionManager';
 
@@ -53,6 +53,19 @@ export class WaveManager {
   }
 
   startWave(): void {
+    // Safety cap: never exceed the infinite swarm threshold
+    // This prevents wave 21+ from starting - infinite swarm should take over at wave 20
+    if (this.currentWave >= XP_CONFIG.infiniteSwarmWave) {
+      // Shouldn't happen normally, but acts as a safety net
+      return;
+    }
+
+    // Don't start a new wave if one is already active
+    // This prevents double-starts from stacked delayed calls
+    if (this.isWaveActive) {
+      return;
+    }
+
     this.currentWave++;
     this.isWaveActive = true;
 
