@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS } from '../config';
 import { AudioManager } from '../systems/AudioManager';
+import { AuthManager } from '../systems/AuthManager';
 
 export class MenuScene extends Phaser.Scene {
   private volumeFill!: Phaser.GameObjects.Rectangle;
@@ -15,6 +16,8 @@ export class MenuScene extends Phaser.Scene {
   create(): void {
     // Initialize audio context on scene create (needed for volume controls)
     AudioManager.initialize();
+    // Initialize Firebase Auth
+    AuthManager.initialize();
 
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
@@ -61,11 +64,34 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('GameScene');
     });
 
-    // Leaderboard button
-    const leaderboardButton = this.add.rectangle(centerX, centerY + 220, 160, 40, 0x444477)
+    // Shop button
+    const shopButton = this.add.rectangle(centerX, centerY + 220, 120, 40, 0x8b4513)
       .setInteractive({ useHandCursor: true });
 
-    this.add.text(centerX, centerY + 220, 'LEADERBOARD', {
+    this.add.text(centerX, centerY + 220, 'SHOP', {
+      fontSize: '18px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5);
+
+    shopButton.on('pointerover', () => {
+      shopButton.setFillStyle(0xa0522d);
+    });
+
+    shopButton.on('pointerout', () => {
+      shopButton.setFillStyle(0x8b4513);
+    });
+
+    shopButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.scene.start('ShopScene');
+    });
+
+    // Leaderboard button
+    const leaderboardButton = this.add.rectangle(centerX, centerY + 270, 160, 40, 0x444477)
+      .setInteractive({ useHandCursor: true });
+
+    this.add.text(centerX, centerY + 270, 'LEADERBOARD', {
       fontSize: '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
@@ -84,16 +110,39 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('LeaderboardScene');
     });
 
+    // Account button (top right)
+    const accountButton = this.add.rectangle(GAME_CONFIG.width - 80, 35, 130, 40, 0x555577)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(10);
+
+    const accountText = this.add.text(GAME_CONFIG.width - 80, 35,
+      AuthManager.isSignedIn() ? AuthManager.getDisplayName() : 'Account', {
+      fontSize: '16px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5).setDepth(11);
+
+    accountButton.on('pointerover', () => accountButton.setFillStyle(0x666688));
+    accountButton.on('pointerout', () => accountButton.setFillStyle(0x555577));
+    accountButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.scene.start('LoginScene');
+    });
+
+    // Update account button text when auth state changes
+    AuthManager.onAuthStateChanged((user) => {
+      if (user) {
+        accountText.setText(user.displayName?.split(' ')[0] || 'Account');
+      } else {
+        accountText.setText('Account');
+      }
+    });
+
     // Volume controls section
-    this.createVolumeControls(centerX, centerY + 290);
+    this.createVolumeControls(centerX, centerY + 320);
 
     // Controls info
-    this.add.text(centerX, GAME_CONFIG.height - 60, 'Controls:', {
-      fontSize: '18px',
-      color: '#888888',
-    }).setOrigin(0.5);
-
-    this.add.text(centerX, GAME_CONFIG.height - 35, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  M: Mute', {
+    this.add.text(centerX, GAME_CONFIG.height - 40, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  M: Mute', {
       fontSize: '14px',
       color: '#666666',
     }).setOrigin(0.5);

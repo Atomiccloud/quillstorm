@@ -1,4 +1,4 @@
-import { XP_CONFIG, CHEST_CONFIG, PROSPERITY_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
+import { XP_CONFIG, CHEST_CONFIG, PROSPERITY_CONFIG, INFINITE_SWARM_CONFIG, PINECONE_CONFIG } from '../config';
 import { UpgradeManager } from './UpgradeManager';
 import { Rarity } from '../data/upgrades';
 
@@ -21,6 +21,9 @@ export class ProgressionManager {
 
   // Chest tracking (for "rigged" early chests)
   private chestsCollected: number = 0;
+
+  // Pinecone (currency) tracking
+  private sessionPinecones: number = 0;
 
   constructor(upgradeManager: UpgradeManager) {
     this.upgradeManager = upgradeManager;
@@ -96,6 +99,23 @@ export class ProgressionManager {
       PROSPERITY_CONFIG.maxProsperity
     );
     return CHEST_CONFIG.baseDropChance + (prosperity * PROSPERITY_CONFIG.chestDropBonusPerPoint);
+  }
+
+  // Pinecone (currency) methods
+  getEffectivePineconeDropChance(): number {
+    const prosperity = Math.min(
+      this.upgradeManager.getModifier('prosperity'),
+      PROSPERITY_CONFIG.maxProsperity
+    );
+    return PINECONE_CONFIG.baseDropChance + (prosperity * PINECONE_CONFIG.prosperityBonusPerPoint);
+  }
+
+  addPinecones(amount: number): void {
+    this.sessionPinecones += amount;
+  }
+
+  getSessionPinecones(): number {
+    return this.sessionPinecones;
   }
 
   getEffectiveCritBonus(): number {
@@ -207,5 +227,6 @@ export class ProgressionManager {
     this.swarmDifficultyMultiplier = 1.0;
     this.currentSpawnInterval = INFINITE_SWARM_CONFIG.baseSpawnInterval;
     this.chestsCollected = 0;
+    this.sessionPinecones = 0;
   }
 }

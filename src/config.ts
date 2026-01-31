@@ -249,6 +249,8 @@ export const COLORS = {
   chest: 0xffd700, // Gold
   xpOrb: 0x00ffff, // Cyan
   xpOrbHigh: 0xffd700, // Gold for high-value orbs
+  pinecone: 0x8b4513, // Saddle brown
+  pineconeGlow: 0xdaa520, // Goldenrod
 };
 
 // XP and level progression
@@ -285,6 +287,19 @@ export const PROSPERITY_CONFIG = {
   rarityShiftPerPoint: 0.005,     // +0.5% rarity shift per point
   critBonusPerPoint: 0.002,       // +0.2% crit per point
   maxProsperity: 200,             // Soft cap for display (no hard limit)
+};
+
+// Pinecone currency drops
+export const PINECONE_CONFIG = {
+  baseDropChance: 0.04,        // 4% base drop rate from enemies
+  bossDropMin: 1,              // Min pinecones from boss
+  bossDropMax: 3,              // Max pinecones from boss
+  chestBonus: 1,               // Bonus pinecones from treasure chests
+  waveCompletionBonus: 0,      // Pinecones for completing a wave (0 for now)
+  despawnTime: 12000,          // 12 seconds before despawn
+  warningTime: 3000,           // Start flashing 3 seconds before despawn
+  magnetRange: 80,             // Same as XP orbs
+  prosperityBonusPerPoint: 0.001, // +0.1% drop chance per prosperity
 };
 
 // Infinite swarm mode (activates at level 20)

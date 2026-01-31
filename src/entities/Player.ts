@@ -3,6 +3,8 @@ import { PLAYER_CONFIG, COLORS, QUILL_CONFIG } from '../config';
 import { QuillManager } from '../systems/QuillManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { AudioManager } from '../systems/AudioManager';
+import { getCosmeticManager } from '../systems/CosmeticManager';
+import { Cosmetic } from '../data/cosmetics';
 
 export type QuillState = 'full' | 'patchy' | 'sparse' | 'naked';
 
@@ -20,6 +22,13 @@ export class Player extends Phaser.GameObjects.Container {
   private isInvincible: boolean = false;
   private facingRight: boolean = true;
   private shieldCharges: number = 0;
+
+  // Cosmetic cache
+  private equippedSkin: Cosmetic | undefined;
+  private equippedHat: Cosmetic | undefined;
+  private equippedTrail: Cosmetic | undefined;
+  private lastTrailTime: number = 0;
+  private trailInterval: number = 50; // ms between trail particles
 
   constructor(
     scene: Phaser.Scene,
@@ -50,8 +59,18 @@ export class Player extends Phaser.GameObjects.Container {
     // Set up input
     this.setupInput();
 
+    // Load cosmetics
+    this.loadCosmetics();
+
     // Initial draw
     this.drawPorcupine();
+  }
+
+  private loadCosmetics(): void {
+    const manager = getCosmeticManager();
+    this.equippedSkin = manager.getEquipped('skin');
+    this.equippedHat = manager.getEquipped('hat');
+    this.equippedTrail = manager.getEquipped('trail');
   }
 
   private setupInput(): void {
@@ -67,9 +86,51 @@ export class Player extends Phaser.GameObjects.Container {
     };
   }
 
-  update(_time: number, _delta: number): void {
+  update(time: number, _delta: number): void {
     this.handleMovement();
     this.drawPorcupine();
+    this.updateTrail(time);
+  }
+
+  private updateTrail(time: number): void {
+    if (!this.equippedTrail || this.equippedTrail.id === 'trail_none') return;
+
+    // Only spawn trail when moving
+    const isMoving = Math.abs(this.body.velocity.x) > 20 || Math.abs(this.body.velocity.y) > 20;
+    if (!isMoving) return;
+
+    if (time - this.lastTrailTime > this.trailInterval) {
+      this.lastTrailTime = time;
+      this.spawnTrailParticle();
+    }
+  }
+
+  private spawnTrailParticle(): void {
+    const trail = this.equippedTrail;
+    if (!trail?.colors) return;
+
+    const color = trail.colors.primary;
+    const secondaryColor = trail.colors.secondary || color;
+
+    // Create particle at current position (slightly behind)
+    const offsetX = this.facingRight ? -10 : 10;
+    const particle = this.scene.add.circle(
+      this.x + offsetX + (Math.random() - 0.5) * 10,
+      this.y + (Math.random() - 0.5) * 15,
+      3 + Math.random() * 3,
+      Math.random() > 0.5 ? color : secondaryColor,
+      0.7
+    );
+
+    // Animate and destroy
+    this.scene.tweens.add({
+      targets: particle,
+      alpha: 0,
+      scale: 0.3,
+      y: particle.y + 20,
+      duration: 400 + Math.random() * 200,
+      onComplete: () => particle.destroy(),
+    });
   }
 
   private handleMovement(): void {
@@ -123,12 +184,27 @@ export class Player extends Phaser.GameObjects.Container {
     this.graphics.clear();
 
     const state = this.getQuillState();
-    const bodyColor = COLORS.player[state];
+
+    // Get body color from skin cosmetic or default
+    let bodyColor = COLORS.player[state];
+    let faceColor = 0x6b5344;
+
+    if (this.equippedSkin?.colors && state !== 'naked') {
+      bodyColor = this.equippedSkin.colors.primary;
+      faceColor = this.equippedSkin.colors.secondary || 0x6b5344;
+    }
+
     const w = PLAYER_CONFIG.width;
     const h = PLAYER_CONFIG.height;
 
     // Direction multiplier for flipping
     const dir = this.facingRight ? 1 : -1;
+
+    // Draw glow effect for special skins
+    if (this.equippedSkin?.colors?.glow && state !== 'naked') {
+      this.graphics.fillStyle(this.equippedSkin.colors.glow, 0.2);
+      this.graphics.fillEllipse(0, 2, w * 1.5, h * 1.0);
+    }
 
     // Draw quills first (behind body)
     if (state !== 'naked') {
@@ -140,7 +216,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
 
     // Face/snout (lighter color, extends forward)
-    this.graphics.fillStyle(0x6b5344);
+    this.graphics.fillStyle(faceColor);
     this.graphics.fillEllipse(dir * 15, 0, w * 0.45, h * 0.45);
 
     // Eye
@@ -162,6 +238,9 @@ export class Player extends Phaser.GameObjects.Container {
     // Front leg
     this.graphics.fillRect(dir * 2, legY, 10, 15);
 
+    // Draw hat
+    this.drawHat(dir, w, h);
+
     // Flash white when invincible
     if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
@@ -173,6 +252,70 @@ export class Player extends Phaser.GameObjects.Container {
       this.graphics.fillStyle(0xff0000);
       this.graphics.fillRect(-3, -h * 0.7, 6, 12);
       this.graphics.fillCircle(0, -h * 0.7 + 18, 4);
+    }
+  }
+
+  private drawHat(_dir: number, _w: number, h: number): void {
+    if (!this.equippedHat || this.equippedHat.id === 'hat_none') return;
+
+    const hat = this.equippedHat;
+    const colors = hat.colors || { primary: 0x888888 };
+    const hatY = -h * 0.5; // Above head
+
+    switch (hat.id) {
+      case 'hat_crown':
+        // Crown base
+        this.graphics.fillStyle(colors.primary);
+        this.graphics.fillRect(-10, hatY, 20, 10);
+        // Crown points
+        this.graphics.fillTriangle(-10, hatY, -5, hatY, -7.5, hatY - 10);
+        this.graphics.fillTriangle(-2, hatY, 2, hatY, 0, hatY - 14);
+        this.graphics.fillTriangle(5, hatY, 10, hatY, 7.5, hatY - 10);
+        // Gem
+        this.graphics.fillStyle(colors.secondary || 0xff4444);
+        this.graphics.fillCircle(0, hatY + 4, 3);
+        break;
+
+      case 'hat_wizard':
+        this.graphics.fillStyle(colors.primary);
+        this.graphics.fillTriangle(-12, hatY + 8, 12, hatY + 8, 0, hatY - 18);
+        // Star decoration
+        this.graphics.fillStyle(colors.secondary || 0xffdd44);
+        this.graphics.fillCircle(0, hatY - 2, 3);
+        break;
+
+      case 'hat_viking':
+        this.graphics.fillStyle(colors.primary);
+        this.graphics.fillEllipse(0, hatY + 5, 24, 12);
+        // Horns
+        this.graphics.fillStyle(colors.secondary || 0xcccc99);
+        this.graphics.fillTriangle(-14, hatY + 5, -10, hatY + 5, -18, hatY - 12);
+        this.graphics.fillTriangle(14, hatY + 5, 10, hatY + 5, 18, hatY - 12);
+        break;
+
+      case 'hat_party':
+        this.graphics.fillStyle(colors.primary);
+        this.graphics.fillTriangle(-8, hatY + 6, 8, hatY + 6, 0, hatY - 14);
+        // Pom pom
+        this.graphics.fillStyle(colors.secondary || 0x44ffaa);
+        this.graphics.fillCircle(0, hatY - 14, 4);
+        break;
+
+      case 'hat_chef':
+        this.graphics.fillStyle(colors.primary);
+        this.graphics.fillEllipse(0, hatY - 4, 22, 14);
+        this.graphics.fillRect(-12, hatY + 2, 24, 8);
+        break;
+
+      case 'hat_halo':
+        // Glowing halo effect
+        if (colors.glow) {
+          this.graphics.lineStyle(6, colors.glow, 0.3);
+          this.graphics.strokeEllipse(0, hatY - 8, 24, 8);
+        }
+        this.graphics.lineStyle(3, colors.primary);
+        this.graphics.strokeEllipse(0, hatY - 8, 22, 7);
+        break;
     }
   }
 
