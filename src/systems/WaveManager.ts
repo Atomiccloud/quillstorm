@@ -60,6 +60,12 @@ export class WaveManager {
       return;
     }
 
+    // Don't start a new wave if one is already active
+    // This prevents double-starts from stacked delayed calls
+    if (this.isWaveActive) {
+      return;
+    }
+
     this.currentWave++;
     this.isWaveActive = true;
 
