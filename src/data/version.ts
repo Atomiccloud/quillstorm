@@ -13,6 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '0.3.1',
     date: '2026-02-01',
     changes: [
+      'Added low health warning - character pulses red when below 20% HP',
       'Fixed shop card layout (descriptions no longer overlap buttons)',
       'Fixed accidental quill shooting when selecting powerups',
       'Improved boss drop handling during level transitions',
