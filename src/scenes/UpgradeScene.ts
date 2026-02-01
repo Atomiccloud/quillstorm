@@ -17,6 +17,8 @@ interface UpgradeSceneData {
 
 export class UpgradeScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
+  private inputEnabled: boolean = false;
+  private static readonly INPUT_DELAY = 400; // ms before cards become clickable
 
   constructor() {
     super({ key: 'UpgradeScene' });
@@ -24,7 +26,13 @@ export class UpgradeScene extends Phaser.Scene {
 
   create(data: UpgradeSceneData): void {
     this.upgradeManager = data.upgradeManager;
+    this.inputEnabled = false;
     const source = data.source || 'wave';
+
+    // Delay before enabling input to prevent accidental clicks
+    this.time.delayedCall(UpgradeScene.INPUT_DELAY, () => {
+      this.inputEnabled = true;
+    });
 
     const centerX = GAME_CONFIG.width / 2;
 
@@ -259,6 +267,12 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   selectUpgrade(upgrade: Upgrade): void {
+    // Prevent selection if input is not yet enabled (spam-click protection)
+    if (!this.inputEnabled) return;
+
+    // Disable further input to prevent double-selection
+    this.inputEnabled = false;
+
     AudioManager.playUpgradeSelect();
     this.upgradeManager.addUpgrade(upgrade);
     this.scene.stop();

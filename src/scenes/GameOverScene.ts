@@ -22,6 +22,8 @@ export class GameOverScene extends Phaser.Scene {
   private rankText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private buttonsContainer!: Phaser.GameObjects.Container;
+  private inputEnabled: boolean = false; // Prevent input until name submitted
+  private rKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   constructor() {
     super({ key: 'GameOverScene' });
@@ -29,6 +31,7 @@ export class GameOverScene extends Phaser.Scene {
 
   create(data: GameOverData): void {
     this.gameData = data;
+    this.inputEnabled = false; // Disable input until name is submitted
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
 
@@ -124,17 +127,20 @@ export class GameOverScene extends Phaser.Scene {
     this.add.existing(this.nameModal);
 
     // Quick restart hint
-    this.add.text(centerX, centerY + 260, 'Press R to quick restart', {
+    this.add.text(centerX, centerY + 260, 'Press R to quick restart (after submitting)', {
       fontSize: '14px',
       color: '#555555',
     }).setOrigin(0.5);
 
-    // R key to restart
-    this.input.keyboard?.on('keydown-R', () => {
-      AudioManager.playButtonClick();
-      this.nameModal.destroy();
-      this.scene.start('GameScene');
-    });
+    // R key to restart (only when input is enabled)
+    this.rKeyHandler = () => {
+      if (this.inputEnabled) {
+        AudioManager.playButtonClick();
+        this.cleanup();
+        this.scene.start('GameScene');
+      }
+    };
+    this.input.keyboard?.on('keydown-R', this.rKeyHandler);
 
     // Check if we need name input
     this.checkNameAndSubmit();
@@ -177,42 +183,33 @@ export class GameOverScene extends Phaser.Scene {
 
     this.buttonsContainer.add(menuButton);
 
-    // Button interactions
+    // Button interactions (only work when input is enabled)
     retryButton.on('pointerover', () => retryButton.setFillStyle(0x5a7751));
     retryButton.on('pointerout', () => retryButton.setFillStyle(0x4a6741));
     retryButton.on('pointerdown', () => {
+      if (!this.inputEnabled) return;
       AudioManager.playButtonClick();
-      this.nameModal.destroy();
+      this.cleanup();
       this.scene.start('GameScene');
     });
 
     leaderboardButton.on('pointerover', () => leaderboardButton.setFillStyle(0x555588));
     leaderboardButton.on('pointerout', () => leaderboardButton.setFillStyle(0x444477));
     leaderboardButton.on('pointerdown', () => {
+      if (!this.inputEnabled) return;
       AudioManager.playButtonClick();
-      this.nameModal.destroy();
+      this.cleanup();
       this.scene.start('LeaderboardScene');
     });
 
     menuButton.on('pointerover', () => menuButton.setFillStyle(0x666666));
     menuButton.on('pointerout', () => menuButton.setFillStyle(0x555555));
     menuButton.on('pointerdown', () => {
+      if (!this.inputEnabled) return;
       AudioManager.playButtonClick();
-      this.nameModal.destroy();
+      this.cleanup();
       this.scene.start('MenuScene');
     });
-
-    // R to quick restart
-    this.input.keyboard?.on('keydown-R', () => {
-      AudioManager.playButtonClick();
-      this.scene.start('GameScene');
-    });
-
-    // Show hint
-    this.add.text(centerX, centerY + 230, 'Press R to quick restart', {
-      fontSize: '16px',
-      color: '#666666',
-    }).setOrigin(0.5);
   }
 
   private async checkNameAndSubmit(): Promise<void> {
@@ -226,6 +223,9 @@ export class GameOverScene extends Phaser.Scene {
   private async onNameSubmitted(name: string): Promise<void> {
     SaveManager.setPlayerName(name);
     await this.submitScore(name);
+
+    // Enable buttons and R key after name is submitted
+    this.inputEnabled = true;
   }
 
   private async submitScore(playerName: string): Promise<void> {
@@ -281,9 +281,17 @@ export class GameOverScene extends Phaser.Scene {
     });
   }
 
-  shutdown(): void {
+  private cleanup(): void {
     if (this.nameModal) {
       this.nameModal.destroy();
     }
+    if (this.rKeyHandler) {
+      this.input.keyboard?.off('keydown-R', this.rKeyHandler);
+      this.rKeyHandler = null;
+    }
+  }
+
+  shutdown(): void {
+    this.cleanup();
   }
 }
