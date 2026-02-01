@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.3.0';
+export const GAME_VERSION = '0.3.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,15 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.1',
+    date: '2026-02-01',
+    changes: [
+      'Fixed shop card layout (descriptions no longer overlap buttons)',
+      'Fixed accidental quill shooting when selecting powerups',
+      'Improved boss drop handling during level transitions',
+    ],
+  },
   {
     version: '0.3.0',
     date: '2026-02-01',

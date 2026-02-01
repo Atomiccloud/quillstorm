@@ -39,6 +39,7 @@ export class GameScene extends Phaser.Scene {
   private waveCompleteTimer: number = 0;
   private isChoosingUpgrade: boolean = false;
   private gameOver: boolean = false;
+  private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
 
   constructor() {
     super({ key: 'GameScene' });
@@ -147,6 +148,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   private regeneratePlatforms(wave: number): void {
+    // Ground floor position (always exists in all layouts)
+    const groundY = GAME_CONFIG.height - 40;
+
+    // Move all collectibles to a safe position above ground floor before clearing platforms
+    // This prevents items from falling through during the transition
+    const safeY = groundY - 50;
+
+    this.treasureChests.getChildren().forEach((chest) => {
+      const chestBody = (chest as TreasureChest).body as Phaser.Physics.Arcade.Body;
+      if (chestBody) {
+        chestBody.setVelocity(0, 0);
+        (chest as TreasureChest).y = safeY;
+      }
+    });
+
+    this.xpOrbs.getChildren().forEach((orb) => {
+      const orbBody = (orb as XPOrb).body as Phaser.Physics.Arcade.Body;
+      if (orbBody) {
+        orbBody.setVelocity(0, 0);
+        (orb as XPOrb).y = safeY;
+      }
+    });
+
+    this.pinecones.getChildren().forEach((pinecone) => {
+      const pineconeBody = (pinecone as Pinecone).body as Phaser.Physics.Arcade.Body;
+      if (pineconeBody) {
+        pineconeBody.setVelocity(0, 0);
+        (pinecone as Pinecone).y = safeY;
+      }
+    });
+
     // Clear existing platforms
     this.platforms.clear(true, true);
 
@@ -189,6 +221,11 @@ export class GameScene extends Phaser.Scene {
     // Re-establish collision for existing XP orbs
     this.xpOrbs.getChildren().forEach((orb) => {
       this.physics.add.collider(orb, this.platforms);
+    });
+
+    // Re-establish collision for existing pinecones
+    this.pinecones.getChildren().forEach((pinecone) => {
+      this.physics.add.collider(pinecone, this.platforms);
     });
   }
 
@@ -255,7 +292,7 @@ export class GameScene extends Phaser.Scene {
   private setupInput(): void {
     // Shooting with mouse
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.gameOver || this.isChoosingUpgrade) return;
+      if (this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
 
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       if (this.player.shoot(worldPoint.x, worldPoint.y)) {
@@ -265,7 +302,7 @@ export class GameScene extends Phaser.Scene {
 
     // Hold to shoot continuously
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.isDown || this.gameOver || this.isChoosingUpgrade) return;
+      if (!pointer.isDown || this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
 
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       if (this.player.shoot(worldPoint.x, worldPoint.y)) {
@@ -952,6 +989,12 @@ export class GameScene extends Phaser.Scene {
   private onResumeFromUpgrade(): void {
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
+
+    // Block shooting briefly to prevent accidental shots when clicking upgrade button
+    this.shootingBlocked = true;
+    this.time.delayedCall(150, () => {
+      this.shootingBlocked = false;
+    });
 
     const source = this.pendingUpgradeSource;
     this.isChoosingUpgrade = false;
