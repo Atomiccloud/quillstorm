@@ -145,7 +145,7 @@ export class MenuScene extends Phaser.Scene {
     this.createVolumeControls(centerX, centerY + 320);
 
     // Controls info
-    this.add.text(centerX, GAME_CONFIG.height - 40, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  M: Mute', {
+    this.add.text(centerX, GAME_CONFIG.height - 40, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  Tab: Stats  |  M: Mute', {
       fontSize: '14px',
       color: '#666666',
     }).setOrigin(0.5);
