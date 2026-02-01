@@ -165,6 +165,11 @@ export class GameScene extends Phaser.Scene {
       },
       this
     );
+
+    // Re-establish collision for existing treasure chests
+    this.treasureChests.getChildren().forEach((chest) => {
+      this.physics.add.collider(chest, this.platforms);
+    });
   }
 
   private setupCollisions(): void {

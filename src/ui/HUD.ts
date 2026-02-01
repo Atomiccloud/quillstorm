@@ -15,6 +15,7 @@ export class HUD {
   private waveManager: WaveManager;
 
   private healthBar!: Phaser.GameObjects.Graphics;
+  private healthText!: Phaser.GameObjects.Text;
   private quillBar!: Phaser.GameObjects.Graphics;
   private xpBar!: Phaser.GameObjects.Graphics;
   private waveText!: Phaser.GameObjects.Text;
@@ -50,6 +51,15 @@ export class HUD {
     this.healthBar = this.scene.add.graphics();
     this.healthBar.setScrollFactor(0);
     this.healthBar.setDepth(100);
+
+    // Health text (shows current/max HP)
+    this.healthText = this.scene.add.text(120, 30, '', {
+      fontSize: '14px',
+      fontFamily: 'Arial',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     // Quill bar
     this.quillBar = this.scene.add.graphics();
@@ -161,6 +171,10 @@ export class HUD {
     this.healthBar.lineStyle(2, 0xffffff);
     this.healthBar.strokeRect(x, y, width, height);
 
+    // Update HP text
+    const currentHP = Math.ceil(this.player.health);
+    const maxHP = Math.ceil(this.player.maxHealth);
+    this.healthText.setText(`${currentHP}/${maxHP}`);
   }
 
   private drawQuillBar(): void {
@@ -488,6 +502,7 @@ export class HUD {
 
   destroy(): void {
     this.healthBar.destroy();
+    this.healthText.destroy();
     this.quillBar.destroy();
     this.xpBar.destroy();
     this.waveText.destroy();

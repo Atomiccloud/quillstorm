@@ -267,8 +267,8 @@ export const XP_CONFIG = {
 // Treasure chest drops
 export const CHEST_CONFIG = {
   baseDropChance: 0.01,      // 1% base drop rate
-  despawnTime: 7000,         // 7 seconds before despawn
-  warningTime: 5000,         // Start flashing at 5 seconds
+  despawnTime: 9000,         // 9 seconds before despawn (increased from 7)
+  warningTime: 7000,         // Start flashing at 7 seconds (2 sec warning)
   riggedChestCount: 3,       // First N chests guarantee rare+
   width: 32,
   height: 24,
