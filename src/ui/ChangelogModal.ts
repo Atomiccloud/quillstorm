@@ -73,10 +73,11 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
     this.scrollContainer = scene.add.container(contentX, contentY);
     this.add(this.scrollContainer);
 
-    // Create mask for scrolling
+    // Create mask for scrolling (hidden, only used for masking geometry)
     this.scrollMask = scene.add.graphics();
     this.scrollMask.fillStyle(0xffffff);
     this.scrollMask.fillRect(contentX, contentY, contentWidth, contentVisibleHeight);
+    this.scrollMask.setVisible(false); // Hide the mask graphics itself
     const mask = this.scrollMask.createGeometryMask();
     this.scrollContainer.setMask(mask);
 
