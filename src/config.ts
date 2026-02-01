@@ -232,8 +232,16 @@ export const COLORS = {
     naked: 0xffb6c1,     // Pink!
   },
   quill: 0xffffff,
-  platform: 0x4a6741,
+  platform: 0x4a6741,    // Default green (Forest)
   background: 0x1a1a2e,
+  // Stage color palettes - platform and background colors for each biome
+  stages: [
+    { platform: 0x4a6741, background: 0x1a1a2e, name: 'Forest' },      // Green - waves 1-5
+    { platform: 0x5a4a6a, background: 0x1a1a2e, name: 'Twilight' },    // Purple - waves 6-10
+    { platform: 0x6a5040, background: 0x1e1a1a, name: 'Cavern' },      // Brown - waves 11-15
+    { platform: 0x4a5a6a, background: 0x1a1e2e, name: 'Frost' },       // Blue-gray - waves 16-20
+    { platform: 0x6a4a4a, background: 0x2e1a1a, name: 'Inferno' },     // Red - infinite swarm
+  ],
   ui: {
     health: 0xff4444,
     quillBar: 0xffffff,
