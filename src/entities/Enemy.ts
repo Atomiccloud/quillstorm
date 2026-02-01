@@ -342,13 +342,15 @@ export class Enemy extends Phaser.GameObjects.Container {
         Math.sin(chargeAngle) * config.chargeSpeed
       );
 
-      // End charge if reached target or hit a wall
+      // End charge if reached target or hit any surface (wall, ceiling, floor)
       const chargeDist = Phaser.Math.Distance.Between(this.x, this.y, this.chargeTarget.x, this.chargeTarget.y);
-      if (chargeDist < 50 || this.body.blocked.left || this.body.blocked.right) {
+      const hitSurface = this.body.blocked.left || this.body.blocked.right ||
+                         this.body.blocked.up || this.body.blocked.down;
+      if (chargeDist < 50 || hitSurface) {
         this.isCharging = false;
         this.chargeTarget = null;
-        // Reset X velocity so boss doesn't stay pinned to wall
-        this.body.setVelocityX(0);
+        // Reset velocity so boss doesn't stay pinned
+        this.body.setVelocity(0, 0);
       }
       return;
     }

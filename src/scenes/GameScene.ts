@@ -1108,6 +1108,7 @@ export class GameScene extends Phaser.Scene {
         highScore: SaveManager.getHighScore(),
         highestWave: SaveManager.getHighestWave(),
         sessionPinecones,
+        upgradeManager: this.upgradeManager,
       });
     });
   }

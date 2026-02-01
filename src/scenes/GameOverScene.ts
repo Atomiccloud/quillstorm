@@ -4,7 +4,9 @@ import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { LeaderboardManager, SubmissionResult } from '../systems/LeaderboardManager';
 import { getCosmeticManager } from '../systems/CosmeticManager';
+import { UpgradeManager } from '../systems/UpgradeManager';
 import { NameInputModal } from '../ui/NameInputModal';
+import { StatsPanel } from '../ui/StatsPanel';
 
 interface GameOverData {
   score: number;
@@ -14,16 +16,20 @@ interface GameOverData {
   highScore?: number;
   highestWave?: number;
   sessionPinecones?: number;
+  upgradeManager?: UpgradeManager;
 }
 
 export class GameOverScene extends Phaser.Scene {
   private gameData!: GameOverData;
   private nameModal!: NameInputModal;
+  private statsPanel: StatsPanel | null = null;
   private rankText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private buttonsContainer!: Phaser.GameObjects.Container;
+  private statsHintText!: Phaser.GameObjects.Text;
   private inputEnabled: boolean = false; // Prevent input until name submitted
   private rKeyHandler: ((event: KeyboardEvent) => void) | null = null;
+  private tabKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
   constructor() {
     super({ key: 'GameOverScene' });
@@ -131,6 +137,28 @@ export class GameOverScene extends Phaser.Scene {
       fontSize: '14px',
       color: '#555555',
     }).setOrigin(0.5);
+
+    // Stats hint (only show if we have upgrade data)
+    if (data.upgradeManager) {
+      this.statsHintText = this.add.text(centerX, centerY + 280, 'Press TAB to view final stats', {
+        fontSize: '14px',
+        color: '#555555',
+      }).setOrigin(0.5);
+
+      // Create stats panel
+      this.statsPanel = new StatsPanel(this, data.upgradeManager);
+
+      // Tab key to toggle stats
+      this.tabKeyHandler = () => {
+        if (this.statsPanel) {
+          this.statsPanel.toggle();
+          this.statsHintText.setText(
+            this.statsPanel.getVisible() ? 'Press TAB to hide stats' : 'Press TAB to view final stats'
+          );
+        }
+      };
+      this.input.keyboard?.on('keydown-TAB', this.tabKeyHandler);
+    }
 
     // R key to restart (only when input is enabled)
     this.rKeyHandler = () => {
@@ -285,9 +313,17 @@ export class GameOverScene extends Phaser.Scene {
     if (this.nameModal) {
       this.nameModal.destroy();
     }
+    if (this.statsPanel) {
+      this.statsPanel.destroy();
+      this.statsPanel = null;
+    }
     if (this.rKeyHandler) {
       this.input.keyboard?.off('keydown-R', this.rKeyHandler);
       this.rKeyHandler = null;
+    }
+    if (this.tabKeyHandler) {
+      this.input.keyboard?.off('keydown-TAB', this.tabKeyHandler);
+      this.tabKeyHandler = null;
     }
   }
 

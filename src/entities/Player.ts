@@ -30,6 +30,10 @@ export class Player extends Phaser.GameObjects.Container {
   private lastTrailTime: number = 0;
   private trailInterval: number = 50; // ms between trail particles
 
+  // Low health warning effect
+  private lowHealthAlpha: number = 0;
+  private lowHealthTween: Phaser.Tweens.Tween | null = null;
+
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -88,8 +92,31 @@ export class Player extends Phaser.GameObjects.Container {
 
   update(time: number, _delta: number): void {
     this.handleMovement();
+    this.updateLowHealthEffect();
     this.drawPorcupine();
     this.updateTrail(time);
+  }
+
+  private updateLowHealthEffect(): void {
+    const healthPercent = this.health / this.maxHealth;
+    const isLowHealth = healthPercent <= 0.2 && healthPercent > 0;
+
+    if (isLowHealth && !this.lowHealthTween) {
+      // Start pulsing red effect
+      this.lowHealthTween = this.scene.tweens.add({
+        targets: this,
+        lowHealthAlpha: 0.4,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    } else if (!isLowHealth && this.lowHealthTween) {
+      // Stop pulsing effect
+      this.lowHealthTween.stop();
+      this.lowHealthTween = null;
+      this.lowHealthAlpha = 0;
+    }
   }
 
   private updateTrail(time: number): void {
@@ -244,6 +271,12 @@ export class Player extends Phaser.GameObjects.Container {
     // Flash white when invincible
     if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
+      this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
+    }
+
+    // Pulse red when low health (below 20%)
+    if (this.lowHealthAlpha > 0) {
+      this.graphics.fillStyle(0xff0000, this.lowHealthAlpha);
       this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
     }
 
