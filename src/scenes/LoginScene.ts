@@ -217,6 +217,11 @@ export class LoginScene extends Phaser.Scene {
       if (user) {
         this.statusText.setText('Signed in successfully!');
         this.statusText.setColor('#88ff88');
+        // Redirect to menu after a short delay
+        this.time.delayedCall(1000, () => {
+          this.cleanup();
+          this.scene.start('MenuScene');
+        });
       } else {
         this.statusText.setText('Sign in cancelled');
         this.statusText.setColor('#ffaa00');
