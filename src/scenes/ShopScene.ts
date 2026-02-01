@@ -159,11 +159,11 @@ export class ShopScene extends Phaser.Scene {
 
     // Grid layout
     const cardWidth = 180;
-    const cardHeight = 200;
+    const cardHeight = 320;  // Tall enough for description + button + unlock hint
     const cardsPerRow = 5;
     const startX = GAME_CONFIG.width / 2 - (Math.min(cosmetics.length, cardsPerRow) * cardWidth) / 2 + cardWidth / 2;
-    const startY = 250;  // Below category tabs (tabs end at ~120)
-    const rowGap = 20;
+    const startY = 290;  // Below category tabs
+    const rowGap = 15;
 
     cosmetics.forEach((cosmetic, index) => {
       const row = Math.floor(index / cardsPerRow);
@@ -212,8 +212,8 @@ export class ShopScene extends Phaser.Scene {
     }).setOrigin(0.5, 0);
     container.add(desc);
 
-    // Action button
-    const buttonY = height / 2 - 30;
+    // Action button - positioned to leave room for unlock hint below
+    const buttonY = height / 2 - 55;
     let buttonText = '';
     let buttonColor = 0x555555;
     let buttonEnabled = false;
@@ -238,11 +238,11 @@ export class ShopScene extends Phaser.Scene {
       buttonColor = 0x444444;
       buttonEnabled = false;
 
-      // Show achievement hint
-      const hint = this.add.text(0, 70, unlock.description, {
+      // Show achievement hint below the button
+      const hint = this.add.text(0, buttonY + 25, unlock.description, {
         fontSize: '10px',
         fontFamily: 'Arial, sans-serif',
-        color: '#666666',
+        color: '#ffaa00',
         wordWrap: { width: width - 10 },
         align: 'center',
       }).setOrigin(0.5, 0);
