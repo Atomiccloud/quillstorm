@@ -59,6 +59,9 @@ export class GameScene extends Phaser.Scene {
     this.treasureChests = this.add.group({ runChildUpdate: true });
     this.pinecones = this.add.group({ runChildUpdate: true });
 
+    // Set world bounds to match game area (prevent going off screen)
+    this.physics.world.setBounds(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
+
     // Create platforms
     this.createPlatforms();
 
@@ -109,8 +112,20 @@ export class GameScene extends Phaser.Scene {
     this.events.on('resume', this.onResumeFromUpgrade, this);
   }
 
+  private getStageColors(wave: number): { platform: number; background: number } {
+    // Determine stage based on wave (changes after each boss: 5, 10, 15, 20)
+    const stageIndex = Math.min(Math.floor((wave - 1) / 5), COLORS.stages.length - 1);
+    return COLORS.stages[stageIndex];
+  }
+
   private createPlatforms(wave: number = 1): void {
     this.platforms = this.physics.add.staticGroup();
+
+    // Get stage colors based on wave
+    const stageColors = this.getStageColors(wave);
+
+    // Update background color
+    this.cameras.main.setBackgroundColor(stageColors.background);
 
     // Ground (always present)
     const ground = this.add.rectangle(
@@ -118,7 +133,7 @@ export class GameScene extends Phaser.Scene {
       GAME_CONFIG.height - 30,
       GAME_CONFIG.width,
       60,
-      COLORS.platform
+      stageColors.platform
     );
     this.platforms.add(ground);
 
@@ -126,7 +141,7 @@ export class GameScene extends Phaser.Scene {
     const platformData = LevelGenerator.getPlatformsForWave(wave);
 
     platformData.forEach(({ x, y, width }) => {
-      const platform = this.add.rectangle(x, y, width, 20, COLORS.platform);
+      const platform = this.add.rectangle(x, y, width, 20, stageColors.platform);
       this.platforms.add(platform);
     });
   }
@@ -165,6 +180,16 @@ export class GameScene extends Phaser.Scene {
       },
       this
     );
+
+    // Re-establish collision for existing treasure chests
+    this.treasureChests.getChildren().forEach((chest) => {
+      this.physics.add.collider(chest, this.platforms);
+    });
+
+    // Re-establish collision for existing XP orbs
+    this.xpOrbs.getChildren().forEach((orb) => {
+      this.physics.add.collider(orb, this.platforms);
+    });
   }
 
   private setupCollisions(): void {

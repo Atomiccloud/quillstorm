@@ -2,12 +2,15 @@ import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { AuthManager } from '../systems/AuthManager';
+import { GAME_VERSION } from '../data/version';
+import { ChangelogModal } from '../ui/ChangelogModal';
 
 export class MenuScene extends Phaser.Scene {
   private volumeFill!: Phaser.GameObjects.Rectangle;
   private volumeText!: Phaser.GameObjects.Text;
   private muteButton!: Phaser.GameObjects.Rectangle;
   private muteText!: Phaser.GameObjects.Text;
+  private changelogModal!: ChangelogModal;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -146,6 +149,23 @@ export class MenuScene extends Phaser.Scene {
       fontSize: '14px',
       color: '#666666',
     }).setOrigin(0.5);
+
+    // Version number (bottom right, clickable for changelog)
+    const versionText = this.add.text(GAME_CONFIG.width - 15, GAME_CONFIG.height - 15, `v${GAME_VERSION}`, {
+      fontSize: '14px',
+      color: '#555555',
+    }).setOrigin(1, 1).setInteractive({ useHandCursor: true });
+
+    versionText.on('pointerover', () => versionText.setColor('#888888'));
+    versionText.on('pointerout', () => versionText.setColor('#555555'));
+    versionText.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.changelogModal.show();
+    });
+
+    // Changelog modal
+    this.changelogModal = new ChangelogModal(this, () => {});
+    this.add.existing(this.changelogModal);
 
     // M key to toggle mute
     this.input.keyboard?.on('keydown-M', () => {

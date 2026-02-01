@@ -232,8 +232,16 @@ export const COLORS = {
     naked: 0xffb6c1,     // Pink!
   },
   quill: 0xffffff,
-  platform: 0x4a6741,
+  platform: 0x4a6741,    // Default green (Forest)
   background: 0x1a1a2e,
+  // Stage color palettes - platform and background colors for each biome
+  stages: [
+    { platform: 0x4a6741, background: 0x1a1a2e, name: 'Forest' },      // Green - waves 1-5
+    { platform: 0x5a4a6a, background: 0x1a1a2e, name: 'Twilight' },    // Purple - waves 6-10
+    { platform: 0x6a5040, background: 0x1e1a1a, name: 'Cavern' },      // Brown - waves 11-15
+    { platform: 0x4a5a6a, background: 0x1a1e2e, name: 'Frost' },       // Blue-gray - waves 16-20
+    { platform: 0x6a4a4a, background: 0x2e1a1a, name: 'Inferno' },     // Red - infinite swarm
+  ],
   ui: {
     health: 0xff4444,
     quillBar: 0xffffff,
@@ -267,8 +275,8 @@ export const XP_CONFIG = {
 // Treasure chest drops
 export const CHEST_CONFIG = {
   baseDropChance: 0.01,      // 1% base drop rate
-  despawnTime: 7000,         // 7 seconds before despawn
-  warningTime: 5000,         // Start flashing at 5 seconds
+  despawnTime: 9000,         // 9 seconds before despawn (increased from 7)
+  warningTime: 7000,         // Start flashing at 7 seconds (2 sec warning)
   riggedChestCount: 3,       // First N chests guarantee rare+
   width: 32,
   height: 24,
