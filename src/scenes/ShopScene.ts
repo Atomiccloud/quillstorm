@@ -202,8 +202,13 @@ export class ShopScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(name);
 
-    // Description
-    const desc = this.add.text(0, 35, cosmetic.description, {
+    // Description (truncated to fit above button)
+    let descText = cosmetic.description;
+    // Truncate long descriptions to prevent overlap with button
+    if (descText.length > 40) {
+      descText = descText.substring(0, 37) + '...';
+    }
+    const desc = this.add.text(0, 35, descText, {
       fontSize: '11px',
       fontFamily: 'Arial, sans-serif',
       color: '#888888',
@@ -238,9 +243,13 @@ export class ShopScene extends Phaser.Scene {
       buttonColor = 0x444444;
       buttonEnabled = false;
 
-      // Show achievement hint
-      const hint = this.add.text(0, 70, unlock.description, {
-        fontSize: '10px',
+      // Show achievement hint (below button, truncated if needed)
+      let hintText = unlock.description;
+      if (hintText.length > 30) {
+        hintText = hintText.substring(0, 27) + '...';
+      }
+      const hint = this.add.text(0, buttonY + 22, hintText, {
+        fontSize: '9px',
         fontFamily: 'Arial, sans-serif',
         color: '#666666',
         wordWrap: { width: width - 10 },
