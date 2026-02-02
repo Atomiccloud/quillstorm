@@ -1004,6 +1004,9 @@ export class GameScene extends Phaser.Scene {
     const healthBonus = this.upgradeManager.getModifier('maxHealth');
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
 
+    // Update companions immediately if a companion upgrade was selected
+    this.updateCompanions();
+
     // Handle different upgrade sources
     if (source === 'chest') {
       // Chest: mark as collected for rigged tracking, resume gameplay
