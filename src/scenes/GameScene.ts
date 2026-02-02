@@ -972,6 +972,9 @@ export class GameScene extends Phaser.Scene {
     this.pendingUpgradeSource = 'wave';
     this.hud.showWaveComplete();
 
+    // Clear any remaining enemy projectiles (they shouldn't persist between waves)
+    this.enemyProjectiles.clear(true, true);
+
     // Pause game and show upgrade scene
     this.scene.pause();
     this.scene.launch('UpgradeScene', {
