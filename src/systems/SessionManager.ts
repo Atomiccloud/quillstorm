@@ -124,7 +124,7 @@ export class SessionManager {
     }
   }
 
-  // Report game over to server
+  // Report game over to server (includes any unreported kills from current wave)
   static async reportGameOver(finalWave: number, finalScore: number): Promise<boolean> {
     if (!this.currentToken) {
       return false;
@@ -138,6 +138,7 @@ export class SessionManager {
           token: this.currentToken,
           finalWave,
           finalScore,
+          kills: { ...this.waveKills },
         }),
       });
 

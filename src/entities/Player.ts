@@ -30,6 +30,14 @@ export class Player extends Phaser.GameObjects.Container {
   private lastTrailTime: number = 0;
   private trailInterval: number = 50; // ms between trail particles
 
+  // Coyote time tracking
+  private coyoteTimer: number = 0;
+
+  // Animation state
+  private walkTimer: number = 0;
+  private landSquash: number = 0;
+  private wasInAir: boolean = false;
+
   // Low health warning effect
   private lowHealthAlpha: number = 0;
   private lowHealthTween: Phaser.Tweens.Tween | null = null;
@@ -90,8 +98,8 @@ export class Player extends Phaser.GameObjects.Container {
     };
   }
 
-  update(time: number, _delta: number): void {
-    this.handleMovement();
+  update(time: number, delta: number): void {
+    this.handleMovement(delta);
     this.updateLowHealthEffect();
     this.drawPorcupine();
     this.updateTrail(time);
@@ -160,15 +168,23 @@ export class Player extends Phaser.GameObjects.Container {
     });
   }
 
-  private handleMovement(): void {
+  private handleMovement(delta: number): void {
     const state = this.getQuillState();
     const stateConfig = QUILL_CONFIG.states[state];
     const speedMult = stateConfig.speedMult * (1 + this.upgradeManager.getModifier('moveSpeed'));
     const baseSpeed = PLAYER_CONFIG.moveSpeed * speedMult;
 
     // Check if in air for air control
-    const isInAir = !this.body.blocked.down;
+    const onGround = this.body.blocked.down;
+    const isInAir = !onGround;
     const controlMult = isInAir ? PLAYER_CONFIG.airControl : 1;
+
+    // Coyote time: allow jumping briefly after walking off a ledge
+    if (onGround) {
+      this.coyoteTimer = PLAYER_CONFIG.coyoteTime;
+    } else {
+      this.coyoteTimer -= delta;
+    }
 
     // Horizontal movement
     const leftPressed = this.cursors.left.isDown || this.wasd.A.isDown;
@@ -189,11 +205,30 @@ export class Player extends Phaser.GameObjects.Container {
       }
     }
 
-    // Jumping
+    // Walk cycle animation timer
+    const speed = Math.abs(this.body.velocity.x);
+    if (onGround && speed > 20) {
+      this.walkTimer += delta * speed * 0.015;
+    } else {
+      this.walkTimer = 0;
+    }
+
+    // Landing squash detection
+    if (onGround && this.wasInAir) {
+      this.landSquash = 1;
+    }
+    this.wasInAir = isInAir;
+    if (this.landSquash > 0) {
+      this.landSquash = Math.max(0, this.landSquash - delta * 0.006);
+    }
+
+    // Jumping (with coyote time)
     const jumpPressed = this.cursors.up.isDown || this.wasd.W.isDown || this.cursors.space.isDown;
-    if (jumpPressed && this.body.blocked.down) {
+    const canJump = onGround || this.coyoteTimer > 0;
+    if (jumpPressed && canJump) {
       const jumpMult = 1 + this.upgradeManager.getModifier('jumpHeight');
       this.body.setVelocityY(PLAYER_CONFIG.jumpForce * jumpMult);
+      this.coyoteTimer = 0; // Consume coyote time
       AudioManager.playJump();
     }
   }
@@ -227,57 +262,65 @@ export class Player extends Phaser.GameObjects.Container {
     // Direction multiplier for flipping
     const dir = this.facingRight ? 1 : -1;
 
+    // Animation values
+    const walkPhase = Math.sin(this.walkTimer);
+    const bodyBob = Math.abs(walkPhase) * 2;
+    const squashX = 1 + this.landSquash * 0.15;
+    const squashY = 1 - this.landSquash * 0.15;
+
     // Draw glow effect for special skins
     if (this.equippedSkin?.colors?.glow && state !== 'naked') {
       this.graphics.fillStyle(this.equippedSkin.colors.glow, 0.2);
-      this.graphics.fillEllipse(0, 2, w * 1.5, h * 1.0);
+      this.graphics.fillEllipse(0, 2, w * 1.7, h * 1.0);
     }
 
-    // Draw quills first (behind body)
+    // Draw quills (behind body)
     if (state !== 'naked') {
       this.drawQuills(state, dir);
     }
 
-    // Main body (larger oval, matching menu porcupine)
+    // Legs (drawn before body so the body covers their top)
     this.graphics.fillStyle(bodyColor);
-    this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
+    const legTop = h * 0.05; // Start inside the body so they never detach
+    const legHeight = 22; // Tall enough to extend below body
+    const legAnim = walkPhase * 4;
+    // Back leg (behind body center)
+    this.graphics.fillRect(-dir * 14 - 5, legTop + legAnim, 10, legHeight);
+    // Front leg (in front of body center)
+    this.graphics.fillRect(dir * 8 - 5, legTop - legAnim, 10, legHeight);
+
+    // Main body (slightly wider oval, drawn over leg tops)
+    this.graphics.fillStyle(bodyColor);
+    this.graphics.fillEllipse(0, 2 - bodyBob, w * 1.35 * squashX, h * 0.7 * squashY);
 
     // Face/snout (lighter color, extends forward)
     this.graphics.fillStyle(faceColor);
-    this.graphics.fillEllipse(dir * 15, 0, w * 0.45, h * 0.45);
+    this.graphics.fillEllipse(dir * 16, 0 - bodyBob, w * 0.45 * squashX, h * 0.45 * squashY);
 
     // Eye
     this.graphics.fillStyle(0x000000);
-    this.graphics.fillCircle(dir * 18, -4, 5);
+    this.graphics.fillCircle(dir * 19, -4 - bodyBob, 5);
     // Eye highlight
     this.graphics.fillStyle(0xffffff);
-    this.graphics.fillCircle(dir * 19, -5, 2);
+    this.graphics.fillCircle(dir * 20, -5 - bodyBob, 2);
 
     // Nose
     this.graphics.fillStyle(0x000000);
-    this.graphics.fillCircle(dir * 26, 2, 4);
-
-    // Legs (front and back)
-    this.graphics.fillStyle(bodyColor);
-    const legY = h * 0.25;
-    // Back leg
-    this.graphics.fillRect(-dir * 12, legY, 10, 15);
-    // Front leg
-    this.graphics.fillRect(dir * 2, legY, 10, 15);
+    this.graphics.fillCircle(dir * 27, 2 - bodyBob, 4);
 
     // Draw hat
-    this.drawHat(dir, w, h);
+    this.drawHat(dir, w, h, bodyBob);
 
     // Flash white when invincible
     if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
-      this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
+      this.graphics.fillEllipse(0, 2, w * 1.35, h * 0.7);
     }
 
     // Pulse red when low health (below 20%)
     if (this.lowHealthAlpha > 0) {
       this.graphics.fillStyle(0xff0000, this.lowHealthAlpha);
-      this.graphics.fillEllipse(0, 2, w * 1.1, h * 0.7);
+      this.graphics.fillEllipse(0, 2, w * 1.35, h * 0.7);
     }
 
     // Naked state indicator - exclamation mark above head
@@ -288,12 +331,12 @@ export class Player extends Phaser.GameObjects.Container {
     }
   }
 
-  private drawHat(_dir: number, _w: number, h: number): void {
+  private drawHat(_dir: number, _w: number, h: number, bodyBob: number = 0): void {
     if (!this.equippedHat || this.equippedHat.id === 'hat_none') return;
 
     const hat = this.equippedHat;
     const colors = hat.colors || { primary: 0x888888 };
-    const hatY = -h * 0.5; // Above head
+    const hatY = -h * 0.5 - bodyBob; // Above head, bobs with body
 
     switch (hat.id) {
       case 'hat_crown':
@@ -352,25 +395,57 @@ export class Player extends Phaser.GameObjects.Container {
     }
   }
 
-  private drawQuills(state: QuillState, dir: number): void {
-    const quillCount = state === 'full' ? 9 : state === 'patchy' ? 6 : 4;
-    const quillLength = state === 'full' ? 30 : state === 'patchy' ? 25 : 18;
+  private drawQuills(_state: QuillState, dir: number): void {
+    const w = PLAYER_CONFIG.width;
+    const h = PLAYER_CONFIG.height;
+
+    // 5-tier visual quill count based on actual quill percentage
+    const quillPercent = this.quillManager.currentQuills / this.quillManager.maxQuills;
+    let quillCount: number;
+    let quillLength: number;
+    if (quillPercent >= 0.8) {
+      quillCount = 9; quillLength = 20;   // 100%
+    } else if (quillPercent >= 0.6) {
+      quillCount = 7; quillLength = 18;   // 80%
+    } else if (quillPercent >= 0.4) {
+      quillCount = 6; quillLength = 16;   // 60%
+    } else if (quillPercent >= 0.2) {
+      quillCount = 5; quillLength = 14;   // 40%
+    } else {
+      quillCount = 3; quillLength = 12;   // 20%
+    }
 
     // Quill style - thicker lines for better visibility
     this.graphics.lineStyle(3, 0xffffff);
 
-    // Draw quills radiating from the back (like the menu porcupine)
-    for (let i = 0; i < quillCount; i++) {
-      // Quills point up and back, spread in a fan pattern
-      const baseAngle = -90 - (dir * 20); // Point up and away from face
-      const spread = (i - (quillCount - 1) / 2) * 18; // Fan spread
-      const angle = (baseAngle + spread) * Math.PI / 180;
+    // Velocity sway - quills trail behind movement direction
+    // Multiply by dir so sway pushes quills toward the back regardless of facing
+    const velocitySway = this.body ? dir * (this.body.velocity.x / 300) * 0.25 : 0;
 
-      // Start from the back of the body
-      const startX = -dir * 8;
-      const startY = -5;
-      const endX = startX + Math.cos(angle) * quillLength;
-      const endY = startY + Math.sin(angle) * quillLength;
+    // Body ellipse semi-axes (must match drawPorcupine body)
+    const rx = w * 1.35 / 2; // horizontal semi-axis
+    const ry = h * 0.7 / 2;  // vertical semi-axis
+    const bodyCenterY = 2;    // body center Y offset
+
+    // Distribute quills along the back arc of the body ellipse
+    // Arc goes from top (-90deg) to lower back, on the side away from the face
+    const arcStart = -110 * Math.PI / 180; // just past top
+    const arcEnd = -5 * Math.PI / 180;     // stop before lower belly
+    const arcRange = arcEnd - arcStart;
+
+    for (let i = 0; i < quillCount; i++) {
+      // Parameter along the ellipse arc
+      const t = arcStart + (i / (quillCount - 1)) * arcRange;
+      const swayedT = t + velocitySway;
+
+      // Point on the ellipse surface (back side = negative dir)
+      const startX = -dir * Math.cos(swayedT) * rx;
+      const startY = bodyCenterY + Math.sin(swayedT) * ry;
+
+      // Outward direction (normal-ish, pointing away from center)
+      const outAngle = Math.atan2(Math.sin(swayedT) * rx, -dir * Math.cos(swayedT) * ry);
+      const endX = startX + Math.cos(outAngle) * quillLength;
+      const endY = startY + Math.sin(outAngle) * quillLength;
 
       this.graphics.beginPath();
       this.graphics.moveTo(startX, startY);

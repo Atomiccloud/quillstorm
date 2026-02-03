@@ -46,6 +46,7 @@ export class Companion extends Phaser.GameObjects.Container {
   }
 
   update(_time: number, delta: number, enemies: Phaser.GameObjects.Group): void {
+    if (!this.body) return;
     this.followPlayer();
     this.updateShooting(delta, enemies);
     this.draw();

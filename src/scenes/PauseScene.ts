@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS, PROSPERITY_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
+import { SaveManager } from '../systems/SaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 interface PauseSceneData {
@@ -12,10 +13,13 @@ export class PauseScene extends Phaser.Scene {
   private volumeText!: Phaser.GameObjects.Text;
   private muteButton!: Phaser.GameObjects.Rectangle;
   private muteText!: Phaser.GameObjects.Text;
+  private effectsFill!: Phaser.GameObjects.Rectangle;
+  private effectsText!: Phaser.GameObjects.Text;
   private upgradeManager: UpgradeManager | null = null;
 
-  // Volume slider drag tracking
+  // Slider drag tracking
   private isDraggingVolume: boolean = false;
+  private isDraggingEffects: boolean = false;
   private volumeBarX: number = 0;
   private volumeBarWidth: number = 0;
 
@@ -110,11 +114,15 @@ export class PauseScene extends Phaser.Scene {
       if (this.isDraggingVolume) {
         this.updateVolumeFromPointer(pointer);
       }
+      if (this.isDraggingEffects) {
+        this.updateEffectsFromPointer(pointer);
+      }
     });
 
     // Stop dragging when mouse is released anywhere
     this.input.on('pointerup', () => {
       this.isDraggingVolume = false;
+      this.isDraggingEffects = false;
     });
 
     // Mute button click
@@ -124,20 +132,54 @@ export class PauseScene extends Phaser.Scene {
       this.updateMuteDisplay(muted);
     });
 
-    // Restart button
-    const restartButton = this.add.rectangle(centerX, centerY + 100, 200, 50, 0x555555);
+    // Effects opacity section
+    this.add.text(centerX, centerY + 80, 'Effects Opacity', {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    const effectsBarY = centerY + 110;
+    const effectsBarBg = this.add.rectangle(centerX, effectsBarY, barWidth, barHeight, 0x333333);
+    effectsBarBg.setInteractive({ useHandCursor: true });
+
+    const currentEffects = SaveManager.getEffectsOpacity();
+    this.effectsFill = this.add.rectangle(
+      centerX - barWidth / 2,
+      effectsBarY,
+      currentEffects * barWidth,
+      barHeight,
+      0x4a6741
+    ).setOrigin(0, 0.5);
+
+    this.effectsText = this.add.text(centerX + barWidth / 2 + 15, effectsBarY, `${Math.round(currentEffects * 100)}%`, {
+      fontSize: '14px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0, 0.5);
+
+    effectsBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      this.isDraggingEffects = true;
+      this.updateEffectsFromPointer(pointer);
+    });
+
+    // Restart and Main Menu buttons side by side
+    const buttonWidth = 160;
+    const buttonGap = 20;
+    const buttonY = centerY + 175;
+
+    const restartButton = this.add.rectangle(centerX - buttonWidth / 2 - buttonGap / 2, buttonY, buttonWidth, 50, 0x555555);
     restartButton.setInteractive({ useHandCursor: true });
-    this.add.text(centerX, centerY + 100, 'Restart', {
-      fontSize: '24px',
+    this.add.text(centerX - buttonWidth / 2 - buttonGap / 2, buttonY, 'Restart', {
+      fontSize: '22px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    // Main Menu button
-    const menuButton = this.add.rectangle(centerX, centerY + 170, 200, 50, 0x555555);
+    const menuButton = this.add.rectangle(centerX + buttonWidth / 2 + buttonGap / 2, buttonY, buttonWidth, 50, 0x555555);
     menuButton.setInteractive({ useHandCursor: true });
-    this.add.text(centerX, centerY + 170, 'Main Menu', {
-      fontSize: '24px',
+    this.add.text(centerX + buttonWidth / 2 + buttonGap / 2, buttonY, 'Main Menu', {
+      fontSize: '22px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -293,6 +335,14 @@ export class PauseScene extends Phaser.Scene {
     AudioManager.setVolume(newVolume);
     this.volumeFill.width = newVolume * this.volumeBarWidth;
     this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
+  }
+
+  private updateEffectsFromPointer(pointer: Phaser.Input.Pointer): void {
+    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
+    const newOpacity = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
+    SaveManager.setEffectsOpacity(newOpacity);
+    this.effectsFill.width = newOpacity * this.volumeBarWidth;
+    this.effectsText.setText(`${Math.round(newOpacity * 100)}%`);
   }
 
   private updateMuteDisplay(muted: boolean): void {

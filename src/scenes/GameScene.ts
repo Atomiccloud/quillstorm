@@ -41,6 +41,7 @@ export class GameScene extends Phaser.Scene {
   private isChoosingUpgrade: boolean = false;
   private gameOver: boolean = false;
   private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
+  private effectsOpacity: number = 1;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -55,6 +56,8 @@ export class GameScene extends Phaser.Scene {
     this.upgradeManager = new UpgradeManager();
     this.progressionManager = new ProgressionManager(this.upgradeManager);
     this.quillManager = new QuillManager(this, this.upgradeManager);
+
+    this.effectsOpacity = SaveManager.getEffectsOpacity();
 
     // Start anti-cheat session (don't block game start)
     SessionManager.startSession();
@@ -658,9 +661,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnDeathParticles(x: number, y: number): void {
+    if (this.effectsOpacity <= 0) return;
+
     // Simple particle effect
     for (let i = 0; i < 8; i++) {
       const particle = this.add.circle(x, y, 4, 0xff4444);
+      particle.setAlpha(this.effectsOpacity);
       this.physics.add.existing(particle);
       const body = particle.body as Phaser.Physics.Arcade.Body;
 
@@ -679,9 +685,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnExplosionEffect(x: number, y: number, radius: number): void {
+    if (this.effectsOpacity <= 0) return;
+
     // Expanding ring
     const ring = this.add.circle(x, y, 10, 0xff8800, 0);
-    ring.setStrokeStyle(4, 0xff4400);
+    ring.setStrokeStyle(4, 0xff4400, this.effectsOpacity);
 
     this.tweens.add({
       targets: ring,
@@ -693,7 +701,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Inner flash
-    const flash = this.add.circle(x, y, radius * 0.3, 0xffff00, 0.6);
+    const flash = this.add.circle(x, y, radius * 0.3, 0xffff00, 0.6 * this.effectsOpacity);
     this.tweens.add({
       targets: flash,
       scale: 0,
@@ -706,6 +714,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
       const spark = this.add.circle(x, y, 3, 0xff6600);
+      spark.setAlpha(this.effectsOpacity);
 
       this.tweens.add({
         targets: spark,
@@ -998,6 +1007,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onResumeFromUpgrade(): void {
+    // Re-read effects opacity in case it was changed in pause menu
+    this.effectsOpacity = SaveManager.getEffectsOpacity();
+
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
 
@@ -1106,11 +1118,15 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = true;
     AudioManager.playGameOver();
 
+    // Snapshot score and wave at time of death so they don't change during the delay
+    const finalScore = this.hud.score;
+    const finalWave = this.waveManager.currentWave;
+
     // Report game over for anti-cheat
-    SessionManager.reportGameOver(this.waveManager.currentWave, this.hud.score);
+    SessionManager.reportGameOver(finalWave, finalScore);
 
     // Submit score
-    const isNewHighScore = SaveManager.submitRun(this.hud.score, this.waveManager.currentWave);
+    const isNewHighScore = SaveManager.submitRun(finalScore, finalWave);
 
     // Get session pinecones before transitioning
     const sessionPinecones = this.progressionManager.getSessionPinecones();
@@ -1118,8 +1134,8 @@ export class GameScene extends Phaser.Scene {
     // Show game over screen
     this.time.delayedCall(1000, () => {
       this.scene.start('GameOverScene', {
-        score: this.hud.score,
-        wave: this.waveManager.currentWave,
+        score: finalScore,
+        wave: finalWave,
         victory: false,
         isNewHighScore,
         highScore: SaveManager.getHighScore(),

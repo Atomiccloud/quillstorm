@@ -7,8 +7,10 @@ export class TreasureChest extends Phaser.GameObjects.Container {
   private graphics!: Phaser.GameObjects.Graphics;
   private glow!: Phaser.GameObjects.Graphics;
   private despawnTime: number;
+  private remainingDespawnTime: number;
   private warningStarted: boolean = false;
   private collected: boolean = false;
+  private landed: boolean = false;
 
   // Visual properties
   private pulsePhase: number = 0;
@@ -19,6 +21,7 @@ export class TreasureChest extends Phaser.GameObjects.Container {
     super(scene, x, y);
 
     this.despawnTime = scene.time.now + CHEST_CONFIG.despawnTime;
+    this.remainingDespawnTime = CHEST_CONFIG.despawnTime;
 
     // Create glow behind chest
     this.glow = scene.add.graphics();
@@ -47,12 +50,9 @@ export class TreasureChest extends Phaser.GameObjects.Container {
     // Initial draw
     this.draw();
 
-    // Start bobbing animation after landing
-    scene.time.delayedCall(800, () => {
-      if (this.active && !this.collected) {
-        this.startBobbing();
-      }
-    });
+    // Pause/resume: freeze despawn timer when scene is paused
+    scene.events.on('pause', this.onPause, this);
+    scene.events.on('resume', this.onResume, this);
   }
 
   private startBobbing(): void {
@@ -70,6 +70,16 @@ export class TreasureChest extends Phaser.GameObjects.Container {
     if (this.collected) return;
 
     this.pulsePhase += 0.1;
+
+    // Track remaining time for pause/resume
+    this.remainingDespawnTime = this.despawnTime - time;
+
+    // Check if chest has landed (touching down) and start bobbing
+    if (!this.landed && this.body && this.body.touching.down) {
+      this.landed = true;
+      this.body.setVelocity(0, 0);
+      this.startBobbing();
+    }
 
     // Check despawn warning
     const timeLeft = this.despawnTime - time;
@@ -150,6 +160,20 @@ export class TreasureChest extends Phaser.GameObjects.Container {
     });
   }
 
+  private onPause(): void {
+    // Save remaining despawn time so we can restore it on resume
+    this.remainingDespawnTime = Math.max(0, this.despawnTime - this.scene.time.now);
+  }
+
+  private onResume(): void {
+    // Restore despawn time relative to current time (ignore time spent paused)
+    this.despawnTime = this.scene.time.now + this.remainingDespawnTime;
+    // Reset warning if it hasn't started yet, since timing shifted
+    if (!this.warningStarted) {
+      // Warning will be re-checked naturally in update
+    }
+  }
+
   collect(): void {
     if (this.collected) return;
     this.collected = true;
@@ -196,5 +220,14 @@ export class TreasureChest extends Phaser.GameObjects.Container {
 
   isCollected(): boolean {
     return this.collected;
+  }
+
+  destroy(fromScene?: boolean): void {
+    // Clean up pause/resume listeners
+    if (this.scene) {
+      this.scene.events.off('pause', this.onPause, this);
+      this.scene.events.off('resume', this.onResume, this);
+    }
+    super.destroy(fromScene);
   }
 }

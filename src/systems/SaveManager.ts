@@ -5,6 +5,7 @@ interface SaveData {
   highestWave: number;
   totalRuns: number;
   playerName: string;
+  effectsOpacity: number;
 }
 
 const defaultSave: SaveData = {
@@ -12,6 +13,7 @@ const defaultSave: SaveData = {
   highestWave: 0,
   totalRuns: 0,
   playerName: '',
+  effectsOpacity: 1.0,
 };
 
 export class SaveManager {
@@ -59,6 +61,15 @@ export class SaveManager {
 
   static hasPlayerName(): boolean {
     return this.data.playerName.length >= 3;
+  }
+
+  static getEffectsOpacity(): number {
+    return this.data.effectsOpacity;
+  }
+
+  static setEffectsOpacity(value: number): void {
+    this.data.effectsOpacity = Math.max(0, Math.min(1, value));
+    this.save();
   }
 
   static submitRun(score: number, wave: number): boolean {

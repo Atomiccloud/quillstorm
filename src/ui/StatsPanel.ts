@@ -14,7 +14,7 @@ export class StatsPanel {
   private statTexts: Phaser.GameObjects.Text[] = [];
 
   // Panel dimensions
-  private readonly PANEL_WIDTH = 280;
+  private readonly PANEL_WIDTH = 220;
   private readonly PANEL_PADDING = 16;
   private readonly LINE_HEIGHT = 24;
 
@@ -24,7 +24,7 @@ export class StatsPanel {
 
     // Create container positioned on the right side
     this.container = scene.add.container(
-      GAME_CONFIG.width - this.PANEL_WIDTH - 20,
+      GAME_CONFIG.width - this.PANEL_WIDTH - 16,
       80
     );
     this.container.setScrollFactor(0);
