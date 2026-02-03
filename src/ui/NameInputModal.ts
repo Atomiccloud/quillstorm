@@ -10,13 +10,17 @@ export class NameInputModal extends Phaser.GameObjects.Container {
   private inputElement: HTMLInputElement;
   private submitButton: Phaser.GameObjects.Rectangle;
   private submitText: Phaser.GameObjects.Text;
+  private skipButton: Phaser.GameObjects.Rectangle;
+  private skipText: Phaser.GameObjects.Text;
   private errorText: Phaser.GameObjects.Text;
   private onSubmitCallback: (name: string) => void;
+  private onSkipCallback: (() => void) | null;
 
-  constructor(scene: Phaser.Scene, onSubmit: (name: string) => void) {
+  constructor(scene: Phaser.Scene, onSubmit: (name: string) => void, onSkip?: () => void) {
     super(scene, 0, 0);
 
     this.onSubmitCallback = onSubmit;
+    this.onSkipCallback = onSkip || null;
 
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
@@ -34,13 +38,13 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     this.add(this.background);
 
     // Modal panel
-    this.panel = scene.add.rectangle(centerX, centerY, 400, 200, 0x2a2a3a);
+    this.panel = scene.add.rectangle(centerX, centerY, 400, 230, 0x2a2a3a);
     this.panel.setStrokeStyle(2, 0x4a6741);
     this.add(this.panel);
 
     // Title
-    this.titleText = scene.add.text(centerX, centerY - 60, 'Enter Your Name', {
-      fontSize: '24px',
+    this.titleText = scene.add.text(centerX, centerY - 70, 'Submit to Leaderboard', {
+      fontSize: '22px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     });
@@ -97,17 +101,30 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     document.body.appendChild(this.inputContainer);
 
     // Submit button
-    this.submitButton = scene.add.rectangle(centerX, centerY + 50, 120, 40, 0x4a6741);
+    this.submitButton = scene.add.rectangle(centerX - 70, centerY + 50, 120, 40, 0x4a6741);
     this.submitButton.setInteractive({ useHandCursor: true });
     this.add(this.submitButton);
 
-    this.submitText = scene.add.text(centerX, centerY + 50, 'SUBMIT', {
+    this.submitText = scene.add.text(centerX - 70, centerY + 50, 'SUBMIT', {
       fontSize: '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     });
     this.submitText.setOrigin(0.5);
     this.add(this.submitText);
+
+    // Skip button
+    this.skipButton = scene.add.rectangle(centerX + 70, centerY + 50, 120, 40, 0x555555);
+    this.skipButton.setInteractive({ useHandCursor: true });
+    this.add(this.skipButton);
+
+    this.skipText = scene.add.text(centerX + 70, centerY + 50, 'SKIP', {
+      fontSize: '18px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#aaaaaa',
+    });
+    this.skipText.setOrigin(0.5);
+    this.add(this.skipText);
 
     // Error text (hidden by default)
     this.errorText = scene.add.text(centerX, centerY + 85, '', {
@@ -128,6 +145,22 @@ export class NameInputModal extends Phaser.GameObjects.Container {
 
     this.submitButton.on('pointerdown', () => {
       this.handleSubmit();
+    });
+
+    this.skipButton.on('pointerover', () => {
+      this.skipButton.setFillStyle(0x666666);
+    });
+
+    this.skipButton.on('pointerout', () => {
+      this.skipButton.setFillStyle(0x555555);
+    });
+
+    this.skipButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.hide();
+      if (this.onSkipCallback) {
+        this.onSkipCallback();
+      }
     });
 
     // Position input over canvas

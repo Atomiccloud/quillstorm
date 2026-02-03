@@ -12,6 +12,7 @@ export const PLAYER_CONFIG = {
   jumpForce: -580,
   gravity: 1200,
   airControl: 0.8, // Multiplier for air movement
+  coyoteTime: 100, // ms after leaving a platform where jump is still allowed
 
   // Health
   maxHealth: 100,

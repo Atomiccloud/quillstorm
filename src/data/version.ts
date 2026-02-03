@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.3.2';
+export const GAME_VERSION = '0.3.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.3',
+    date: '2026-02-03',
+    changes: [
+      'Added porcupine walk cycle animation with leg movement and body bob',
+      'Added landing squash effect when hitting the ground',
+      'Added quill sway that trails behind movement direction',
+      'Quills now distribute along the body shape for a natural look',
+      'Smoother quill depletion with 5 visual tiers instead of 3',
+      'Made porcupine body more oval to match menu art',
+      'Added coyote time for more forgiving jumps',
+      'Added effects opacity slider to pause menu',
+      'Fixed chests floating in air from flying enemies',
+      'Fixed despawn timers running during pause/upgrades',
+      'Fixed crash on game over screen from null body references',
+      'Improved anti-cheat score validation',
+    ],
+  },
   {
     version: '0.3.2',
     date: '2026-02-03',

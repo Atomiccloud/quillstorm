@@ -8,6 +8,7 @@ export class XPOrb extends Phaser.GameObjects.Container {
   private glow!: Phaser.GameObjects.Graphics;
   public xpValue: number;
   private despawnTime: number;
+  private remainingDespawnTime: number;
   private warningStarted: boolean = false;
   private magnetTarget: Phaser.GameObjects.Container | null = null;
   private isMagneting: boolean = false;
@@ -21,6 +22,7 @@ export class XPOrb extends Phaser.GameObjects.Container {
 
     this.xpValue = xpValue;
     this.despawnTime = scene.time.now + XP_CONFIG.xpOrbDespawnTime;
+    this.remainingDespawnTime = XP_CONFIG.xpOrbDespawnTime;
 
     // Create graphics
     this.glow = scene.add.graphics();
@@ -49,6 +51,18 @@ export class XPOrb extends Phaser.GameObjects.Container {
 
     // Initial draw
     this.draw();
+
+    // Pause/resume: freeze despawn timer when scene is paused
+    scene.events.on('pause', this.onPause, this);
+    scene.events.on('resume', this.onResume, this);
+  }
+
+  private onPause(): void {
+    this.remainingDespawnTime = Math.max(0, this.despawnTime - this.scene.time.now);
+  }
+
+  private onResume(): void {
+    this.despawnTime = this.scene.time.now + this.remainingDespawnTime;
   }
 
   setMagnetTarget(target: Phaser.GameObjects.Container): void {
@@ -56,6 +70,7 @@ export class XPOrb extends Phaser.GameObjects.Container {
   }
 
   update(time: number, _delta: number): void {
+    if (!this.body) return;
     this.pulsePhase += 0.15;
 
     // Check for magnetic attraction
@@ -150,5 +165,13 @@ export class XPOrb extends Phaser.GameObjects.Container {
 
   getXPValue(): number {
     return this.xpValue;
+  }
+
+  destroy(fromScene?: boolean): void {
+    if (this.scene) {
+      this.scene.events.off('pause', this.onPause, this);
+      this.scene.events.off('resume', this.onResume, this);
+    }
+    super.destroy(fromScene);
   }
 }

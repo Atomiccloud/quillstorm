@@ -2,7 +2,7 @@
 // Handles API calls, offline queueing, and checksum generation
 
 // Salt is injected at build time via Vite env variables
-const SALT = import.meta.env.VITE_CHECKSUM_SALT || 'quillstorm-default-salt-change-in-prod';
+const SALT = import.meta.env.VITE_CHECKSUM_SALT || '';
 
 // Cached fingerprint for consistent usage across requests
 let cachedFingerprint: string | null = null;
@@ -126,12 +126,14 @@ export class LeaderboardManager {
 
       if (!response.ok) {
         // Handle non-JSON error responses (like 404 from missing API routes)
+        let errorMessage = 'API unavailable';
         try {
           const error = await response.json();
-          throw new Error(error.error || 'Submission failed');
+          errorMessage = error.error || 'Submission failed';
         } catch {
-          throw new Error('API unavailable');
+          // Response wasn't JSON
         }
+        throw new Error(errorMessage);
       }
 
       return await response.json();

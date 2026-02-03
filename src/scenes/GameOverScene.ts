@@ -205,7 +205,11 @@ export class GameOverScene extends Phaser.Scene {
     this.createButtons();
 
     // Name input modal
-    this.nameModal = new NameInputModal(this, (name) => this.onNameSubmitted(name));
+    this.nameModal = new NameInputModal(
+      this,
+      (name) => this.onNameSubmitted(name),
+      () => this.onNameSkipped()
+    );
     this.add.existing(this.nameModal);
 
     // Hints at bottom (combined into one line)
@@ -319,7 +323,7 @@ export class GameOverScene extends Phaser.Scene {
     // Always show name input modal, pre-filled with saved name if available
     // This lets players change their name between runs
     const savedName = SaveManager.hasPlayerName() ? SaveManager.getPlayerName() : '';
-    this.statusText.setText('Enter your name for the leaderboard');
+    this.statusText.setText('');
     this.nameModal.show(savedName);
   }
 
@@ -328,6 +332,14 @@ export class GameOverScene extends Phaser.Scene {
     await this.submitScore(name);
 
     // Enable buttons and R key after name is submitted
+    this.inputEnabled = true;
+  }
+
+  private onNameSkipped(): void {
+    // Clear session since we're not submitting
+    SessionManager.clearSession();
+    this.statusText.setText('Score not submitted');
+    this.statusText.setColor('#888888');
     this.inputEnabled = true;
   }
 

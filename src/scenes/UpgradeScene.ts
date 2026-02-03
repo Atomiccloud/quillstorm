@@ -4,6 +4,7 @@ import { Upgrade, getRandomUpgrades, RarityWeights, UpgradeSelectionOptions } fr
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { ProgressionManager } from '../systems/ProgressionManager';
 import { AudioManager } from '../systems/AudioManager';
+import { StatsPanel } from '../ui/StatsPanel';
 
 interface UpgradeSceneData {
   upgradeManager: UpgradeManager;
@@ -18,6 +19,7 @@ interface UpgradeSceneData {
 export class UpgradeScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
   private inputEnabled: boolean = false;
+  private statsPanel: StatsPanel | null = null;
   private static readonly INPUT_DELAY = 400; // ms before cards become clickable
 
   constructor() {
@@ -40,16 +42,23 @@ export class UpgradeScene extends Phaser.Scene {
     const titleText = this.getTitleForSource(source, data.wave);
     const titleColor = this.getTitleColorForSource(source);
 
-    this.add.text(centerX, 60, titleText, {
+    this.add.text(centerX, 100, titleText, {
       fontSize: '36px',
       fontFamily: 'Arial Black, sans-serif',
       color: titleColor,
     }).setOrigin(0.5);
 
-    this.add.text(centerX, 110, 'Choose an upgrade:', {
+    this.add.text(centerX, 150, 'Choose an upgrade:', {
       fontSize: '24px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
+
+    // Stats panel (Tab to toggle)
+    this.statsPanel = new StatsPanel(this, this.upgradeManager);
+    this.input.keyboard?.on('keydown-TAB', (event: KeyboardEvent) => {
+      event.preventDefault();
+      this.statsPanel?.toggle();
+    });
 
     // Get random upgrades with optional custom weights and prosperity modifier
     const options: UpgradeSelectionOptions = {};
@@ -75,7 +84,7 @@ export class UpgradeScene extends Phaser.Scene {
     upgrades.forEach((upgrade, index) => {
       this.createUpgradeCard(
         startX + index * (cardWidth + cardSpacing),
-        GAME_CONFIG.height / 2 + 30,
+        GAME_CONFIG.height / 2 + 50,
         cardWidth,
         cardHeight,
         upgrade
@@ -275,6 +284,10 @@ export class UpgradeScene extends Phaser.Scene {
 
     AudioManager.playUpgradeSelect();
     this.upgradeManager.addUpgrade(upgrade);
+    if (this.statsPanel) {
+      this.statsPanel.destroy();
+      this.statsPanel = null;
+    }
     this.scene.stop();
     this.scene.resume('GameScene');
   }
@@ -299,7 +312,7 @@ export class UpgradeScene extends Phaser.Scene {
         return '#00ffff'; // Cyan for level up
       case 'wave':
       default:
-        return '#ffffff'; // White for wave complete
+        return '#44ff44'; // Green for wave complete
     }
   }
 }

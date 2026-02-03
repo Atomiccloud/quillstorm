@@ -2,8 +2,8 @@
 
 import {
   getSessionKey,
-  SESSION_TTL_SECONDS,
   GameSession,
+  KillCounts,
 } from '../_lib/session';
 
 export const config = {
@@ -14,6 +14,7 @@ interface GameOverRequest {
   token: string;
   finalWave: number;
   finalScore: number;
+  kills?: KillCounts;
 }
 
 interface GameOverResponse {
@@ -122,10 +123,13 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // Mark game as over
+    // Mark game as over and store unreported kills from current/infinite wave
     session.gameOver = true;
     session.finalWave = body.finalWave;
     session.finalScore = body.finalScore;
+    if (body.kills && typeof body.kills === 'object') {
+      session.finalKills = body.kills;
+    }
 
     // Update session in Redis (shorter TTL since game is over)
     await kv.set(sessionKey, JSON.stringify(session), { ex: 300 }); // 5 minutes to submit

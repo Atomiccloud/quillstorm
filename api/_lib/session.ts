@@ -48,6 +48,7 @@ export interface GameSession {
   gameOver: boolean;
   finalScore?: number;
   finalWave?: number;
+  finalKills?: KillCounts;
 }
 
 // Session validation result
@@ -82,9 +83,9 @@ export function getSessionKey(token: string): string {
 export const SESSION_TTL_SECONDS = 3600;
 
 // Validation constants
-export const MAX_SCORE_TOLERANCE = 1.3;  // Allow 30% variance for XP bonuses, etc.
-export const MIN_SCORE_TOLERANCE = 0.7;  // Score shouldn't be way below expected
-export const MAX_WAVE_SCORE_INCREASE = 3000;  // Max reasonable score per wave (boss waves)
+export const MAX_SCORE_TOLERANCE = 1.3;  // Allow 30% over expected (splitlings add kills not in the parent count)
+export const MIN_SCORE_TOLERANCE = 0.7;  // Score shouldn't be way below expected kills
+export const MAX_WAVE_SCORE_INCREASE = 4000;  // Max reasonable score per wave (60 enemies + boss)
 
 // Validate a wave report against the session
 export function validateWaveReport(
@@ -152,13 +153,21 @@ export function validateSubmission(
     return { valid: false, error: 'Invalid session' };
   }
 
-  // Score should be close to last recorded (plus maybe some points from partial wave)
+  // Score should be close to last recorded + points from unreported kills
   const lastRecordedScore = session.waves.length > 0
     ? session.waves[session.waves.length - 1].score
     : 0;
 
-  // Allow up to MAX_WAVE_SCORE_INCREASE more than recorded (for partial wave progress)
-  if (finalScore > lastRecordedScore + MAX_WAVE_SCORE_INCREASE) {
+  // Calculate expected points from unreported kills (current wave / infinite swarm)
+  const unreportedKillPoints = session.finalKills
+    ? calculatePointsFromKills(session.finalKills)
+    : 0;
+
+  // Max allowed = last recorded score + unreported kill points (with tolerance) + one wave buffer
+  const maxAllowedScore = lastRecordedScore
+    + Math.max(unreportedKillPoints * MAX_SCORE_TOLERANCE, MAX_WAVE_SCORE_INCREASE);
+
+  if (finalScore > maxAllowedScore) {
     return { valid: false, error: 'Invalid session' };
   }
 

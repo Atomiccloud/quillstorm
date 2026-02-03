@@ -8,6 +8,7 @@ export class Pinecone extends Phaser.GameObjects.Container {
   private glow!: Phaser.GameObjects.Graphics;
   public value: number;
   private despawnTime: number;
+  private remainingDespawnTime: number;
   private warningStarted: boolean = false;
   private magnetTarget: Phaser.GameObjects.Container | null = null;
   private isMagneting: boolean = false;
@@ -23,6 +24,7 @@ export class Pinecone extends Phaser.GameObjects.Container {
 
     this.value = value;
     this.despawnTime = scene.time.now + PINECONE_CONFIG.despawnTime;
+    this.remainingDespawnTime = PINECONE_CONFIG.despawnTime;
 
     // Random initial rotation
     this.rotationAngle = Math.random() * Math.PI * 2;
@@ -54,6 +56,18 @@ export class Pinecone extends Phaser.GameObjects.Container {
 
     // Initial draw
     this.draw();
+
+    // Pause/resume: freeze despawn timer when scene is paused
+    scene.events.on('pause', this.onPause, this);
+    scene.events.on('resume', this.onResume, this);
+  }
+
+  private onPause(): void {
+    this.remainingDespawnTime = Math.max(0, this.despawnTime - this.scene.time.now);
+  }
+
+  private onResume(): void {
+    this.despawnTime = this.scene.time.now + this.remainingDespawnTime;
   }
 
   setMagnetTarget(target: Phaser.GameObjects.Container): void {
@@ -61,6 +75,7 @@ export class Pinecone extends Phaser.GameObjects.Container {
   }
 
   update(time: number, _delta: number): void {
+    if (!this.body) return;
     this.pulsePhase += 0.12;
     this.rotationAngle += 0.02; // Slow spin
 
@@ -175,5 +190,13 @@ export class Pinecone extends Phaser.GameObjects.Container {
 
   getValue(): number {
     return this.value;
+  }
+
+  destroy(fromScene?: boolean): void {
+    if (this.scene) {
+      this.scene.events.off('pause', this.onPause, this);
+      this.scene.events.off('resume', this.onResume, this);
+    }
+    super.destroy(fromScene);
   }
 }

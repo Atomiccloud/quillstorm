@@ -3,7 +3,7 @@
 
 export class AudioManager {
   private static context: AudioContext | null = null;
-  private static masterVolume: number = 0.5;
+  private static masterVolume: number = 0.2;
   private static isMuted: boolean = false;
 
   static initialize(): void {
