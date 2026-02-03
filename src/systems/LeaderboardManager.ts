@@ -7,14 +7,35 @@ const SALT = import.meta.env.VITE_CHECKSUM_SALT || '';
 // Cached fingerprint for consistent usage across requests
 let cachedFingerprint: string | null = null;
 
-// Generate a simple browser fingerprint (canvas-based)
-// This makes curl requests harder as they'd need to fake this value
+// Get or create a persistent unique ID per browser profile
+function getPersistentId(): string {
+  try {
+    let pid = localStorage.getItem('quillstorm_fp_id');
+    if (!pid) {
+      pid = crypto.randomUUID?.() || (Math.random().toString(36).slice(2) + Date.now().toString(36));
+      localStorage.setItem('quillstorm_fp_id', pid);
+    }
+    return pid;
+  } catch {
+    return Math.random().toString(36).slice(2);
+  }
+}
+
+// Generate a browser fingerprint combining canvas hash + persistent ID
+// Canvas hash provides anti-spoofing (hard to fake from scripts)
+// Persistent ID ensures uniqueness (prevents shadow leaderboard leakage across users)
 function getBrowserFingerprint(): string {
   if (cachedFingerprint) return cachedFingerprint;
+
+  const pid = getPersistentId();
+
   try {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    if (!ctx) return 'no-canvas';
+    if (!ctx) {
+      cachedFingerprint = pid;
+      return cachedFingerprint;
+    }
 
     canvas.width = 200;
     canvas.height = 50;
@@ -37,10 +58,10 @@ function getBrowserFingerprint(): string {
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash; // Convert to 32bit integer
     }
-    cachedFingerprint = Math.abs(hash).toString(36);
+    cachedFingerprint = Math.abs(hash).toString(36) + '-' + pid;
     return cachedFingerprint;
   } catch {
-    cachedFingerprint = 'error';
+    cachedFingerprint = pid;
     return cachedFingerprint;
   }
 }
