@@ -15,12 +15,28 @@ export interface KillCounts {
   flyingBoss?: number;
 }
 
-// Generate browser fingerprint (same as LeaderboardManager)
+// Get or create a persistent unique ID per browser profile
+function getPersistentId(): string {
+  try {
+    let pid = localStorage.getItem('quillstorm_fp_id');
+    if (!pid) {
+      pid = crypto.randomUUID?.() || (Math.random().toString(36).slice(2) + Date.now().toString(36));
+      localStorage.setItem('quillstorm_fp_id', pid);
+    }
+    return pid;
+  } catch {
+    return Math.random().toString(36).slice(2);
+  }
+}
+
+// Generate browser fingerprint combining canvas hash + persistent ID (same as LeaderboardManager)
 function getBrowserFingerprint(): string {
+  const pid = getPersistentId();
+
   try {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    if (!ctx) return 'no-canvas';
+    if (!ctx) return pid;
 
     canvas.width = 200;
     canvas.height = 50;
@@ -41,9 +57,9 @@ function getBrowserFingerprint(): string {
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
-    return Math.abs(hash).toString(36);
+    return Math.abs(hash).toString(36) + '-' + pid;
   } catch {
-    return 'error';
+    return pid;
   }
 }
 
