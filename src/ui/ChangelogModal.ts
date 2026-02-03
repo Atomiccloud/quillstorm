@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
-import { CHANGELOG, GAME_VERSION } from '../data/version';
+import { CHANGELOG } from '../data/version';
 
 export class ChangelogModal extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Rectangle;
@@ -43,7 +43,7 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
     this.add(this.panel);
 
     // Title
-    const title = scene.add.text(centerX, centerY - panelHeight / 2 + 30, `Changelog - v${GAME_VERSION}`, {
+    const title = scene.add.text(centerX, centerY - panelHeight / 2 + 30, 'Changelog', {
       fontSize: '24px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
@@ -52,7 +52,7 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
     this.add(title);
 
     // Close button (X)
-    const closeButton = scene.add.text(centerX + panelWidth / 2 - 25, centerY - panelHeight / 2 + 15, '✕', {
+    const closeButton = scene.add.text(centerX + panelWidth / 2 - 30, centerY - panelHeight / 2 + 30, '✕', {
       fontSize: '24px',
       color: '#888888',
     });

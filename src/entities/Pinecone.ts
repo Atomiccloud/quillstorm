@@ -47,6 +47,7 @@ export class Pinecone extends Phaser.GameObjects.Container {
     this.body.setOffset(-size / 2, -size / 2);
     this.body.setBounce(0.3);
     this.body.setDrag(80);
+    this.body.setCollideWorldBounds(true);
 
     // Initial upward velocity with some randomness
     this.body.setVelocity(

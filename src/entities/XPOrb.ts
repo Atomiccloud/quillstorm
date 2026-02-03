@@ -42,6 +42,7 @@ export class XPOrb extends Phaser.GameObjects.Container {
     this.body.setOffset(-size / 2, -size / 2);
     this.body.setBounce(0.4);
     this.body.setDrag(50);
+    this.body.setCollideWorldBounds(true);
 
     // Initial upward velocity with some randomness
     this.body.setVelocity(

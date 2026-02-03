@@ -25,7 +25,7 @@ export interface UpgradeEffects {
   shieldCharges?: number;    // Absorbs N hits before breaking
   companionCount?: number;   // Baby porcupine companions
   homingStrength?: number;   // Projectile tracking (0-1)
-  vampirism?: number;        // Heal % of damage dealt
+  vampirism?: number;        // Chance to heal 1 HP on hit
   prosperity?: number;       // Luck stat: chest drops, rarity, crit
 }
 
@@ -297,7 +297,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'life_leech_1',
     name: 'Life Leech',
-    description: 'Heal a small amount when dealing damage.',
+    description: '5% chance to heal on hit.',
     rarity: 'common',
     effects: { vampirism: 0.05 },
   },
@@ -400,7 +400,7 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'vampire_lord',
     name: 'Vampire Lord',
-    description: 'Significant lifesteal with bonus damage.',
+    description: '15% chance to heal on hit, plus bonus damage.',
     rarity: 'legendary',
     effects: { vampirism: 0.15, damage: 0.3 },
     maxStacks: 1,

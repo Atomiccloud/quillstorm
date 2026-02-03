@@ -212,7 +212,7 @@ export class StatsPanel {
     if (shieldCharges !== 0) defense.push({ name: 'Shields', value: `${shieldCharges} charges` });
 
     const vampirism = this.upgradeManager.getModifier('vampirism');
-    if (vampirism !== 0) defense.push({ name: 'Lifesteal', value: formatPercent(vampirism) });
+    if (vampirism !== 0) defense.push({ name: 'Heal Chance', value: formatPercent(vampirism) });
 
     // Movement stats
     const moveSpeed = this.upgradeManager.getModifier('moveSpeed');

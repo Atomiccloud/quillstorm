@@ -555,9 +555,9 @@ export class GameScene extends Phaser.Scene {
     const damage = quill.getDamage();
     const killed = enemy.takeDamage(damage, hitAngle);
 
-    // Vampirism - heal based on damage dealt
+    // Vampirism - chance to heal based on damage dealt
     const vampirism = this.upgradeManager.getModifier('vampirism');
-    if (vampirism > 0) {
+    if (vampirism > 0 && Math.random() < vampirism) {
       const healAmount = damage * vampirism;
       this.player.heal(healAmount);
     }
