@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.3.1';
+export const GAME_VERSION = '0.3.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,16 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.3.2',
+    date: '2026-02-03',
+    changes: [
+      'Improved canvas scaling and aspect ratio handling',
+      'Improved shop card layout and readability',
+      'Improved leaderboard submission reliability',
+      'General server stability improvements',
+    ],
+  },
   {
     version: '0.3.1',
     date: '2026-02-01',

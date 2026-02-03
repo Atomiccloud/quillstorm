@@ -22,16 +22,13 @@
         border: 3px solid #4a4a6a;
         border-radius: 8px;
         box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        /* Set explicit dimensions to prevent resize jitter */
-        width: 1440px;
-        height: 810px;
-        max-width: 95vw;
-        max-height: 95vh;
+        /* Container dimensions - Phaser scales within these bounds */
+        width: min(1440px, 95vw);
+        height: min(810px, 95vh);
+        /* Maintain aspect ratio when constrained */
+        aspect-ratio: 16 / 9;
       }
-      #game-container canvas {
-        width: 100% !important;
-        height: 100% !important;
-      }
+      /* Let Phaser handle canvas sizing - don't force stretch */
     </style>
   </head>
   <body>

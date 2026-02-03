@@ -16,6 +16,7 @@ import { AudioManager } from '../systems/AudioManager';
 import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
 import { StatsPanel } from '../ui/StatsPanel';
+import { SessionManager } from '../systems/SessionManager';
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -54,6 +55,9 @@ export class GameScene extends Phaser.Scene {
     this.upgradeManager = new UpgradeManager();
     this.progressionManager = new ProgressionManager(this.upgradeManager);
     this.quillManager = new QuillManager(this, this.upgradeManager);
+
+    // Start anti-cheat session (don't block game start)
+    SessionManager.startSession();
 
     // Create XP orbs, treasure chest, and pinecone groups
     this.xpOrbs = this.add.group({ runChildUpdate: true });
@@ -574,6 +578,7 @@ export class GameScene extends Phaser.Scene {
       AudioManager.playEnemyDeath();
       this.hud.addScore(enemy.points);
       this.spawnDeathParticles(enemy.x, enemy.y);
+      SessionManager.recordKill(enemy.enemyType);
 
       // Splitter splits into 2 splitlings on death
       if (enemy.isSplitter()) {
@@ -972,6 +977,9 @@ export class GameScene extends Phaser.Scene {
     this.pendingUpgradeSource = 'wave';
     this.hud.showWaveComplete();
 
+    // Report wave completion for anti-cheat
+    SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
+
     // Clear any remaining enemy projectiles (they shouldn't persist between waves)
     this.enemyProjectiles.clear(true, true);
 
@@ -1098,6 +1106,9 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = true;
     AudioManager.playGameOver();
 
+    // Report game over for anti-cheat
+    SessionManager.reportGameOver(this.waveManager.currentWave, this.hud.score);
+
     // Submit score
     const isNewHighScore = SaveManager.submitRun(this.hud.score, this.waveManager.currentWave);
 
@@ -1181,6 +1192,7 @@ export class GameScene extends Phaser.Scene {
           AudioManager.playEnemyDeath();
           this.hud.addScore(enemy.points);
           this.spawnDeathParticles(enemy.x, enemy.y);
+          SessionManager.recordKill(enemy.enemyType);
           // Splitter splits on death from companion quills too
           if (enemy.isSplitter()) {
             AudioManager.playSplit();
