@@ -1,9 +1,9 @@
 // Using Web Crypto API (Edge-compatible, no Node.js crypto)
 
 const SALT = process.env.CHECKSUM_SALT || 'quillstorm-default-salt-change-in-prod';
-const MAX_SCORE = 50000;
-const MAX_WAVE = 100;
-const MAX_POINTS_PER_WAVE = 1500; // Generous estimate including boss waves
+const MAX_SCORE = 999999;
+const MAX_WAVE = 20; // Waves cap at 20 (infinite swarm doesn't increment)
+const MAX_POINTS_PER_WAVE = 5000; // Generous estimate including infinite swarm scaling
 const TIMESTAMP_WINDOW_MS = 3000; // 3 second validity window for submissions
 
 export interface SubmissionData {
@@ -67,12 +67,6 @@ export async function validateSubmission(data: SubmissionData): Promise<Validati
   // Fingerprint validation (must be present)
   if (!data.fingerprint || typeof data.fingerprint !== 'string') {
     return { valid: false, error: 'Invalid fingerprint' };
-  }
-
-  // Sanity check: score should be roughly proportional to wave
-  const maxPossibleScore = data.wave * MAX_POINTS_PER_WAVE;
-  if (data.score > maxPossibleScore * 1.5) {
-    return { valid: false, error: 'Score anomaly detected' };
   }
 
   // Checksum validation (includes timestamp and fingerprint)
