@@ -1,14 +1,17 @@
 // Using Web Crypto API (Edge-compatible, no Node.js crypto)
 
 const SALT = process.env.CHECKSUM_SALT || 'quillstorm-default-salt-change-in-prod';
-const MAX_SCORE = 50000;
-const MAX_WAVE = 100;
-const MAX_POINTS_PER_WAVE = 1500; // Generous estimate including boss waves
+const MAX_SCORE = 999999;
+const MAX_WAVE = 20; // Waves cap at 20 (infinite swarm doesn't increment)
+const MAX_POINTS_PER_WAVE = 5000; // Generous estimate including infinite swarm scaling
+const TIMESTAMP_WINDOW_MS = 3000; // 3 second validity window for submissions
 
 export interface SubmissionData {
   playerName: string;
   score: number;
   wave: number;
+  timestamp: number;
+  fingerprint: string;
   checksum: string;
 }
 
@@ -50,14 +53,24 @@ export async function validateSubmission(data: SubmissionData): Promise<Validati
     return { valid: false, error: 'Invalid wave' };
   }
 
-  // Sanity check: score should be roughly proportional to wave
-  const maxPossibleScore = data.wave * MAX_POINTS_PER_WAVE;
-  if (data.score > maxPossibleScore * 1.5) {
-    return { valid: false, error: 'Score anomaly detected' };
+  // Timestamp validation (must be within 3 seconds of server time)
+  if (typeof data.timestamp !== 'number') {
+    return { valid: false, error: 'Invalid timestamp' };
   }
 
-  // Checksum validation
-  const expectedChecksum = await generateChecksum(data.score, data.wave);
+  const serverTime = Date.now();
+  const timeDiff = Math.abs(serverTime - data.timestamp);
+  if (timeDiff > TIMESTAMP_WINDOW_MS) {
+    return { valid: false, error: 'Request expired' };
+  }
+
+  // Fingerprint validation (must be present)
+  if (!data.fingerprint || typeof data.fingerprint !== 'string') {
+    return { valid: false, error: 'Invalid fingerprint' };
+  }
+
+  // Checksum validation (includes timestamp and fingerprint)
+  const expectedChecksum = await generateChecksum(data.score, data.wave, data.timestamp, data.fingerprint);
   if (data.checksum !== expectedChecksum) {
     return { valid: false, error: 'Invalid checksum' };
   }
@@ -65,8 +78,8 @@ export async function validateSubmission(data: SubmissionData): Promise<Validati
   return { valid: true, sanitizedName: trimmedName };
 }
 
-export async function generateChecksum(score: number, wave: number): Promise<string> {
-  const data = `${score}:${wave}:${SALT}`;
+export async function generateChecksum(score: number, wave: number, timestamp: number, fingerprint: string): Promise<string> {
+  const data = `${score}:${wave}:${timestamp}:${fingerprint}:${SALT}`;
   const hash = await sha256(data);
   return hash.slice(0, 16);
 }

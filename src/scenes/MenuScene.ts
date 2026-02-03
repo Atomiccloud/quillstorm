@@ -12,6 +12,11 @@ export class MenuScene extends Phaser.Scene {
   private muteText!: Phaser.GameObjects.Text;
   private changelogModal!: ChangelogModal;
 
+  // Volume slider drag tracking
+  private isDraggingVolume: boolean = false;
+  private volumeBarX: number = 0;
+  private volumeBarWidth: number = 0;
+
   constructor() {
     super({ key: 'MenuScene' });
   }
@@ -186,6 +191,9 @@ export class MenuScene extends Phaser.Scene {
     const barWidth = 120;
     const barHeight = 12;
     const barX = centerX - 30;
+    this.volumeBarX = barX;
+    this.volumeBarWidth = barWidth;
+
     const volumeBarBg = this.add.rectangle(barX, y, barWidth, barHeight, 0x333333);
     volumeBarBg.setInteractive({ useHandCursor: true });
 
@@ -216,14 +224,22 @@ export class MenuScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    // Click volume bar to adjust
+    // Start dragging on volume bar
     volumeBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.updateVolumeFromPointer(pointer, barX, barWidth);
+      this.isDraggingVolume = true;
+      this.updateVolumeFromPointer(pointer);
     });
-    volumeBarBg.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.isDown) {
-        this.updateVolumeFromPointer(pointer, barX, barWidth);
+
+    // Track dragging at scene level (allows dragging outside the bar)
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.isDraggingVolume) {
+        this.updateVolumeFromPointer(pointer);
       }
+    });
+
+    // Stop dragging when mouse is released anywhere
+    this.input.on('pointerup', () => {
+      this.isDraggingVolume = false;
     });
 
     // Mute button click
@@ -234,11 +250,11 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  private updateVolumeFromPointer(pointer: Phaser.Input.Pointer, barX: number, barWidth: number): void {
-    const relativeX = pointer.x - (barX - barWidth / 2);
-    const newVolume = Phaser.Math.Clamp(relativeX / barWidth, 0, 1);
+  private updateVolumeFromPointer(pointer: Phaser.Input.Pointer): void {
+    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
+    const newVolume = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
     AudioManager.setVolume(newVolume);
-    this.volumeFill.width = newVolume * barWidth;
+    this.volumeFill.width = newVolume * this.volumeBarWidth;
     this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
   }
 

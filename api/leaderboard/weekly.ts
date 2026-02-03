@@ -17,7 +17,27 @@ interface WeeklyLeaderboardResponse {
   total: number;
   weekStart: string;
   weekEnd: string;
-  resetsIn: number; // seconds until reset
+  resetsIn: number;
+}
+
+// Parse shadow member (has fingerprint as 5th field)
+function parseShadowMember(member: string): {
+  id: string;
+  playerName: string;
+  wave: number;
+  timestamp: number;
+  fingerprint: string;
+} | null {
+  const parts = member.split('|');
+  if (parts.length !== 5) return null;
+
+  return {
+    id: parts[0],
+    playerName: parts[1],
+    wave: parseInt(parts[2], 10),
+    timestamp: parseInt(parts[3], 10),
+    fingerprint: parts[4],
+  };
 }
 
 // Check if KV is configured
@@ -79,15 +99,15 @@ export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '100', 10), 100);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+  const fingerprint = url.searchParams.get('fp') || null;  // For shadow merging
 
   try {
-    // Dynamic import to avoid errors when KV isn't configured
     const { kv } = await import('@vercel/kv');
 
     const { year, week } = getISOWeek();
     const weeklyKey = `leaderboard:weekly:${year}:${week}`;
 
-    // Get entries with scores
+    // Get real entries
     const results = await kv.zrange(weeklyKey, offset, offset + limit - 1, {
       rev: true,
       withScores: true,
@@ -95,7 +115,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     const entries: LeaderboardEntry[] = [];
 
-    // Parse results (alternating member/score pairs)
+    // Parse real results
     for (let i = 0; i < results.length; i += 2) {
       const member = results[i] as string;
       const score = results[i + 1] as number;
@@ -108,6 +128,52 @@ export default async function handler(req: Request): Promise<Response> {
           score,
           wave: parsed.wave,
           timestamp: parsed.timestamp,
+        });
+      }
+    }
+
+    // If fingerprint provided, merge their shadow entries (honeypot display)
+    if (fingerprint) {
+      const shadowWeeklyKey = `shadow:leaderboard:weekly:${year}:${week}`;
+      const shadowResults = await kv.zrange(shadowWeeklyKey, 0, 99, {
+        rev: true,
+        withScores: true,
+      });
+
+      // Find shadow entries matching this fingerprint
+      const shadowEntries: { score: number; entry: LeaderboardEntry }[] = [];
+      for (let i = 0; i < shadowResults.length; i += 2) {
+        const member = shadowResults[i] as string;
+        const score = shadowResults[i + 1] as number;
+        const parsed = parseShadowMember(member);
+
+        if (parsed && parsed.fingerprint === fingerprint) {
+          shadowEntries.push({
+            score,
+            entry: {
+              rank: 0,
+              playerName: parsed.playerName,
+              score,
+              wave: parsed.wave,
+              timestamp: parsed.timestamp,
+            },
+          });
+        }
+      }
+
+      // Merge shadow entries into the list and re-sort
+      if (shadowEntries.length > 0) {
+        for (const shadow of shadowEntries) {
+          entries.push(shadow.entry);
+        }
+
+        // Sort by score descending
+        entries.sort((a, b) => b.score - a.score);
+
+        // Trim to limit and recalculate ranks
+        entries.splice(limit);
+        entries.forEach((e, idx) => {
+          e.rank = offset + idx + 1;
         });
       }
     }
@@ -125,7 +191,7 @@ export default async function handler(req: Request): Promise<Response> {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'Cache-Control': fingerprint ? 'no-cache' : 'public, s-maxage=30, stale-while-revalidate=60',
       },
     });
   } catch (error) {

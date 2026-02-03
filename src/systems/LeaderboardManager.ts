@@ -1,7 +1,49 @@
 // Client-side leaderboard manager
 // Handles API calls, offline queueing, and checksum generation
 
-const SALT = 'quillstorm-default-salt-change-in-prod';
+// Salt is injected at build time via Vite env variables
+const SALT = import.meta.env.VITE_CHECKSUM_SALT || 'quillstorm-default-salt-change-in-prod';
+
+// Cached fingerprint for consistent usage across requests
+let cachedFingerprint: string | null = null;
+
+// Generate a simple browser fingerprint (canvas-based)
+// This makes curl requests harder as they'd need to fake this value
+function getBrowserFingerprint(): string {
+  if (cachedFingerprint) return cachedFingerprint;
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 'no-canvas';
+
+    canvas.width = 200;
+    canvas.height = 50;
+
+    // Draw some text with specific styling
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#f60';
+    ctx.fillRect(125, 1, 62, 20);
+    ctx.fillStyle = '#069';
+    ctx.fillText('Quillstorm', 2, 15);
+    ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+    ctx.fillText('Quillstorm', 4, 17);
+
+    // Get a hash of the canvas data
+    const dataUrl = canvas.toDataURL();
+    let hash = 0;
+    for (let i = 0; i < dataUrl.length; i++) {
+      const char = dataUrl.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    cachedFingerprint = Math.abs(hash).toString(36);
+    return cachedFingerprint;
+  } catch {
+    cachedFingerprint = 'error';
+    return cachedFingerprint;
+  }
+}
 
 export interface LeaderboardEntry {
   rank: number;
@@ -55,10 +97,15 @@ export class LeaderboardManager {
   static async submitScore(
     playerName: string,
     score: number,
-    wave: number
+    wave: number,
+    sessionToken?: string | null
   ): Promise<SubmissionResult> {
-    // Generate checksum async
-    const checksum = await this.sha256(`${score}:${wave}:${SALT}`).then(h => h.slice(0, 16));
+    // Generate timestamp and fingerprint for anti-cheat
+    const timestamp = Date.now();
+    const fingerprint = getBrowserFingerprint();
+
+    // Generate checksum with timestamp and fingerprint (3 second validity window)
+    const checksum = await this.sha256(`${score}:${wave}:${timestamp}:${fingerprint}:${SALT}`).then(h => h.slice(0, 16));
 
     try {
       const response = await fetch(`${this.API_BASE}/submit`, {
@@ -70,13 +117,21 @@ export class LeaderboardManager {
           playerName,
           score,
           wave,
+          timestamp,
+          fingerprint,
           checksum,
+          sessionToken: sessionToken || undefined,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Submission failed');
+        // Handle non-JSON error responses (like 404 from missing API routes)
+        try {
+          const error = await response.json();
+          throw new Error(error.error || 'Submission failed');
+        } catch {
+          throw new Error('API unavailable');
+        }
       }
 
       return await response.json();
@@ -96,8 +151,9 @@ export class LeaderboardManager {
   // Fetch global leaderboard
   static async getGlobalLeaderboard(limit = 100, offset = 0): Promise<GlobalLeaderboardResponse> {
     try {
+      const fp = getBrowserFingerprint();
       const response = await fetch(
-        `${this.API_BASE}/global?limit=${limit}&offset=${offset}`
+        `${this.API_BASE}/global?limit=${limit}&offset=${offset}&fp=${encodeURIComponent(fp)}`
       );
 
       if (!response.ok) {
@@ -114,8 +170,9 @@ export class LeaderboardManager {
   // Fetch weekly leaderboard
   static async getWeeklyLeaderboard(limit = 100, offset = 0): Promise<WeeklyLeaderboardResponse> {
     try {
+      const fp = getBrowserFingerprint();
       const response = await fetch(
-        `${this.API_BASE}/weekly?limit=${limit}&offset=${offset}`
+        `${this.API_BASE}/weekly?limit=${limit}&offset=${offset}&fp=${encodeURIComponent(fp)}`
       );
 
       if (!response.ok) {

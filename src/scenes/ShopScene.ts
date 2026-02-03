@@ -159,7 +159,7 @@ export class ShopScene extends Phaser.Scene {
 
     // Grid layout
     const cardWidth = 180;
-    const cardHeight = 320;  // Tall enough for description + button + unlock hint
+    const cardHeight = 250;  // Compact cards
     const cardsPerRow = 5;
     const startX = GAME_CONFIG.width / 2 - (Math.min(cosmetics.length, cardsPerRow) * cardWidth) / 2 + cardWidth / 2;
     const startY = 290;  // Below category tabs
@@ -194,8 +194,8 @@ export class ShopScene extends Phaser.Scene {
     // Draw cosmetic preview
     this.drawCosmeticPreview(container, cosmetic, 0, -height / 2 + 60);
 
-    // Name
-    const name = this.add.text(0, 10, cosmetic.name, {
+    // Name (below preview)
+    const name = this.add.text(0, -10, cosmetic.name, {
       fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
@@ -203,17 +203,17 @@ export class ShopScene extends Phaser.Scene {
     container.add(name);
 
     // Description
-    const desc = this.add.text(0, 35, cosmetic.description, {
-      fontSize: '11px',
+    const desc = this.add.text(0, 10, cosmetic.description, {
+      fontSize: '14px',
       fontFamily: 'Arial, sans-serif',
-      color: '#888888',
-      wordWrap: { width: width - 20 },
+      color: '#aaaaaa',
+      wordWrap: { width: width - 16 },
       align: 'center',
     }).setOrigin(0.5, 0);
     container.add(desc);
 
     // Action button - positioned to leave room for unlock hint below
-    const buttonY = height / 2 - 55;
+    const buttonY = height / 2 - 45;
     let buttonText = '';
     let buttonColor = 0x555555;
     let buttonEnabled = false;
