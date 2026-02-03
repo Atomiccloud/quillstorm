@@ -24,6 +24,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Fixed chests floating in air from flying enemies',
       'Fixed despawn timers running during pause/upgrades',
       'Fixed crash on game over screen from null body references',
+      'Fixed XP orbs and pinecones hovering in mid-air',
+      'Vampirism is now chance-on-hit instead of healing every hit',
       'Improved anti-cheat score validation',
     ],
   },

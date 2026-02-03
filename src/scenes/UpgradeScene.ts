@@ -263,7 +263,7 @@ export class UpgradeScene extends Phaser.Scene {
       effects.push(`Companions: +${upgrade.effects.companionCount}`);
     }
     if (upgrade.effects.vampirism) {
-      effects.push(`Lifesteal: +${Math.round(upgrade.effects.vampirism * 100)}%`);
+      effects.push(`Heal chance: +${Math.round(upgrade.effects.vampirism * 100)}%`);
     }
     if (upgrade.effects.explosionRadius) {
       effects.push(`Explosion: ${upgrade.effects.explosionRadius}px`);
