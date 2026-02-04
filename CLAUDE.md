@@ -25,6 +25,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Progression/XP changes** → `src/systems/ProgressionManager.ts`, `src/config.ts` XP_CONFIG
 - **Elite enemies** → `src/config.ts` ELITE_CONFIG, applied in `src/entities/Enemy.ts`
 - **Danger system** → `src/config.ts` DANGER_CONFIG, upgrades in `src/data/upgrades.ts`
+- **Infinite swarm balance** → See [docs/INFINITE_SWARM.md](docs/INFINITE_SWARM.md) for full scaling reference
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 
 ### Understanding Systems
@@ -86,7 +87,7 @@ Edit `src/config.ts`:
 - `XP_CONFIG` - XP requirements, level scaling, infinite swarm trigger
 - `CHEST_CONFIG` - Chest drop rates, despawn time, rarity weights
 - `PROSPERITY_CONFIG` - Prosperity effects on drops/rarity/crit
-- `INFINITE_SWARM_CONFIG` - Endless mode spawn/difficulty scaling
+- `INFINITE_SWARM_CONFIG` - Endless mode spawn decay, split HP/damage scaling, damage caps, boss spawn config
 - `ELITE_CONFIG` - Elite enemy stat multipliers, spawn chance, glow color
 - `DANGER_CONFIG` - Danger level scaling per stack (HP, damage, elite chance, score, XP)
 

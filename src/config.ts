@@ -31,7 +31,9 @@ export const QUILL_CONFIG = {
 
   // Regeneration
   regenRate: 1.0, // Quills per second (base)
-  regenDelay: 800, // ms before regen starts after firing
+  regenDelay: 600, // base ms before regen starts after firing (scales down with regen rate)
+  regenDelayMin: 100, // minimum regen delay at high regen rate
+  regenDelayMaxRegen: 2.0, // regen bonus at which delay hits minimum (200%)
   nakedRegenMultiplier: 3, // Faster regen when naked
 
   // Firing
@@ -338,13 +340,41 @@ export const PINECONE_CONFIG = {
 
 // Infinite swarm mode (activates at level 20)
 export const INFINITE_SWARM_CONFIG = {
-  baseSpawnInterval: 600,        // Starting spawn interval (ms)
-  spawnIntervalDecayRate: 0.99,  // Decays by 1% per second (faster ramp)
-  minSpawnInterval: 10,          // Floor: 100 enemies/sec maximum chaos
-  // Quadratic scaling: multiplier = 1 + (seconds/30)^2
-  // After 30s: 2x stats
-  // After 60s: 5x stats
-  // After 90s: 10x stats
-  // After 2min: 17x stats
-  statScaleInterval: 30,         // Seconds per "tier" of scaling
+  // Spawn interval: deterministic decay based on total elapsed time
+  // Formula: max(minInterval, baseInterval * decayRate^totalSeconds)
+  // 600 * 0.9943^720 ≈ 10 → floor hit at ~12 minutes
+  baseSpawnInterval: 600,
+  spawnIntervalDecayRate: 0.9943,
+  minSpawnInterval: 10,            // Floor: 100 enemies/sec maximum chaos
+
+  // Stat scaling — tiers every 15 seconds
+  // HP: quadratic → 1 + (t/15)^2 — enemies become very tanky
+  // Damage: square root → 1 + sqrt(t/15) — slow growth, capped per type
+  statScaleInterval: 15,
+
+  // Per-enemy damage caps (applied BEFORE elite multiplier; elites CAN exceed)
+  damageCaps: {
+    scurrier: 150,
+    spitter: 200,
+    swooper: 250,
+    shellback: 200,
+    burrower: 250,
+    splitter: 175,
+    splitling: 125,
+    healer: 100,
+    boss: 400,
+    flyingBoss: 400,
+  } as Record<string, number>,
+
+  // Boss spawning in infinite swarm (gated by danger level)
+  bossMinDangerLevel: 5,           // Danger level required to unlock boss spawns
+  bossBaseChance: 0.005,           // 0.5% base chance per spawn at danger 5
+  bossChancePerDanger: 0.005,      // +0.5% per danger level above 5
+  bossMaxChance: 0.08,             // 8% max chance cap
+  bossCooldownMaxMs: 15000,        // 15s cooldown at danger 5
+  bossCooldownMinMs: 5000,         // 5s cooldown at danger 25+
+  bossCooldownDangerRange: 20,     // Scales linearly over 20 danger levels (5→25)
+  // Cooldown formula: max(5000, 15000 - (danger - 5) * 500)
+
+  shieldRegenInterval: 30000,      // Regenerate 1 shield charge every 30 seconds
 };

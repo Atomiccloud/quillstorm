@@ -26,7 +26,7 @@ Your quill percentage determines your state:
 
 ### Quill Regeneration
 - **Base Rate**: 1.0 quill/sec
-- **Regen Delay**: 800ms pause after shooting
+- **Regen Delay**: 600ms pause after shooting (scales down with regen rate, min 100ms at 200%+)
 - **Naked Bonus**: 3x regeneration when in naked state
 
 ### Shooting
@@ -386,6 +386,10 @@ Upgrades are offered after each wave. Rarity determines power level.
 - Absorb one hit each before breaking
 - Reset to full at the start of each wave
 - Brief invincibility (500ms) when shield breaks
+- Cyan diamond icon with charge pips displayed above the porcupine when active
+- In infinite swarm: regenerate 1 charge every 30s (configurable via `INFINITE_SWARM_CONFIG.shieldRegenInterval`)
+- Taking a hit resets the regen timer
+- New shield charges from mid-wave upgrades are granted immediately
 
 ### Companions (Baby Porcupines)
 - Obtained through upgrades (Baby Buddy, Porcupine Pack, Porcupine Army)

@@ -973,6 +973,10 @@ export class GameScene extends Phaser.Scene {
 
     // Activate infinite swarm in wave manager
     this.waveManager.activateInfiniteSwarm(this.time.now);
+
+    // Reset shields and enable time-based regen for infinite swarm
+    this.player.resetShieldsForWave();
+    this.player.enableInfiniteSwarmShieldRegen();
   }
 
   private showChestUpgradeSelection(): void {
@@ -1067,6 +1071,9 @@ export class GameScene extends Phaser.Scene {
     // Apply any health upgrades
     const healthBonus = this.upgradeManager.getModifier('maxHealth');
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
+
+    // Grant any new shield charges immediately (so mid-wave shield pickups work)
+    this.player.syncNewShieldCharges();
 
     // Update companions immediately if a companion upgrade was selected
     this.updateCompanions();

@@ -92,9 +92,11 @@ export class QuillManager {
     // Consume quill
     this.currentQuills -= 1;
 
-    // Pause regen
+    // Pause regen (delay scales down with regen rate upgrades, power 1.5 curve)
     this.regenPaused = true;
-    this.regenPauseTimer = QUILL_CONFIG.regenDelay;
+    const regenMod = this.upgradeManager.getModifier('regenRate');
+    const t = Math.min(regenMod, QUILL_CONFIG.regenDelayMaxRegen) / QUILL_CONFIG.regenDelayMaxRegen;
+    this.regenPauseTimer = QUILL_CONFIG.regenDelay - (QUILL_CONFIG.regenDelay - QUILL_CONFIG.regenDelayMin) * Math.pow(t, 1.5);
 
     // Calculate angle to target
     const angle = Phaser.Math.Angle.Between(fromX, fromY, toX, toY);

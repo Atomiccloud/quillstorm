@@ -16,7 +16,8 @@ export class ProgressionManager {
   // Infinite swarm state
   private infiniteSwarmActive: boolean = false;
   private infiniteSwarmStartTime: number = 0;
-  private swarmDifficultyMultiplier: number = 1.0;
+  private swarmHPMultiplier: number = 1.0;
+  private swarmDamageMultiplier: number = 1.0;
   private currentSpawnInterval: number = INFINITE_SWARM_CONFIG.baseSpawnInterval;
 
   // Chest tracking (for "rigged" early chests)
@@ -179,7 +180,8 @@ export class ProgressionManager {
   activateInfiniteSwarm(currentTime: number): void {
     this.infiniteSwarmActive = true;
     this.infiniteSwarmStartTime = currentTime;
-    this.swarmDifficultyMultiplier = 1.0;
+    this.swarmHPMultiplier = 1.0;
+    this.swarmDamageMultiplier = 1.0;
     this.currentSpawnInterval = INFINITE_SWARM_CONFIG.baseSpawnInterval;
   }
 
@@ -188,29 +190,41 @@ export class ProgressionManager {
   }
 
   // Update infinite swarm difficulty (call each frame)
-  updateInfiniteSwarm(currentTime: number, delta: number): void {
+  updateInfiniteSwarm(currentTime: number, _delta: number): void {
     if (!this.infiniteSwarmActive) return;
 
-    const elapsedSeconds = delta / 1000;
-
-    // Decay spawn interval (1% per second)
-    this.currentSpawnInterval = Math.max(
-      INFINITE_SWARM_CONFIG.minSpawnInterval,
-      this.currentSpawnInterval * Math.pow(INFINITE_SWARM_CONFIG.spawnIntervalDecayRate, elapsedSeconds * 60)
-    );
-
-    // Quadratic difficulty scaling: multiplier = 1 + (totalSeconds / interval)^2
     const totalSeconds = (currentTime - this.infiniteSwarmStartTime) / 1000;
     const tiers = totalSeconds / INFINITE_SWARM_CONFIG.statScaleInterval;
-    this.swarmDifficultyMultiplier = 1 + (tiers * tiers);
+
+    // Deterministic spawn interval decay (framerate-independent)
+    this.currentSpawnInterval = Math.max(
+      INFINITE_SWARM_CONFIG.minSpawnInterval,
+      INFINITE_SWARM_CONFIG.baseSpawnInterval *
+        Math.pow(INFINITE_SWARM_CONFIG.spawnIntervalDecayRate, totalSeconds)
+    );
+
+    // HP scaling: quadratic — enemies become very tanky
+    this.swarmHPMultiplier = 1 + (tiers * tiers);
+
+    // Damage scaling: square root — slow growth, per-type caps applied in Enemy
+    this.swarmDamageMultiplier = 1 + Math.sqrt(tiers);
   }
 
   getSwarmSpawnInterval(): number {
     return this.currentSpawnInterval;
   }
 
+  getSwarmHPMultiplier(): number {
+    return this.swarmHPMultiplier;
+  }
+
+  getSwarmDamageMultiplier(): number {
+    return this.swarmDamageMultiplier;
+  }
+
+  // Backward compat: returns HP multiplier (used by HUD as headline difficulty)
   getSwarmDifficultyMultiplier(): number {
-    return this.swarmDifficultyMultiplier;
+    return this.swarmHPMultiplier;
   }
 
   getSwarmDuration(currentTime: number): number {
@@ -225,7 +239,8 @@ export class ProgressionManager {
     this.pendingLevelUps = 0;
     this.infiniteSwarmActive = false;
     this.infiniteSwarmStartTime = 0;
-    this.swarmDifficultyMultiplier = 1.0;
+    this.swarmHPMultiplier = 1.0;
+    this.swarmDamageMultiplier = 1.0;
     this.currentSpawnInterval = INFINITE_SWARM_CONFIG.baseSpawnInterval;
     this.chestsCollected = 0;
     this.sessionPinecones = 0;

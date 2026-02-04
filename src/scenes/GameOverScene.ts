@@ -516,13 +516,17 @@ export class GameOverScene extends Phaser.Scene {
 
     if (killedTypes.length === 0) return;
 
-    // Count total elite kills
-    const totalEliteKills = Object.values(stats.eliteKillsByType || {}).reduce((sum, c) => sum + c, 0);
+    // Gather elite kills
+    const eliteTypes = Object.entries(stats.eliteKillsByType || {})
+      .filter(([, count]) => count > 0)
+      .sort(([, a], [, b]) => b - a);
+    const totalEliteKills = eliteTypes.reduce((sum, [, c]) => sum + c, 0);
 
-    // Calculate panel height based on content
+    // Calculate panel height: kills header + kill rows + optional elite section
     const headerHeight = 40;
-    const contentHeight = killedTypes.length * LINE_HEIGHT;
-    const panelHeight = headerHeight + contentHeight + PANEL_PADDING;
+    const killRows = killedTypes.length * LINE_HEIGHT;
+    const eliteSection = totalEliteKills > 0 ? headerHeight + eliteTypes.length * LINE_HEIGHT : 0;
+    const panelHeight = headerHeight + killRows + eliteSection + PANEL_PADDING;
 
     this.killsPanel = this.add.container(16, 80);
     this.killsPanel.setDepth(200);
@@ -535,9 +539,8 @@ export class GameOverScene extends Phaser.Scene {
     bg.strokeRoundedRect(0, 0, PANEL_WIDTH, panelHeight, 8);
     this.killsPanel.add(bg);
 
-    // Title - show elite count if any
-    const titleStr = totalEliteKills > 0 ? `KILLS (${totalEliteKills}\u2605)` : 'KILLS';
-    const title = this.add.text(PANEL_PADDING, 12, titleStr, {
+    // Title
+    const title = this.add.text(PANEL_PADDING, 12, 'KILLS', {
       fontSize: '16px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ff8844',
@@ -552,9 +555,13 @@ export class GameOverScene extends Phaser.Scene {
     }).setOrigin(1, 0);
     this.killsPanel.add(totalText);
 
-    // Per-type breakdown
+    // Per-type breakdown (normal kills only — subtract elites)
     let y = headerHeight;
     for (const [type, count] of killedTypes) {
+      const eliteCount = stats.eliteKillsByType?.[type] || 0;
+      const normalCount = count - eliteCount;
+      if (normalCount <= 0) continue;
+
       const nameText = this.add.text(PANEL_PADDING + 4, y, formatEnemyName(type), {
         fontSize: '13px',
         fontFamily: 'Arial',
@@ -562,18 +569,62 @@ export class GameOverScene extends Phaser.Scene {
       });
       this.killsPanel.add(nameText);
 
-      // Show elite kills inline: "5 + 2★" or just "5"
-      const eliteCount = stats.eliteKillsByType?.[type] || 0;
-      const countStr = eliteCount > 0 ? `${count - eliteCount} + ${eliteCount}\u2605` : `${count}`;
-      const countColor = eliteCount > 0 ? '#ffd700' : '#ff8844';
-      const countText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, countStr, {
+      const countText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, `${normalCount}`, {
         fontSize: '13px',
         fontFamily: 'Arial',
-        color: countColor,
+        color: '#ff8844',
       }).setOrigin(1, 0);
       this.killsPanel.add(countText);
 
       y += LINE_HEIGHT;
+    }
+
+    // Elite kills section
+    if (totalEliteKills > 0) {
+      y += 6;
+
+      // Divider line
+      bg.lineStyle(1, 0xcc8833, 0.4);
+      bg.beginPath();
+      bg.moveTo(PANEL_PADDING, y);
+      bg.lineTo(PANEL_WIDTH - PANEL_PADDING, y);
+      bg.strokePath();
+      y += 8;
+
+      // Elite header
+      const eliteTitle = this.add.text(PANEL_PADDING, y, `ELITES \u2605`, {
+        fontSize: '16px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#ffd700',
+      });
+      this.killsPanel.add(eliteTitle);
+
+      const eliteTotalText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y + 2, `${totalEliteKills}`, {
+        fontSize: '14px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#ffffff',
+      }).setOrigin(1, 0);
+      this.killsPanel.add(eliteTotalText);
+
+      y += 26;
+
+      for (const [type, count] of eliteTypes) {
+        const nameText = this.add.text(PANEL_PADDING + 4, y, formatEnemyName(type), {
+          fontSize: '13px',
+          fontFamily: 'Arial',
+          color: '#aaaaaa',
+        });
+        this.killsPanel.add(nameText);
+
+        const countText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, `${count}`, {
+          fontSize: '13px',
+          fontFamily: 'Arial',
+          color: '#ffd700',
+        }).setOrigin(1, 0);
+        this.killsPanel.add(countText);
+
+        y += LINE_HEIGHT;
+      }
     }
   }
 
