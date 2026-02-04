@@ -25,7 +25,35 @@ export type ModifierType =
   | 'prosperity'
   | 'dangerLevel'
   | 'eliteDamageBonus'
-  | 'upgradeChoices';
+  | 'upgradeChoices'
+  // Elemental - Lightning
+  | 'shockChance'
+  | 'shockDuration'
+  | 'chainLightning'
+  // Elemental - Ice
+  | 'freezeChance'
+  | 'freezeDuration'
+  | 'frostSlow'
+  | 'shatterDamage'
+  // Elemental - Fire
+  | 'burnChance'
+  | 'burnDPS'
+  | 'burnDuration'
+  | 'fireAura'
+  | 'fireExplosion'
+  // Elemental - Poison
+  | 'poisonChance'
+  | 'poisonAmp'
+  | 'poisonDuration'
+  | 'poisonSpread'
+  | 'poisonCloud'
+  // Defense
+  | 'armor'
+  | 'evasion'
+  | 'thorns'
+  // Mythic
+  | 'rerollChance'
+  | 'apotheosis';
 
 export class UpgradeManager {
   private upgrades: Upgrade[] = [];
@@ -61,6 +89,34 @@ export class UpgradeManager {
     this.modifiers.set('dangerLevel', 0);
     this.modifiers.set('eliteDamageBonus', 0);
     this.modifiers.set('upgradeChoices', 0);
+    // Elemental - Lightning
+    this.modifiers.set('shockChance', 0);
+    this.modifiers.set('shockDuration', 0);
+    this.modifiers.set('chainLightning', 0);
+    // Elemental - Ice
+    this.modifiers.set('freezeChance', 0);
+    this.modifiers.set('freezeDuration', 0);
+    this.modifiers.set('frostSlow', 0);
+    this.modifiers.set('shatterDamage', 0);
+    // Elemental - Fire
+    this.modifiers.set('burnChance', 0);
+    this.modifiers.set('burnDPS', 0);
+    this.modifiers.set('burnDuration', 0);
+    this.modifiers.set('fireAura', 0);
+    this.modifiers.set('fireExplosion', 0);
+    // Elemental - Poison
+    this.modifiers.set('poisonChance', 0);
+    this.modifiers.set('poisonAmp', 0);
+    this.modifiers.set('poisonDuration', 0);
+    this.modifiers.set('poisonSpread', 0);
+    this.modifiers.set('poisonCloud', 0);
+    // Defense
+    this.modifiers.set('armor', 0);
+    this.modifiers.set('evasion', 0);
+    this.modifiers.set('thorns', 0);
+    // Mythic
+    this.modifiers.set('rerollChance', 0);
+    this.modifiers.set('apotheosis', 0);
   }
 
   addUpgrade(upgrade: Upgrade): void {
@@ -147,6 +203,78 @@ export class UpgradeManager {
       }
       if (effects.upgradeChoices !== undefined) {
         this.addModifier('upgradeChoices', effects.upgradeChoices);
+      }
+      // Elemental - Lightning
+      if (effects.shockChance !== undefined) {
+        this.addModifier('shockChance', effects.shockChance);
+      }
+      if (effects.shockDuration !== undefined) {
+        this.addModifier('shockDuration', effects.shockDuration);
+      }
+      if (effects.chainLightning !== undefined) {
+        this.addModifier('chainLightning', effects.chainLightning);
+      }
+      // Elemental - Ice
+      if (effects.freezeChance !== undefined) {
+        this.addModifier('freezeChance', effects.freezeChance);
+      }
+      if (effects.freezeDuration !== undefined) {
+        this.addModifier('freezeDuration', effects.freezeDuration);
+      }
+      if (effects.frostSlow !== undefined) {
+        this.addModifier('frostSlow', effects.frostSlow);
+      }
+      if (effects.shatterDamage !== undefined) {
+        this.addModifier('shatterDamage', effects.shatterDamage);
+      }
+      // Elemental - Fire
+      if (effects.burnChance !== undefined) {
+        this.addModifier('burnChance', effects.burnChance);
+      }
+      if (effects.burnDPS !== undefined) {
+        this.addModifier('burnDPS', effects.burnDPS);
+      }
+      if (effects.burnDuration !== undefined) {
+        this.addModifier('burnDuration', effects.burnDuration);
+      }
+      if (effects.fireAura !== undefined) {
+        this.addModifier('fireAura', effects.fireAura);
+      }
+      if (effects.fireExplosion !== undefined) {
+        this.addModifier('fireExplosion', effects.fireExplosion);
+      }
+      // Elemental - Poison
+      if (effects.poisonChance !== undefined) {
+        this.addModifier('poisonChance', effects.poisonChance);
+      }
+      if (effects.poisonAmp !== undefined) {
+        this.addModifier('poisonAmp', effects.poisonAmp);
+      }
+      if (effects.poisonDuration !== undefined) {
+        this.addModifier('poisonDuration', effects.poisonDuration);
+      }
+      if (effects.poisonSpread !== undefined) {
+        this.addModifier('poisonSpread', effects.poisonSpread);
+      }
+      if (effects.poisonCloud !== undefined) {
+        this.addModifier('poisonCloud', effects.poisonCloud);
+      }
+      // Defense
+      if (effects.armor !== undefined) {
+        this.addModifier('armor', effects.armor);
+      }
+      if (effects.evasion !== undefined) {
+        this.addModifier('evasion', effects.evasion);
+      }
+      if (effects.thorns !== undefined) {
+        this.addModifier('thorns', effects.thorns);
+      }
+      // Mythic
+      if (effects.rerollChance !== undefined) {
+        this.addModifier('rerollChance', effects.rerollChance);
+      }
+      if (effects.apotheosis !== undefined) {
+        this.addModifier('apotheosis', effects.apotheosis);
       }
     }
   }
@@ -243,6 +371,41 @@ export class UpgradeManager {
     }
     if (this.modifiers.get('upgradeChoices')! !== 0) {
       summary.push({ name: 'Extra Choices', value: formatFlat(this.modifiers.get('upgradeChoices')!) });
+    }
+    // Elemental
+    if (this.modifiers.get('shockChance')! !== 0) {
+      summary.push({ name: 'Shock Chance', value: formatPercent(this.modifiers.get('shockChance')!) });
+    }
+    if (this.modifiers.get('freezeChance')! !== 0) {
+      summary.push({ name: 'Freeze Chance', value: formatPercent(this.modifiers.get('freezeChance')!) });
+    }
+    if (this.modifiers.get('burnChance')! !== 0) {
+      summary.push({ name: 'Burn Chance', value: formatPercent(this.modifiers.get('burnChance')!) });
+    }
+    if (this.modifiers.get('poisonChance')! !== 0) {
+      summary.push({ name: 'Poison Chance', value: formatPercent(this.modifiers.get('poisonChance')!) });
+    }
+    if (this.modifiers.get('chainLightning')! !== 0) {
+      summary.push({ name: 'Chain Lightning', value: formatFlat(this.modifiers.get('chainLightning')!) });
+    }
+    // Defense
+    if (this.modifiers.get('armor')! !== 0) {
+      const armor = Math.min(this.modifiers.get('armor')!, 0.5);
+      summary.push({ name: 'Armor', value: formatPercent(armor) });
+    }
+    if (this.modifiers.get('evasion')! !== 0) {
+      const evasion = Math.min(this.modifiers.get('evasion')!, 0.4);
+      summary.push({ name: 'Evasion', value: formatPercent(evasion) });
+    }
+    if (this.modifiers.get('thorns')! !== 0) {
+      summary.push({ name: 'Thorns', value: formatFlat(this.modifiers.get('thorns')!) });
+    }
+    // Mythic
+    if (this.modifiers.get('rerollChance')! !== 0) {
+      summary.push({ name: 'Proc Reroll', value: formatPercent(this.modifiers.get('rerollChance')!) });
+    }
+    if (this.modifiers.get('apotheosis')! !== 0) {
+      summary.push({ name: 'Apotheosis', value: 'Every 5th volley' });
     }
 
     return summary;

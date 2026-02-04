@@ -65,7 +65,7 @@ Single source of truth for all completed and planned work.
 
 ---
 
-## In Progress (v0.4.0)
+## Completed (v0.4.0)
 
 - [x] Fingerprint collision fix (PR #26, merged)
 - [x] PlayerDataManager wiring
@@ -79,7 +79,40 @@ Single source of truth for all completed and planned work.
 - [x] Elite kill sound effect
 - [x] Game over kill screen: elite kills in breakdown panel
 - [x] Version bump to 0.4.0 + changelog entry
-- [ ] Achievements & challenges (see below)
+
+---
+
+## In Progress (v0.4.2 - Elemental & Defense)
+
+### Elemental Status Effects
+- [x] Enemy status effect system (shock, freeze, burn stacking, poison stacking) — `src/entities/Enemy.ts`
+- [x] Lightning (shock): stun, chain lightning arcs to nearby enemies
+- [x] Ice (freeze): immobilize, frost slow aura, shatter AOE on death
+- [x] Fire (burn): stacking DoT, fire aura, fire explosion on death
+- [x] Poison (venom): stacking damage amplification, poison spread/cloud on death
+- [x] Quill on-hit elemental proc rolls with Fate's Favor reroll — `src/scenes/GameScene.ts`
+- [x] On-death effects: fire explosion, poison cloud/spread, ice shatter, chain lightning — `src/scenes/GameScene.ts`
+- [x] 16 elemental upgrades (4 per element, uncommon through legendary) — `src/data/upgrades.ts`
+- [x] Status effect visual overlays on enemies (color tints, particles) — `src/entities/Enemy.ts`
+- [x] All elemental effects respect effects opacity slider
+
+### Defense System
+- [x] Armor stat: percentage damage reduction, capped at 50% — `src/entities/Player.ts`
+- [x] Evasion stat: dodge chance, capped at 40%, "DODGE" floating text — `src/entities/Player.ts`
+- [x] Thorns: damage reflection to attacking enemies — `src/scenes/GameScene.ts`
+- [x] 8 defense upgrades (4 armor + 4 evasion) — `src/data/upgrades.ts`
+
+### New Mythic Upgrades
+- [x] Fate's Favor: 30% chance to reroll failed procs — `src/scenes/GameScene.ts`
+- [x] Quill Apotheosis: every 5th volley auto-crits with all unlocked elements — `src/systems/QuillManager.ts`, `src/entities/Quill.ts`
+
+### Config & Infrastructure
+- [x] `STATUS_EFFECT_CONFIG` — status effect durations, colors, ranges, max stacks
+- [x] `ARMOR_CONFIG` — armor damage reduction cap (50%)
+- [x] `EVASION_CONFIG` — evasion dodge chance cap (40%)
+- [x] Version bump to 0.4.2 + changelog entry
+- [x] 26 new upgrades total (82 total upgrades)
+- [ ] Achievements & challenges (deferred)
 
 ---
 
@@ -154,7 +187,7 @@ Track milestones during natural play, award exclusive cosmetics on completion.
 ## Backlog (Long Term)
 
 **New Content**
-- [ ] More upgrade varieties
+- [x] More upgrade varieties (v0.4.2 — elemental, defense, mythics)
 - [ ] Additional arena layouts
 - [ ] Multiple boss types with different attacks
 - [ ] Boss-specific arenas

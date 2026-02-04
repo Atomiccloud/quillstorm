@@ -30,6 +30,34 @@ export interface UpgradeEffects {
   dangerLevel?: number;      // Opt-in difficulty stacks (+enemy stats, +rewards)
   eliteDamageBonus?: number; // Bonus damage vs elite enemies (multiplier)
   upgradeChoices?: number;   // Extra upgrade cards shown per selection
+  // Elemental - Lightning
+  shockChance?: number;      // Flat probability (0.08 = 8%)
+  shockDuration?: number;    // Milliseconds
+  chainLightning?: number;   // Flat count (enemies to chain to)
+  // Elemental - Ice
+  freezeChance?: number;     // Flat probability (0.10 = 10%)
+  freezeDuration?: number;   // Milliseconds
+  frostSlow?: number;        // Percentage slow (0.5 = 50%)
+  shatterDamage?: number;    // Multiplier (% of kill damage as AOE)
+  // Elemental - Fire
+  burnChance?: number;       // Flat probability (0.12 = 12%)
+  burnDPS?: number;          // Flat damage per second (stacks per application)
+  burnDuration?: number;     // Milliseconds
+  fireAura?: number;         // Radius in pixels (burning enemies damage nearby)
+  fireExplosion?: number;    // Radius in pixels (death explosion)
+  // Elemental - Poison
+  poisonChance?: number;     // Flat probability (0.12 = 12%)
+  poisonAmp?: number;        // Damage amplification per stack (0.15 = +15%)
+  poisonDuration?: number;   // Milliseconds
+  poisonSpread?: number;     // Boolean flag (1 = spreads on death)
+  poisonCloud?: number;      // Radius in pixels (death cloud)
+  // Defense
+  armor?: number;            // Flat percentage damage reduction (capped at 0.5)
+  evasion?: number;          // Flat dodge probability (capped at 0.4)
+  thorns?: number;           // Flat damage reflected to attacker
+  // Mythic
+  rerollChance?: number;     // Probability to reroll failed procs (0.3 = 30%)
+  apotheosis?: number;       // Flag (1 = every 5th volley auto-crits with all elements)
 }
 
 export interface Upgrade {
@@ -493,6 +521,210 @@ export const UPGRADES: Upgrade[] = [
     effects: { eliteDamageBonus: 0.50, damage: 0.05 },
   },
 
+  // === ELEMENTAL UPGRADES - LIGHTNING ===
+  {
+    id: 'static_quills',
+    name: 'Static Quills',
+    description: 'Quills crackle with static. Small chance to stun enemies.',
+    rarity: 'uncommon',
+    effects: { shockChance: 0.08, shockDuration: 500 },
+    maxStacks: 1,
+  },
+  {
+    id: 'lightning_quills',
+    name: 'Lightning Quills',
+    description: 'Electrified quills stop enemies dead in their tracks.',
+    rarity: 'rare',
+    effects: { shockChance: 0.12, shockDuration: 300 },
+    maxStacks: 1,
+  },
+  {
+    id: 'thunder_strike',
+    name: 'Thunder Strike',
+    description: 'Lightning arcs to 2 nearby enemies on shock.',
+    rarity: 'epic',
+    effects: { shockChance: 0.10, shockDuration: 200, chainLightning: 2 },
+    maxStacks: 1,
+  },
+  {
+    id: 'storm_caller',
+    name: 'Storm Caller',
+    description: 'Unleash a storm of chain lightning across the battlefield.',
+    rarity: 'legendary',
+    effects: { shockChance: 0.10, shockDuration: 200, chainLightning: 3 },
+    maxStacks: 1,
+  },
+
+  // === ELEMENTAL UPGRADES - ICE ===
+  {
+    id: 'frost_tips',
+    name: 'Frost Tips',
+    description: 'Chilled quills that can briefly freeze enemies solid.',
+    rarity: 'uncommon',
+    effects: { freezeChance: 0.10, freezeDuration: 600 },
+    maxStacks: 1,
+  },
+  {
+    id: 'icicle_quills',
+    name: 'Icicle Quills',
+    description: 'Deep cold locks enemies in place.',
+    rarity: 'rare',
+    effects: { freezeChance: 0.12, freezeDuration: 400 },
+    maxStacks: 1,
+  },
+  {
+    id: 'blizzard_quills',
+    name: 'Blizzard Quills',
+    description: 'Frozen enemies chill nearby foes, slowing them 50%.',
+    rarity: 'epic',
+    effects: { freezeChance: 0.08, freezeDuration: 500, frostSlow: 0.5 },
+    maxStacks: 1,
+  },
+  {
+    id: 'absolute_zero',
+    name: 'Absolute Zero',
+    description: 'Frozen enemies that die shatter, dealing 50% damage to nearby foes.',
+    rarity: 'legendary',
+    effects: { freezeChance: 0.10, freezeDuration: 500, shatterDamage: 0.5 },
+    maxStacks: 1,
+  },
+
+  // === ELEMENTAL UPGRADES - FIRE ===
+  {
+    id: 'ember_quills',
+    name: 'Ember Quills',
+    description: 'Smoldering quills set enemies ablaze. Burns stack.',
+    rarity: 'uncommon',
+    effects: { burnChance: 0.12, burnDPS: 8 },
+    maxStacks: 1,
+  },
+  {
+    id: 'flame_quills',
+    name: 'Flame Quills',
+    description: 'Hotter flames stack higher and burn longer.',
+    rarity: 'rare',
+    effects: { burnChance: 0.10, burnDPS: 8 },
+    maxStacks: 1,
+  },
+  {
+    id: 'inferno_quills',
+    name: 'Inferno Quills',
+    description: 'Burning enemies scorch nearby foes. More stacks, wider aura.',
+    rarity: 'epic',
+    effects: { burnChance: 0.08, burnDPS: 8, fireAura: 30 },
+    maxStacks: 1,
+  },
+  {
+    id: 'hellfire',
+    name: 'Hellfire',
+    description: 'Burning enemies explode on death. More stacks, bigger boom.',
+    rarity: 'legendary',
+    effects: { burnChance: 0.10, burnDPS: 8, fireExplosion: 80 },
+    maxStacks: 1,
+  },
+
+  // === ELEMENTAL UPGRADES - POISON ===
+  {
+    id: 'toxic_quills',
+    name: 'Toxic Quills',
+    description: 'Venomous quills weaken enemies. Stacks for more vulnerability.',
+    rarity: 'uncommon',
+    effects: { poisonChance: 0.12, poisonAmp: 0.15 },
+    maxStacks: 1,
+  },
+  {
+    id: 'noxious_spines',
+    name: 'Noxious Spines',
+    description: 'Deeper venom stacks make enemies crumble faster.',
+    rarity: 'rare',
+    effects: { poisonChance: 0.10, poisonAmp: 0.10 },
+    maxStacks: 1,
+  },
+  {
+    id: 'plague_bearer',
+    name: 'Plague Bearer',
+    description: 'Poison spreads to nearby enemies when a poisoned foe dies.',
+    rarity: 'epic',
+    effects: { poisonChance: 0.08, poisonAmp: 0.10, poisonSpread: 1 },
+    maxStacks: 1,
+  },
+  {
+    id: 'pandemic',
+    name: 'Pandemic',
+    description: 'Death releases a poison cloud that infects all nearby enemies.',
+    rarity: 'legendary',
+    effects: { poisonChance: 0.10, poisonAmp: 0.15, poisonCloud: 50 },
+    maxStacks: 1,
+  },
+
+  // === DEFENSE UPGRADES - ARMOR ===
+  {
+    id: 'tough_skin',
+    name: 'Tough Skin',
+    description: 'Thicker hide reduces all incoming damage.',
+    rarity: 'common',
+    effects: { armor: 0.05 },
+    maxStacks: 3,
+  },
+  {
+    id: 'iron_quills',
+    name: 'Iron Quills',
+    description: 'Hardened quills provide passive damage resistance.',
+    rarity: 'uncommon',
+    effects: { armor: 0.08 },
+    maxStacks: 2,
+  },
+  {
+    id: 'porcupine_plate',
+    name: 'Porcupine Plate',
+    description: 'Natural armor plating absorbs a portion of all damage.',
+    rarity: 'rare',
+    effects: { armor: 0.12, maxHealth: 10 },
+    maxStacks: 1,
+  },
+  {
+    id: 'diamond_hide',
+    name: 'Diamond Hide',
+    description: 'Impenetrable hide that reflects damage to attackers.',
+    rarity: 'epic',
+    effects: { armor: 0.15, thorns: 10 },
+    maxStacks: 1,
+  },
+
+  // === DEFENSE UPGRADES - EVASION ===
+  {
+    id: 'quick_reflexes',
+    name: 'Quick Reflexes',
+    description: 'Nimble footwork gives a small chance to dodge attacks.',
+    rarity: 'common',
+    effects: { evasion: 0.04 },
+    maxStacks: 3,
+  },
+  {
+    id: 'acrobat',
+    name: 'Acrobat',
+    description: 'Agile movements make you harder to hit.',
+    rarity: 'uncommon',
+    effects: { evasion: 0.08, moveSpeed: 0.05 },
+    maxStacks: 1,
+  },
+  {
+    id: 'shadow_step',
+    name: 'Shadow Step',
+    description: 'Phase through attacks with uncanny reflexes.',
+    rarity: 'rare',
+    effects: { evasion: 0.12 },
+    maxStacks: 1,
+  },
+  {
+    id: 'phantom_porcupine',
+    name: 'Phantom Porcupine',
+    description: 'A blur of quills and fury. Nearly untouchable.',
+    rarity: 'epic',
+    effects: { evasion: 0.15, moveSpeed: 0.15 },
+    maxStacks: 1,
+  },
+
   // === MYTHIC UPGRADES ===
   {
     id: 'expanded_options',
@@ -500,6 +732,22 @@ export const UPGRADES: Upgrade[] = [
     description: 'See an additional upgrade card when choosing upgrades.',
     rarity: 'mythic',
     effects: { upgradeChoices: 1 },
+    maxStacks: 1,
+  },
+  {
+    id: 'fates_favor',
+    name: "Fate's Favor",
+    description: 'When a proc effect fails, roll again. Fortune favors the bold.',
+    rarity: 'mythic',
+    effects: { rerollChance: 0.30 },
+    maxStacks: 1,
+  },
+  {
+    id: 'quill_apotheosis',
+    name: 'Quill Apotheosis',
+    description: 'Every 5th volley transcends. All quills auto-crit with every unlocked element.',
+    rarity: 'mythic',
+    effects: { apotheosis: 1 },
     maxStacks: 1,
   },
 ];

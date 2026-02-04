@@ -47,11 +47,14 @@ export const QUILL_CONFIG = {
   height: 6,
 
   // States (percentage thresholds)
+  // Note: speedMult and _ufm are the only active modifiers
+  // - speedMult: movement speed bonus when low on quills
+  // - _ufm: damage taken multiplier (2x when naked)
   states: {
-    full: { min: 0.70, speedMult: 1, damageMult: 1, _ufm: 1 },
-    patchy: { min: 0.40, speedMult: 1, damageMult: 1, _ufm: 1 },
-    sparse: { min: 0.03, speedMult: 1.1, damageMult: 0.85, _ufm: 1 },
-    naked: { min: 0, speedMult: 1.25, damageMult: 0, _ufm: 2 },
+    full: { min: 0.70, speedMult: 1, _ufm: 1 },
+    patchy: { min: 0.40, speedMult: 1, _ufm: 1 },
+    sparse: { min: 0.03, speedMult: 1.1, _ufm: 1 },
+    naked: { min: 0, speedMult: 1.25, _ufm: 2 },
   },
 };
 
@@ -237,6 +240,51 @@ export const DANGER_CONFIG = {
   eliteChanceBonusPerStack: 0.03,    // +3% elite spawn chance per stack
   scoreMultiplierPerStack: 0.15,     // +15% score multiplier per stack
   xpMultiplierPerStack: 0.10,        // +10% XP multiplier per stack
+};
+
+// Status effect configuration
+export const STATUS_EFFECT_CONFIG = {
+  // Lightning (shock) - single instance, refreshes
+  shock: {
+    defaultDuration: 500,       // Base stun duration in ms
+    color: 0xffff00,            // Yellow flash
+    chainRange: 150,            // Range for chain lightning arcs
+  },
+  // Ice (freeze) - single instance, refreshes
+  freeze: {
+    defaultDuration: 600,       // Base freeze duration in ms
+    color: 0x88ccff,            // Light blue tint
+    slowAmount: 0.5,            // 50% slow for frost aura
+    slowAuraRange: 60,          // Range for frost slow aura
+    shatterRange: 100,          // Range for shatter AOE on death
+  },
+  // Fire (burn) - STACKS, each proc adds new stack
+  burn: {
+    defaultDPS: 5,              // Base damage per second per stack
+    defaultDuration: 2000,      // Base burn duration in ms
+    color: 0xff6600,            // Orange tint
+    maxStacks: 10,              // Safety cap on burn stacks per enemy
+  },
+  // Poison (venom) - STACKS, each proc adds new stack
+  poison: {
+    defaultAmp: 0.15,           // Base damage amplification per stack (15%)
+    defaultDuration: 3000,      // Base poison duration in ms
+    color: 0x88ff88,            // Green tint
+    maxStacks: 10,              // Safety cap on poison stacks per enemy
+    spreadRange: 100,           // Range for poison spread on death
+    cloudDuration: 3000,        // How long poison cloud lingers (ms)
+    cloudTickRate: 500,         // How often cloud applies poison (ms)
+  },
+};
+
+// Armor configuration
+export const ARMOR_CONFIG = {
+  maxArmor: 0.5,                // Cap at 50% damage reduction
+};
+
+// Evasion configuration
+export const EVASION_CONFIG = {
+  maxEvasion: 0.4,              // Cap at 40% dodge chance
 };
 
 export const UPGRADE_CONFIG = {

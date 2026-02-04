@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG } from '../config';
+import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG } from '../config';
+import { SaveManager } from '../systems/SaveManager';
 
 export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss';
 
@@ -51,6 +52,15 @@ export class Enemy extends Phaser.GameObjects.Container {
   // Healer state
   private lastHealTime: number = 0;
   public healTarget: Enemy | null = null;
+
+  // Status effects
+  private shockTimer: number = 0;
+  private freezeTimer: number = 0;
+  private burnStacks: { timer: number; dps: number; duration: number }[] = [];
+  private poisonStacks: { timer: number; amp: number; duration: number }[] = [];
+  private _isStunned: boolean = false;   // shocked or frozen
+  private _isFrozen: boolean = false;
+  private _statusTintTimer: number = 0;  // for visual flash timing
 
   constructor(
     scene: Phaser.Scene,
@@ -155,6 +165,18 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   update(time: number, _delta: number): void {
     if (!this.target || this.health <= 0) return;
+
+    const delta = _delta;
+
+    // Update status effects
+    this.updateStatusEffects(delta);
+
+    // If stunned or frozen, skip all AI (movement, attacks, abilities)
+    if (this._isStunned || this._isFrozen) {
+      this.body.setVelocity(0, 0);
+      this.draw();
+      return;
+    }
 
     // Face the target
     this.facingRight = this.target.x > this.x;
@@ -722,6 +744,9 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (this.isElite) {
       this.drawEliteOverlay(w, h);
     }
+
+    // Status effect visual overlays
+    this.drawStatusOverlays(w, h);
   }
 
   private drawScurrier(w: number, h: number, dir: number, color: number): void {
@@ -1145,6 +1170,190 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.graphics.fillPath();
   }
 
+  // --- Status Effect System ---
+
+  private updateStatusEffects(delta: number): void {
+    this._isStunned = false;
+    this._isFrozen = false;
+    this._statusTintTimer += delta;
+
+    // Shock (stun)
+    if (this.shockTimer > 0) {
+      this.shockTimer -= delta;
+      this._isStunned = true;
+      if (this.shockTimer <= 0) {
+        this.shockTimer = 0;
+      }
+    }
+
+    // Freeze
+    if (this.freezeTimer > 0) {
+      this.freezeTimer -= delta;
+      this._isFrozen = true;
+      if (this.freezeTimer <= 0) {
+        this.freezeTimer = 0;
+      }
+    }
+
+    // Burn stacks - tick DPS independently, remove expired
+    for (let i = this.burnStacks.length - 1; i >= 0; i--) {
+      const stack = this.burnStacks[i];
+      stack.timer -= delta;
+      // Apply DPS (damage per millisecond * delta)
+      const burnDamage = (stack.dps / 1000) * delta;
+      if (burnDamage > 0) {
+        this.health -= burnDamage;
+        this.health = Math.max(0, this.health);
+      }
+      if (stack.timer <= 0) {
+        this.burnStacks.splice(i, 1);
+      }
+    }
+
+    // Poison stacks - just tick timers, amp is applied in _uf()
+    for (let i = this.poisonStacks.length - 1; i >= 0; i--) {
+      const stack = this.poisonStacks[i];
+      stack.timer -= delta;
+      if (stack.timer <= 0) {
+        this.poisonStacks.splice(i, 1);
+      }
+    }
+  }
+
+  applyShock(duration: number): void {
+    // Single instance - refresh if new duration is longer than remaining
+    if (duration > this.shockTimer) {
+      this.shockTimer = duration;
+    }
+  }
+
+  applyFreeze(duration: number): void {
+    // Single instance - refresh if new duration is longer than remaining
+    if (duration > this.freezeTimer) {
+      this.freezeTimer = duration;
+    }
+  }
+
+  applyBurn(dps: number, duration: number): void {
+    // Stacking - add new stack (capped for safety)
+    if (this.burnStacks.length < STATUS_EFFECT_CONFIG.burn.maxStacks) {
+      this.burnStacks.push({ timer: duration, dps, duration });
+    }
+  }
+
+  applyPoison(amp: number, duration: number): void {
+    // Stacking - add new stack (capped for safety)
+    if (this.poisonStacks.length < STATUS_EFFECT_CONFIG.poison.maxStacks) {
+      this.poisonStacks.push({ timer: duration, amp, duration });
+    }
+  }
+
+  /** Total poison damage amplification from all active stacks */
+  getPoisonAmp(): number {
+    let total = 0;
+    for (const stack of this.poisonStacks) {
+      total += stack.amp;
+    }
+    return total;
+  }
+
+  /** Whether this enemy has any active burn stacks */
+  isBurning(): boolean {
+    return this.burnStacks.length > 0;
+  }
+
+  /** Whether this enemy has any active poison stacks */
+  isPoisoned(): boolean {
+    return this.poisonStacks.length > 0;
+  }
+
+  /** Whether this enemy is currently shocked (stunned) */
+  isShocked(): boolean {
+    return this.shockTimer > 0;
+  }
+
+  /** Whether this enemy is currently frozen */
+  isFreezeActive(): boolean {
+    return this.freezeTimer > 0;
+  }
+
+  /** Number of active burn stacks */
+  getBurnStackCount(): number {
+    return this.burnStacks.length;
+  }
+
+  /** Number of active poison stacks */
+  getPoisonStackCount(): number {
+    return this.poisonStacks.length;
+  }
+
+  private drawStatusOverlays(w: number, h: number): void {
+    const opacity = SaveManager.getEffectsOpacity();
+    if (opacity <= 0) return;
+
+    // Shock overlay - yellow flash
+    if (this.shockTimer > 0) {
+      const flash = (0.3 + 0.3 * Math.sin(this._statusTintTimer * 0.02)) * opacity;
+      this.graphics.fillStyle(STATUS_EFFECT_CONFIG.shock.color, flash);
+      this.graphics.fillEllipse(0, 0, w, h);
+      // Small jagged spark particles
+      const sparkAlpha = (0.5 + 0.3 * Math.sin(this._statusTintTimer * 0.03)) * opacity;
+      this.graphics.lineStyle(2, STATUS_EFFECT_CONFIG.shock.color, sparkAlpha);
+      for (let i = 0; i < 3; i++) {
+        const angle = (this._statusTintTimer * 0.01 + i * 2.1) % (Math.PI * 2);
+        const r1 = w * 0.4;
+        const r2 = w * 0.65;
+        const x1 = Math.cos(angle) * r1;
+        const y1 = Math.sin(angle) * r1 * (h / w);
+        const x2 = Math.cos(angle + 0.3) * r2;
+        const y2 = Math.sin(angle + 0.3) * r2 * (h / w);
+        this.graphics.beginPath();
+        this.graphics.moveTo(x1, y1);
+        this.graphics.lineTo(x2, y2);
+        this.graphics.strokePath();
+      }
+    }
+
+    // Freeze overlay - blue tint
+    if (this.freezeTimer > 0) {
+      this.graphics.fillStyle(STATUS_EFFECT_CONFIG.freeze.color, 0.35 * opacity);
+      this.graphics.fillEllipse(0, 0, w, h);
+      // Ice crystal outline
+      this.graphics.lineStyle(2, 0xaaddff, 0.5 * opacity);
+      this.graphics.strokeEllipse(0, 0, w * 1.1, h * 1.1);
+    }
+
+    // Burn overlay - orange glow, intensity scales with stacks
+    if (this.burnStacks.length > 0) {
+      const intensity = Math.min(0.5, 0.15 + this.burnStacks.length * 0.07);
+      const flicker = (intensity + 0.1 * Math.sin(this._statusTintTimer * 0.015)) * opacity;
+      this.graphics.fillStyle(STATUS_EFFECT_CONFIG.burn.color, flicker);
+      this.graphics.fillEllipse(0, 0, w, h);
+      // Flickering glow ring
+      if (this.burnStacks.length >= 2) {
+        this.graphics.lineStyle(1, 0xff4400, flicker * 0.8);
+        this.graphics.strokeEllipse(0, 0, w * 1.15, h * 1.15);
+      }
+    }
+
+    // Poison overlay - green tint, intensity scales with stacks
+    if (this.poisonStacks.length > 0) {
+      const intensity = Math.min(0.5, 0.15 + this.poisonStacks.length * 0.07) * opacity;
+      this.graphics.fillStyle(STATUS_EFFECT_CONFIG.poison.color, intensity);
+      this.graphics.fillEllipse(0, 0, w, h);
+      // Drip particles (simple dots moving downward)
+      if (this.poisonStacks.length >= 2) {
+        const dripAlpha = (0.3 + 0.2 * Math.sin(this._statusTintTimer * 0.008)) * opacity;
+        this.graphics.fillStyle(0x44ff44, dripAlpha);
+        for (let i = 0; i < Math.min(this.poisonStacks.length, 3); i++) {
+          const dripY = ((this._statusTintTimer * 0.05 + i * 100) % (h * 1.2)) - h * 0.4;
+          const dripX = (i - 1) * w * 0.2;
+          this.graphics.fillCircle(dripX, dripY, 2);
+        }
+      }
+    }
+  }
+
   _uf(amount: number, fromAngle?: number): boolean {
     // Burrowed enemies are immune to damage
     if (this.isBurrowed) {
@@ -1171,7 +1380,11 @@ export class Enemy extends Phaser.GameObjects.Container {
       }
     }
 
-    this.health -= amount;
+    // Apply poison damage amplification
+    const poisonAmp = this.getPoisonAmp();
+    const amplifiedAmount = poisonAmp > 0 ? amount * (1 + poisonAmp) : amount;
+
+    this.health -= amplifiedAmount;
     this.health = Math.max(0, this.health);
 
     // Flash white
@@ -1188,6 +1401,8 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   canShoot(): boolean {
     if (this.enemyType !== 'spitter' && this.enemyType !== 'boss' && this.enemyType !== 'flyingBoss') return false;
+    // Stunned/frozen enemies cannot shoot
+    if (this._isStunned || this._isFrozen) return false;
 
     const now = this.scene.time.now;
 

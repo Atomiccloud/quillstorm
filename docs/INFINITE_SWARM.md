@@ -366,6 +366,44 @@ bossHP = baseHP × (1 + tier^2 × 0.75)
 
 ---
 
+## Elemental Effects in Infinite Swarm
+
+Elemental status effects remain useful throughout infinite swarm but their relative value shifts:
+
+### Lightning (Shock/Stun)
+- **Stays strong**: Stun duration is fixed (not reduced by HP scaling), so crowd control remains effective
+- **Chain lightning** becomes more valuable as spawn density increases — more nearby targets to arc to
+- **Diminishing return**: At very high spawn rates, stunned enemies are quickly replaced by new spawns
+
+### Ice (Freeze)
+- **Stays strong**: Freeze duration is fixed, providing reliable CC even on tanky enemies
+- **Shatter AOE** scales with enemy max HP (deals % of max HP), so it actually gets *stronger* as enemies scale
+- **Frost slow** aura helps manage the increasing spawn volume
+
+### Fire (Burn)
+- **Scales partially**: Burn DPS scales with the player's damage modifier, so damage upgrades boost burn too
+- **Still falls off late**: Even with scaling, flat DPS struggles against quadratically scaling HP in deep runs
+- **Fire explosion** on death remains useful for softening nearby enemies and spreading burn
+- **Fire aura** from burning enemies provides area denial in crowded fights
+- **Best use**: Combo with poison — burn for AOE spread + scaled DPS, poison for multiplicative damage amplification
+
+### Poison (Venom)
+- **Stays strong**: Damage amplification is percentage-based, so it scales with ALL damage sources
+- **Example**: At 3:00 with 3 poison stacks (+150% amp), your 100 DPS quills effectively deal 250 DPS
+- **Poison spread** and **poison cloud** on death become very powerful as enemies cluster together
+- **Best late-game element** due to multiplicative scaling
+
+### Defense Stats
+- **Armor**: Percentage reduction stays relevant at all HP levels — 50% armor always halves incoming damage
+- **Evasion**: Dodge chance becomes more valuable as individual hits grow larger
+- **Thorns**: Flat damage reflection falls off against scaling HP but provides free chip damage
+
+### Proc Reroll (Fate's Favor)
+- 30% reroll chance applies to ALL procs, making it increasingly valuable as you stack more elemental upgrades
+- Effectively a ~30% increase in proc frequency across the board
+
+---
+
 ## Summary: The Endurance Curve
 
 The infinite swarm creates an escalating difficulty curve through three compounding systems:

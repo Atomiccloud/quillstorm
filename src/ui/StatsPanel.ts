@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, PROSPERITY_CONFIG, DANGER_CONFIG, ELITE_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, PROSPERITY_CONFIG, DANGER_CONFIG, ELITE_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, STATUS_EFFECT_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class StatsPanel {
@@ -211,6 +211,15 @@ export class StatsPanel {
     const shieldCharges = this.upgradeManager.getModifier('shieldCharges');
     if (shieldCharges !== 0) defense.push({ name: 'Shields', value: `${shieldCharges} charges` });
 
+    const armor = Math.min(this.upgradeManager.getModifier('armor'), ARMOR_CONFIG.maxArmor);
+    if (armor > 0) defense.push({ name: 'Armor', value: formatPercent(armor) });
+
+    const evasion = Math.min(this.upgradeManager.getModifier('evasion'), EVASION_CONFIG.maxEvasion);
+    if (evasion > 0) defense.push({ name: 'Evasion', value: formatPercent(evasion) });
+
+    const thorns = this.upgradeManager.getModifier('thorns');
+    if (thorns > 0) defense.push({ name: 'Thorns', value: formatFlat(thorns) });
+
     const vampirism = this.upgradeManager.getModifier('vampirism');
     if (vampirism !== 0) defense.push({ name: 'Heal Chance', value: formatPercent(vampirism) });
 
@@ -243,6 +252,55 @@ export class StatsPanel {
     const eliteDamageBonus = this.upgradeManager.getModifier('eliteDamageBonus');
     if (eliteDamageBonus !== 0) combat.push({ name: 'Elite Damage', value: formatPercent(eliteDamageBonus) });
 
+    // Elemental stats
+    const elemental: { name: string; value: string }[] = [];
+
+    const shockChance = this.upgradeManager.getModifier('shockChance');
+    if (shockChance > 0) {
+      elemental.push({ name: 'Shock', value: formatPercent(shockChance) });
+      const shockDuration = this.upgradeManager.getModifier('shockDuration');
+      if (shockDuration > 0) elemental.push({ name: '  Duration', value: `${shockDuration}ms` });
+      const chainLightning = this.upgradeManager.getModifier('chainLightning');
+      if (chainLightning > 0) elemental.push({ name: '  Chain', value: `${chainLightning} targets` });
+    }
+
+    const freezeChance = this.upgradeManager.getModifier('freezeChance');
+    if (freezeChance > 0) {
+      elemental.push({ name: 'Freeze', value: formatPercent(freezeChance) });
+      const freezeDuration = this.upgradeManager.getModifier('freezeDuration');
+      if (freezeDuration > 0) elemental.push({ name: '  Duration', value: `${freezeDuration}ms` });
+      const shatterDamage = this.upgradeManager.getModifier('shatterDamage');
+      if (shatterDamage > 0) elemental.push({ name: '  Shatter', value: formatPercent(shatterDamage) });
+    }
+
+    const burnChance = this.upgradeManager.getModifier('burnChance');
+    if (burnChance > 0) {
+      elemental.push({ name: 'Burn', value: formatPercent(burnChance) });
+      const burnDPS = this.upgradeManager.getModifier('burnDPS');
+      if (burnDPS > 0) {
+        const damageMult = 1 + this.upgradeManager.getModifier('damage');
+        const scaledDPS = Math.round(burnDPS * damageMult);
+        const duration = STATUS_EFFECT_CONFIG.burn.defaultDuration / 1000;
+        elemental.push({ name: '  DPS/stack', value: `${scaledDPS} (${duration}s)` });
+      }
+    }
+
+    const poisonChance = this.upgradeManager.getModifier('poisonChance');
+    if (poisonChance > 0) {
+      elemental.push({ name: 'Poison', value: formatPercent(poisonChance) });
+      const poisonAmp = this.upgradeManager.getModifier('poisonAmp');
+      if (poisonAmp > 0) {
+        const duration = STATUS_EFFECT_CONFIG.poison.defaultDuration / 1000;
+        elemental.push({ name: '  Amp/stack', value: `${formatPercent(poisonAmp)} (${duration}s)` });
+      }
+    }
+
+    const rerollChance = this.upgradeManager.getModifier('rerollChance');
+    if (rerollChance > 0) elemental.push({ name: 'Proc Reroll', value: formatPercent(rerollChance) });
+
+    const apotheosis = this.upgradeManager.getModifier('apotheosis');
+    if (apotheosis > 0) elemental.push({ name: 'Apotheosis', value: 'Every 5th' });
+
     // Danger level section
     const danger: { name: string; value: string }[] = [];
     const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
@@ -264,6 +322,7 @@ export class StatsPanel {
       { name: 'COMBAT', items: combat },
       { name: 'DEFENSE', items: defense },
       { name: 'MOVEMENT', items: movement },
+      ...(elemental.length > 0 ? [{ name: 'ELEMENTAL', items: elemental }] : []),
       { name: 'SPECIAL', items: special },
       ...(danger.length > 0 ? [{ name: 'DANGER', items: danger }] : []),
     ];

@@ -15,14 +15,23 @@
 
 ### Quill States
 
-Your quill percentage determines your state:
+Your quill percentage determines your mechanical state (4 states) and visual appearance (5 tiers).
 
-| State | Quills | Speed | Damage | Take Damage | Notes |
-|-------|--------|-------|--------|-------------|-------|
-| Full | 70-100% | 100% | 100% | 100% | Normal state |
-| Patchy | 40-70% | 100% | 100% | 100% | Visual change only |
-| Sparse | 3-40% | 110% | 85% | 100% | Faster but weaker |
-| Naked | 0-3% | 125% | 0% | 200% | Can't shoot, very fast |
+**Mechanical States:**
+
+| State | Quills | Speed | Damage Taken | Notes |
+|-------|--------|-------|--------------|-------|
+| Full | 70-100% | 100% | 100% | Normal state |
+| Patchy | 40-70% | 100% | 100% | Visual change only |
+| Sparse | 3-40% | 110% | 100% | Faster movement |
+| Naked | 0-3% | 125% | 200% | Can't shoot, very fast, 3x regen |
+
+**Visual Tiers** (rendered progressively):
+- 80-100%: Full quills
+- 60-80%: Slightly patchy
+- 40-60%: Moderate patches
+- 20-40%: Sparse coverage
+- 0-20%: Nearly naked
 
 ### Quill Regeneration
 - **Base Rate**: 1.0 quill/sec
@@ -197,6 +206,62 @@ Your quill percentage determines your state:
 
 ---
 
+## Elite Enemies
+
+Any non-boss enemy has a chance to spawn as an **Elite** variant — a significantly stronger version with boosted stats and rewards.
+
+### Elite Properties
+
+| Property | Multiplier | Notes |
+|----------|------------|-------|
+| Health | 2.0x | Twice as tanky |
+| Damage | 3.0x | Hit much harder |
+| Speed | 1.15x | 15% faster |
+| Size | 1.15x | 15% visually larger |
+| Score | 2.5x | Better points |
+| XP | 3.0x | Triple experience |
+
+### Elite Spawn Chance
+
+- **Base Chance**: 1% per non-boss spawn
+- **Danger Bonus**: +3% per danger level stack
+- **Visual**: Gold glow aura (0xffd700, 60% alpha)
+
+Elites are high-priority targets — dangerous but rewarding. In later waves or with danger stacks, elite frequency increases significantly.
+
+---
+
+## Danger Level
+
+An opt-in difficulty scaling system. Each **Danger Level** stack makes enemies tougher but increases rewards.
+
+### Effects Per Stack
+
+| Effect | Per Stack | Example at 5 Stacks |
+|--------|-----------|---------------------|
+| Enemy HP | +12% | +60% |
+| Enemy Damage | +8% | +40% |
+| Elite Chance | +3% | +15% (16% total) |
+| Score Bonus | +15% | +75% |
+| XP Bonus | +10% | +50% |
+
+### Danger Upgrades
+
+| Name | Rarity | Stacks | Effects |
+|------|--------|--------|---------|
+| Tempting Fate | Uncommon | +1 | Basic danger increase |
+| Risk Taker | Rare | +2 | Higher risk, higher reward |
+| Daredevil | Epic | +3 | Significant danger spike |
+| Death Wish | Legendary | +5 | Extreme difficulty, massive rewards |
+
+**Strategy Tips:**
+- High danger with good elemental builds can farm massive XP
+- Score multiplier stacks multiplicatively with other bonuses
+- Elite chance at danger 10+ means frequent elite spawns
+- Requires 5 danger to unlock boss spawns in infinite swarm mode
+
+---
+
 ## Wave Progression
 
 ### Enemy Count Formula
@@ -296,7 +361,18 @@ Upgrades are offered after each wave. Rarity determines power level.
 
 ---
 
-### Common Upgrades (7)
+### Mythic Upgrades (4)
+
+| Name | Effect | Max Stacks | Description |
+|------|--------|------------|-------------|
+| Expanded Options | +1 upgrade choice | 1 | Extra card when choosing upgrades |
+| Omega Quills | +200% damage, +100% fire rate, +5 projectiles, -40 HP | 1 | Ultimate glass cannon |
+| Fate's Favor | 30% proc reroll chance | 1 | When a proc fails, roll again |
+| Quill Apotheosis | Every 5th volley empowered | 1 | Auto-crit + all unlocked elements |
+
+---
+
+### Common Upgrades (9)
 
 | Name | Effect | Description |
 |------|--------|-------------|
@@ -309,10 +385,12 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Thick Hide | +20 max health | More survivability |
 | Thick Quills | +30% projectile size | Larger quills, easier to hit |
 | Life Leech | +5% vampirism | Heal when dealing damage |
+| Tough Skin | +5% armor (×3) | Reduces all incoming damage |
+| Quick Reflexes | +4% evasion (×3) | Small chance to dodge attacks |
 
 ---
 
-### Uncommon Upgrades (9)
+### Uncommon Upgrades (15)
 
 | Name | Effect | Description |
 |------|--------|-------------|
@@ -326,10 +404,16 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Explosive Tips | 40px explosion radius | AOE damage on hit |
 | Energy Shield | +1 shield charge | Block 1 hit per wave |
 | Seeker Quills | +30% homing | Quills track enemies |
+| Static Quills | 8% shock, 500ms stun | Chance to stun enemies |
+| Frost Tips | 10% freeze, 600ms | Chance to freeze enemies |
+| Ember Quills | 12% burn, 8 DPS (scales w/ dmg) | Stacking burn DoT |
+| Toxic Quills | 12% poison, 15% amp | Stacking damage amplification |
+| Iron Quills | +8% armor (×2) | Hardened quill damage resistance |
+| Acrobat | +8% evasion, +5% speed | Agile dodge build |
 
 ---
 
-### Rare Upgrades (9)
+### Rare Upgrades (13)
 
 | Name | Effect | Description |
 |------|--------|-------------|
@@ -343,10 +427,16 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Cluster Bombs | 60px explosion, +20% damage | Bigger explosions |
 | Reinforced Shield | +2 shields, +15 health | Better defense |
 | Baby Buddy | +1 companion | Baby porcupine helper |
+| Lightning Quills | +12% shock, +300ms stun | Better stun procs |
+| Icicle Quills | +12% freeze, +400ms | Longer freeze |
+| Flame Quills | +10% burn, +8 DPS (scales w/ dmg) | Hotter stacking burns |
+| Noxious Spines | +10% poison, +10% amp | Deeper venom stacks |
+| Porcupine Plate | +12% armor, +10 HP | Natural armor plating |
+| Shadow Step | +12% evasion | Phase through attacks |
 
 ---
 
-### Epic Upgrades (10)
+### Epic Upgrades (14)
 
 | Name | Effect | Description |
 |------|--------|-------------|
@@ -360,10 +450,16 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Porcupine Pack | +2 companions | Two helpers |
 | Fortress | +3 shields, +30 health | Strong defense |
 | Smart Missiles | +70% homing, +1 pierce | Tracking quills |
+| Thunder Strike | +10% shock, +200ms, chain to 2 | Lightning arcs to nearby enemies |
+| Blizzard Quills | +8% freeze, +500ms, 50% slow | Frozen enemies chill nearby foes |
+| Inferno Quills | +8% burn, +8 DPS, 30px aura | Burning enemies scorch nearby |
+| Plague Bearer | +8% poison, +10% amp, spread | Poison spreads on death |
+| Diamond Hide | +15% armor, 10 thorns | Reflects damage to attackers |
+| Phantom Porcupine | +15% evasion, +15% speed | Nearly untouchable |
 
 ---
 
-### Legendary Upgrades (9)
+### Legendary Upgrades (13)
 
 | Name | Effect | Max Stacks | Description |
 |------|--------|------------|-------------|
@@ -376,6 +472,75 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Porcupine Army | +4 companions | 1 | Army of helpers |
 | Vampire Lord | +15% vampirism, +30% damage | 1 | Lifesteal build |
 | Immortal Fortress | +5 shields, +50 health | 1 | Unkillable defense |
+| Storm Caller | +10% shock, +200ms, chain to +3 | 1 | Storm of chain lightning |
+| Absolute Zero | +10% freeze, +500ms, 50% shatter | 1 | Frozen enemies shatter on death |
+| Hellfire | +10% burn, +8 DPS, 80px explosion | 1 | Burning enemies explode on death |
+| Pandemic | +10% poison, +15% amp, 50px cloud | 1 | Death releases poison cloud |
+
+---
+
+## Elemental Effects
+
+### Overview
+Quills can proc elemental status effects on enemies. Each element has 4 upgrade tiers (uncommon → legendary). Fire and Poison **stack** on enemies (multiple independent stacks), while Lightning and Ice are **single instance** (new procs refresh duration).
+
+### Lightning (Shock) — Crowd Control
+- **Behavior**: Stuns enemy, stopping all movement and attacks (including spitter projectiles)
+- **Stacking**: Single instance — new shock refreshes duration if longer
+- **Visual**: Yellow flash + jagged spark particles
+- **Chain Lightning** (Thunder Strike+): Arcs to nearby enemies on shock proc, range 150px
+- **Full stack**: 40% shock chance, 1200ms stun, chains to 5 enemies
+
+### Ice (Freeze) — Immobilize
+- **Behavior**: Freezes enemy solid, stopping all movement and attacks
+- **Stacking**: Single instance — new freeze refreshes duration if longer
+- **Visual**: Blue tint + ice crystal outline
+- **Frost Slow** (Blizzard Quills): Frozen enemies chill nearby foes, slowing them 50%
+- **Shatter** (Absolute Zero): Frozen enemies that die deal 50% of max HP as AOE damage (100px range)
+- **Full stack**: 40% freeze chance, 2000ms freeze, slow aura, shatter AOE on kill
+
+### Fire (Burn) — Stacking DoT
+- **Behavior**: Each proc adds an independent burn stack. Each stack ticks DPS independently.
+- **DPS Scaling**: Burn DPS scales with the player's damage modifier (e.g., +100% damage = double burn DPS)
+- **Duration**: Fixed 2s per stack (from `STATUS_EFFECT_CONFIG.burn.defaultDuration`)
+- **Stacking**: Up to 10 independent burn stacks per enemy
+- **Visual**: Orange glow, intensity scales with stack count, flicker ring at 2+ stacks
+- **Fire Aura** (Inferno Quills): Burning enemies scorch nearby foes (30px radius)
+- **Fire Explosion** (Hellfire): Burning enemies explode on death — radius scales with stacks, spreads burn
+- **Full stack**: 40% burn chance, 32 base DPS per stack for 2s (scales with damage), fire aura + death explosion
+- **Example**: With +50% damage, 3 burn stacks = 3 × (32 × 1.5) = 144 DPS total
+
+### Poison (Venom) — Stacking Damage Amplifier
+- **Behavior**: Each proc adds an independent poison stack. Damage amplification sums across all stacks.
+- **Duration**: Fixed 3s per stack (from `STATUS_EFFECT_CONFIG.poison.defaultDuration`)
+- **Stacking**: Up to 10 independent poison stacks per enemy
+- **Visual**: Green tint + drip particles, intensity scales with stack count
+- **Poison Spread** (Plague Bearer): Poison spreads to nearby enemies when a poisoned foe dies (100px range)
+- **Poison Cloud** (Pandemic): Death releases a lingering poison cloud (50px, 3s duration, ticks every 500ms)
+- **Full stack**: 40% poison chance, +50% damage amp per stack, death cloud + spread
+- **Example**: Enemy with 3 poison stacks takes 150% bonus damage
+
+---
+
+## Defense Stats
+
+### Armor (Damage Reduction)
+- **Formula**: `actualDamage = rawDamage × (1 - armor)`
+- **Cap**: 50% maximum (`ARMOR_CONFIG.maxArmor`)
+- **Applied**: After shields, before quill state multiplier
+- **Max possible**: 5%×3 + 8%×2 + 12% + 15% = 58% → capped at 50%
+
+### Evasion (Dodge Chance)
+- **Formula**: Roll `Math.random() < evasion` before all other damage processing
+- **Cap**: 40% maximum (`EVASION_CONFIG.maxEvasion`)
+- **Applied**: Before shields — a dodge wastes no shield charges
+- **Visual**: "DODGE" floating text when triggered
+- **Max possible**: 4%×3 + 8% + 12% + 15% = 47% → capped at 40%
+
+### Thorns (Damage Reflection)
+- **Source**: Diamond Hide epic upgrade (+10 flat thorns)
+- **Behavior**: When hit, deal flat thorns damage back to the attacking enemy
+- **Applied**: On both regular contact damage and shellback roll attacks
 
 ---
 
@@ -414,6 +579,17 @@ Upgrades are offered after each wave. Rarity determines power level.
 - Heal percentage of damage dealt
 - Works on all damage including AOE
 
+### Elemental Procs
+- Each quill hit rolls independently for each unlocked element
+- Proc chances are additive across upgrade tiers (e.g., 8% + 12% = 20% shock chance)
+- Companion quills also trigger elemental procs
+- Fate's Favor mythic gives a 30% reroll chance on failed procs (applies to vampirism too)
+
+### Quill Apotheosis (Empowered Volleys)
+- Every 5th shot (trigger pull, not individual quill) is empowered
+- All quills in the empowered volley auto-crit and apply all unlocked elements at 100% proc rate
+- Visual: rainbow quill effect on empowered volley
+
 ---
 
 ## Pickups
@@ -424,6 +600,28 @@ Upgrades are offered after each wave. Rarity determines power level.
 - **Appearance**: Glowing cyan quill shape with pulsing glow
 - **Duration**: 10 seconds before despawn (flashes 5 times before disappearing)
 - **Physics**: Bounces and lands on platforms
+
+### Pinecones (Currency)
+
+Pinecones are the premium currency used to purchase cosmetics in the shop.
+
+| Source | Drop Amount | Notes |
+|--------|-------------|-------|
+| Regular Enemies | 1 | 4% base drop chance |
+| Bosses | 1-3 | Guaranteed drop |
+| Treasure Chests | +1 bonus | Added to upgrade selection |
+
+**Properties:**
+- **Magnet Range**: 80px (same as XP orbs)
+- **Despawn**: 12 seconds (warning flash at 9s)
+- **Prosperity Bonus**: +0.1% drop chance per prosperity point
+- **Persistence**: Saved to your account (requires login)
+
+**Shop Uses:**
+- Character skins (different porcupine colors/patterns)
+- Hat accessories (worn above the porcupine)
+- Quill styles (projectile appearance)
+- Trail effects (movement particles)
 
 ---
 

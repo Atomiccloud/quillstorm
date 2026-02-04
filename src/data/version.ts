@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.4.1';
+export const GAME_VERSION = '0.4.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,23 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.4.2',
+    date: '2026-02-04',
+    changes: [
+      'Elemental quill effects: Lightning (stun), Ice (freeze), Fire (stacking burn), Poison (stacking damage amp)',
+      'Chain lightning arcs to nearby enemies on shock proc',
+      'Frozen enemies shatter on death dealing AOE damage',
+      'Burning enemies explode on death, fire aura damages nearby foes',
+      'Poison weakens enemies (bonus damage taken), spreads on death',
+      'Fire and Poison stack on enemies for escalating damage',
+      'New defense stats: Armor (damage reduction) and Evasion (dodge chance)',
+      'Thorns damage reflection from Diamond Hide upgrade',
+      'Mythic upgrade: Fate\'s Favor (30% chance to reroll failed procs)',
+      'Mythic upgrade: Quill Apotheosis (every 5th volley auto-crits with all elements)',
+      '26 new upgrades across all rarity tiers',
+    ],
+  },
   {
     version: '0.4.1',
     date: '2026-02-04',

@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { PLAYER_CONFIG, COLORS, QUILL_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
+import { PLAYER_CONFIG, COLORS, QUILL_CONFIG, INFINITE_SWARM_CONFIG, ARMOR_CONFIG, EVASION_CONFIG } from '../config';
 import { QuillManager } from '../systems/QuillManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { AudioManager } from '../systems/AudioManager';
+import { SaveManager } from '../systems/SaveManager';
 import { getCosmeticManager } from '../systems/CosmeticManager';
 import { Cosmetic } from '../data/cosmetics';
 
@@ -560,6 +561,13 @@ export class Player extends Phaser.GameObjects.Container {
   _uf(amount: number): boolean {
     if (this._pf) return false;
 
+    // Evasion check - before shields so a dodge doesn't waste a charge
+    const evasion = Math.min(this.upgradeManager.getModifier('evasion'), EVASION_CONFIG.maxEvasion);
+    if (evasion > 0 && Math.random() < evasion) {
+      this.spawnDodgeText();
+      return false; // Dodged! No damage, no shield consumed
+    }
+
     // Check shields first
     if (this.shieldCharges > 0) {
       this.shieldCharges--;
@@ -574,9 +582,13 @@ export class Player extends Phaser.GameObjects.Container {
       return false; // No damage taken
     }
 
+    // Apply armor damage reduction (capped)
+    const armor = Math.min(this.upgradeManager.getModifier('armor'), ARMOR_CONFIG.maxArmor);
+    const armorReduced = armor > 0 ? amount * (1 - armor) : amount;
+
     const state = this.getQuillState();
     const damageMult = QUILL_CONFIG.states[state]._ufm;
-    const actualDamage = amount * damageMult;
+    const actualDamage = armorReduced * damageMult;
 
     this.health -= actualDamage;
     this.health = Math.max(0, this.health);
@@ -606,6 +618,27 @@ export class Player extends Phaser.GameObjects.Container {
       alpha: 0,
       duration: 300,
       onComplete: () => shield.destroy(),
+    });
+  }
+
+  private spawnDodgeText(): void {
+    const opacity = SaveManager.getEffectsOpacity();
+    if (opacity <= 0) return;
+
+    // "DODGE" floating text when evasion triggers
+    const text = this.scene.add.text(this.x, this.y - 30, 'DODGE', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setAlpha(opacity);
+    this.scene.tweens.add({
+      targets: text,
+      y: text.y - 40,
+      alpha: 0,
+      duration: 600,
+      onComplete: () => text.destroy(),
     });
   }
 

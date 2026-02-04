@@ -16,6 +16,10 @@ export class QuillManager {
   private regenPaused: boolean = false;
   private regenPauseTimer: number = 0;
 
+  // Apotheosis tracking
+  private shotCount: number = 0;
+  public isEmpoweredVolley: boolean = false;
+
   constructor(scene: Phaser.Scene, upgradeManager: UpgradeManager) {
     this.scene = scene;
     this.upgradeManager = upgradeManager;
@@ -92,6 +96,11 @@ export class QuillManager {
     // Consume quill
     this.currentQuills -= 1;
 
+    // Apotheosis - every 5th shot is empowered
+    this.shotCount++;
+    const hasApotheosis = this.upgradeManager.getModifier('apotheosis') > 0;
+    this.isEmpoweredVolley = hasApotheosis && this.shotCount % 5 === 0;
+
     // Pause regen (delay scales down with regen rate upgrades, power 1.5 curve)
     this.regenPaused = true;
     const regenMod = this.upgradeManager.getModifier('regenRate');
@@ -131,7 +140,8 @@ export class QuillManager {
         this.enemiesGroup,
         quillColor,
         tipColor,
-        rainbow
+        rainbow,
+        this.isEmpoweredVolley
       );
 
       this.quills.add(quill);
