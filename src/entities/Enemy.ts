@@ -1083,7 +1083,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.graphics.fillRect(-barWidth / 2, y, barWidth * healthPercent, barHeight);
   }
 
-  takeDamage(amount: number, fromAngle?: number): boolean {
+  _uf(amount: number, fromAngle?: number): boolean {
     // Burrowed enemies are immune to damage
     if (this.isBurrowed) {
       return false;

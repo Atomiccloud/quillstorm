@@ -68,6 +68,7 @@ export class SessionManager {
   private static currentToken: string | null = null;
   private static fingerprint: string = getBrowserFingerprint();
   private static waveKills: KillCounts = {};
+  private static _wpm = { d: 0, t: 0, b: 0 };
 
   // Start a new game session
   static async startSession(): Promise<boolean> {
@@ -99,6 +100,10 @@ export class SessionManager {
     }
   }
 
+  static setPerf(data: { d: number; t: number; b: number }): void {
+    this._wpm = { ...data };
+  }
+
   // Record an enemy kill (accumulates until wave ends)
   static recordKill(enemyType: string): void {
     const key = enemyType as keyof KillCounts;
@@ -120,6 +125,7 @@ export class SessionManager {
           wave,
           kills: { ...this.waveKills },
           score,
+          pm: { ...this._wpm },
         }),
       });
 
@@ -155,6 +161,7 @@ export class SessionManager {
           finalWave,
           finalScore,
           kills: { ...this.waveKills },
+          pm: { ...this._wpm },
         }),
       });
 
@@ -190,6 +197,7 @@ export class SessionManager {
   // Reset kill counts for new wave
   private static resetKills(): void {
     this.waveKills = {};
+    this._wpm = { d: 0, t: 0, b: 0 };
   }
 
   // Check if session is active

@@ -31,12 +31,20 @@ export interface KillCounts {
   flyingBoss?: number;
 }
 
+// Performance metrics per wave
+export interface PerfMetrics {
+  d: number;
+  t: number;
+  b: number;
+}
+
 // Wave data recorded during gameplay
 export interface WaveRecord {
   wave: number;
   kills: KillCounts;
   score: number;          // Total score at end of wave
   timestamp: number;
+  pm?: PerfMetrics;
 }
 
 // Full session data stored in Redis
@@ -49,6 +57,7 @@ export interface GameSession {
   finalScore?: number;
   finalWave?: number;
   finalKills?: KillCounts;
+  finalPm?: PerfMetrics;
 }
 
 // Session validation result
@@ -173,6 +182,56 @@ export function validateSubmission(
 
   // Score shouldn't be significantly less than recorded
   if (finalScore < lastRecordedScore * 0.9) {
+    return { valid: false, error: 'Invalid session' };
+  }
+
+  return { valid: true };
+}
+
+// Validate performance metrics across session waves
+export function validatePerf(
+  session: GameSession,
+  score: number,
+  wave: number
+): { valid: boolean; error?: string } {
+  // Only check high scores at wave 20+
+  if (wave < 20 || score < 35000) {
+    return { valid: true };
+  }
+
+  // Collect waves with pm data
+  const wavesWithPm = session.waves.filter(w => w.pm);
+
+  // Not enough data (old client or short game)
+  if (wavesWithPm.length < 8) {
+    return { valid: true };
+  }
+
+  // Count zero-engagement waves (no damage, no hits, no shield blocks)
+  let zeroCount = 0;
+  let maxConsecutiveZero = 0;
+  let currentConsecutiveZero = 0;
+
+  for (const w of wavesWithPm) {
+    const pm = w.pm!;
+    const isZero = pm.d === 0 && pm.t === 0 && pm.b === 0;
+
+    if (isZero) {
+      zeroCount++;
+      currentConsecutiveZero++;
+      maxConsecutiveZero = Math.max(maxConsecutiveZero, currentConsecutiveZero);
+    } else {
+      currentConsecutiveZero = 0;
+    }
+  }
+
+  // Fail: too many consecutive zero-engagement waves
+  if (maxConsecutiveZero > 4) {
+    return { valid: false, error: 'Invalid session' };
+  }
+
+  // Fail: too high a fraction of zero-engagement waves
+  if (zeroCount / wavesWithPm.length >= 0.5) {
     return { valid: false, error: 'Invalid session' };
   }
 

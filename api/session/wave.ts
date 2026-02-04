@@ -18,6 +18,7 @@ interface WaveRequest {
   wave: number;
   kills: KillCounts;
   score: number;
+  pm?: { d: number; t: number; b: number };
 }
 
 interface WaveResponse {
@@ -151,6 +152,7 @@ export default async function handler(req: Request): Promise<Response> {
       kills: body.kills,
       score: body.score,
       timestamp: Date.now(),
+      ...(body.pm && typeof body.pm === 'object' ? { pm: body.pm } : {}),
     };
     session.waves.push(waveRecord);
 

@@ -112,6 +112,7 @@ export class GameScene extends Phaser.Scene {
     // Start first wave
     this.time.delayedCall(1000, () => {
       this.player.resetShieldsForWave();
+      this.player.resetPerf();
       this.updateCompanions();
       this.waveManager.startWave();
     });
@@ -464,7 +465,7 @@ export class GameScene extends Phaser.Scene {
         // AOE damage to player if in range
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         if (dist <= config.surfaceRadius) {
-          if (this.player.takeDamage(config.surfaceDamage)) {
+          if (this.player._uf(config.surfaceDamage)) {
             AudioManager.playPlayerDamage();
           }
         }
@@ -553,7 +554,7 @@ export class GameScene extends Phaser.Scene {
 
     // Deal damage
     const damage = quill.getDamage();
-    const killed = enemy.takeDamage(damage, hitAngle);
+    const killed = enemy._uf(damage, hitAngle);
 
     // Vampirism - chance to heal based on damage dealt
     const vampirism = this.upgradeManager.getModifier('vampirism');
@@ -572,7 +573,7 @@ export class GameScene extends Phaser.Scene {
         if (otherEnemy === enemy || otherEnemy.isDead()) return;
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, otherEnemy.x, otherEnemy.y);
         if (dist <= explosionRadius) {
-          otherEnemy.takeDamage(damage * 0.5); // AOE does 50% damage
+          otherEnemy._uf(damage * 0.5); // AOE does 50% damage
         }
       });
     }
@@ -634,7 +635,7 @@ export class GameScene extends Phaser.Scene {
     // Rolling shellback deals roll damage and knockback
     if (enemy.isRolling) {
       const damage = enemy.getRollDamage();
-      if (this.player.takeDamage(damage)) {
+      if (this.player._uf(damage)) {
         AudioManager.playPlayerDamage();
         // Strong knockback from roll attack
         const knockbackDir = this.player.x > enemy.x ? 1 : -1;
@@ -646,7 +647,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.takeDamage(enemy.damage)) {
+    if (this.player._uf(enemy.damage)) {
       AudioManager.playPlayerDamage();
     }
   }
@@ -654,7 +655,7 @@ export class GameScene extends Phaser.Scene {
   private onProjectileHitPlayer(_playerObj: Phaser.GameObjects.GameObject, projectileObj: Phaser.GameObjects.GameObject): void {
     const projectile = projectileObj as Phaser.GameObjects.Arc;
 
-    if (this.player.takeDamage(15)) {
+    if (this.player._uf(15)) {
       AudioManager.playPlayerDamage();
     }
     projectile.destroy();
@@ -987,6 +988,7 @@ export class GameScene extends Phaser.Scene {
     this.hud.showWaveComplete();
 
     // Report wave completion for anti-cheat
+    SessionManager.setPerf(this.player.getPerf());
     SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
 
     // Clear any remaining enemy projectiles (they shouldn't persist between waves)
@@ -1078,6 +1080,7 @@ export class GameScene extends Phaser.Scene {
     // Start next wave
     this.time.delayedCall(500, () => {
       this.player.resetShieldsForWave();
+      this.player.resetPerf();
       this.updateCompanions();
       if (isBossWave) {
         this.hud.showBossWarning();
@@ -1123,6 +1126,7 @@ export class GameScene extends Phaser.Scene {
     const finalWave = this.waveManager.currentWave;
 
     // Report game over for anti-cheat
+    SessionManager.setPerf(this.player.getPerf());
     SessionManager.reportGameOver(finalWave, finalScore);
 
     // Submit score
@@ -1203,7 +1207,7 @@ export class GameScene extends Phaser.Scene {
       if (!enemy.isDead()) {
         // Companion quills do base damage (less than player upgraded quills)
         const damage = 10 * (1 + this.upgradeManager.getModifier('damage') * 0.5);
-        const killed = enemy.takeDamage(damage);
+        const killed = enemy._uf(damage);
         if (killed) {
           AudioManager.playEnemyDeath();
           this.hud.addScore(enemy.points);

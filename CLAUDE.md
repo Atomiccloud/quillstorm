@@ -15,7 +15,9 @@ Quick reference for AI assistants working on this codebase.
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`
 - **Leaderboard changes** → API in `api/leaderboard/`, client in `src/systems/LeaderboardManager.ts`
+- **Removing cheated scores** → See [docs/LEADERBOARD_ADMIN.md](docs/LEADERBOARD_ADMIN.md) — use the CLI commands there, do NOT just give instructions
 - **Progression/XP changes** → `src/systems/ProgressionManager.ts`, `src/config.ts` XP_CONFIG
+- **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 
 ### Understanding Systems
 - **Overall architecture** → See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)

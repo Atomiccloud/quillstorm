@@ -343,6 +343,31 @@ Basic server-side validation on all submissions:
 
 ---
 
+## Layer 7: Survivability Validation
+
+Detects invincibility cheats by tracking per-wave damage metrics. The client reports obfuscated telemetry with each wave and game-over report. The server validates this data at submission time.
+
+### What's Tracked
+
+Each wave report includes an optional `pm` field with obfuscated sub-fields. See `docs/OBFUSCATION_REFERENCE.md` (gitignored) for the full mapping of obfuscated names to their real meaning.
+
+### When Validation Runs
+
+Only for high scores: **wave >= 20 AND score >= 35,000**. Lower scores are not checked. Old clients that don't send `pm` data also pass (backwards compatibility).
+
+### Detection Logic
+
+- A "zero engagement" wave is one where all three metrics are zero
+- **Fail if** more than 4 consecutive zero-engagement waves
+- **Fail if** 50% or more of waves with data show zero engagement
+- Shield blocks count as engagement (legitimate defensive play)
+
+### Integration
+
+Failed validation routes to the shadow leaderboard via the existing honeypot mechanism.
+
+---
+
 ## Known Limitations
 
 1. **Canvas fingerprint is weak** - Can be spoofed by matching browser/GPU. Provides basic deterrence, not strong identification.
@@ -350,6 +375,7 @@ Basic server-side validation on all submissions:
 3. **Score tolerance is generous** - 2.6x multiplier on expected points leaves room for inflated scores within bounds.
 4. **Timestamp relies on client clock** - If client clock is >3s off from server, legitimate submissions fail.
 5. **Salt is in the client bundle** - Determined attackers can extract it from the JS bundle. The checksum is a speed bump, not a wall. The session validation is the stronger layer.
+6. **Survivability telemetry is self-reported** - A sophisticated cheater who discovers the `pm` field could spoof realistic values. However, they'd need to reverse-engineer both the obfuscated names and the server-side thresholds.
 
 ---
 
