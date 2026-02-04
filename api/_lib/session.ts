@@ -3,6 +3,10 @@
 
 import { nanoid } from 'nanoid';
 
+// Elite and danger constants - must match client config
+export const ELITE_POINTS_MULTIPLIER = 2.5;
+export const DANGER_SCORE_MULTIPLIER_PER_STACK = 0.15;
+
 // Enemy point values - must match client config
 export const ENEMY_POINTS: Record<string, number> = {
   scurrier: 10,
@@ -42,6 +46,8 @@ export interface PerfMetrics {
 export interface WaveRecord {
   wave: number;
   kills: KillCounts;
+  eliteKills?: KillCounts;
+  dangerLevel?: number;
   score: number;          // Total score at end of wave
   timestamp: number;
   pm?: PerfMetrics;
@@ -57,6 +63,8 @@ export interface GameSession {
   finalScore?: number;
   finalWave?: number;
   finalKills?: KillCounts;
+  finalEliteKills?: KillCounts;
+  finalDangerLevel?: number;
   finalPm?: PerfMetrics;
 }
 
@@ -67,13 +75,30 @@ export interface SessionValidation {
   session?: GameSession;
 }
 
-// Calculate expected points from kill counts
-export function calculatePointsFromKills(kills: KillCounts): number {
+// Calculate expected points from kill counts (regular + elite + danger multiplier)
+export function calculatePointsFromKills(
+  kills: KillCounts,
+  eliteKills?: KillCounts,
+  dangerLevel?: number
+): number {
   let points = 0;
+  // Regular kills
   for (const [enemyType, count] of Object.entries(kills)) {
     if (count && ENEMY_POINTS[enemyType]) {
       points += count * ENEMY_POINTS[enemyType];
     }
+  }
+  // Elite kills (separate tracking, higher point value)
+  if (eliteKills) {
+    for (const [enemyType, count] of Object.entries(eliteKills)) {
+      if (count && ENEMY_POINTS[enemyType]) {
+        points += count * ENEMY_POINTS[enemyType] * ELITE_POINTS_MULTIPLIER;
+      }
+    }
+  }
+  // Apply danger score multiplier
+  if (dangerLevel && dangerLevel > 0) {
+    points *= (1 + dangerLevel * DANGER_SCORE_MULTIPLIER_PER_STACK);
   }
   return points;
 }
@@ -101,7 +126,9 @@ export function validateWaveReport(
   session: GameSession,
   wave: number,
   kills: KillCounts,
-  reportedScore: number
+  reportedScore: number,
+  eliteKills?: KillCounts,
+  dangerLevel?: number
 ): { valid: boolean; error?: string } {
   // Check wave is sequential
   const expectedWave = session.waves.length + 1;
@@ -109,8 +136,8 @@ export function validateWaveReport(
     return { valid: false, error: 'Invalid request' };
   }
 
-  // Calculate expected points from this wave's kills
-  const expectedPointsThisWave = calculatePointsFromKills(kills);
+  // Calculate expected points from this wave's kills (including elites + danger)
+  const expectedPointsThisWave = calculatePointsFromKills(kills, eliteKills, dangerLevel);
 
   // Get previous score (0 if first wave)
   const previousScore = session.waves.length > 0
@@ -169,7 +196,7 @@ export function validateSubmission(
 
   // Calculate expected points from unreported kills (current wave / infinite swarm)
   const unreportedKillPoints = session.finalKills
-    ? calculatePointsFromKills(session.finalKills)
+    ? calculatePointsFromKills(session.finalKills, session.finalEliteKills, session.finalDangerLevel)
     : 0;
 
   // Max allowed = last recorded score + unreported kill points (with tolerance) + one wave buffer

@@ -22,7 +22,10 @@ export type ModifierType =
   | 'companionCount'
   | 'homingStrength'
   | 'vampirism'
-  | 'prosperity';
+  | 'prosperity'
+  | 'dangerLevel'
+  | 'eliteDamageBonus'
+  | 'upgradeChoices';
 
 export class UpgradeManager {
   private upgrades: Upgrade[] = [];
@@ -55,6 +58,9 @@ export class UpgradeManager {
     this.modifiers.set('homingStrength', 0);
     this.modifiers.set('vampirism', 0);
     this.modifiers.set('prosperity', 0);
+    this.modifiers.set('dangerLevel', 0);
+    this.modifiers.set('eliteDamageBonus', 0);
+    this.modifiers.set('upgradeChoices', 0);
   }
 
   addUpgrade(upgrade: Upgrade): void {
@@ -132,6 +138,15 @@ export class UpgradeManager {
       }
       if (effects.prosperity !== undefined) {
         this.addModifier('prosperity', effects.prosperity);
+      }
+      if (effects.dangerLevel !== undefined) {
+        this.addModifier('dangerLevel', effects.dangerLevel);
+      }
+      if (effects.eliteDamageBonus !== undefined) {
+        this.addModifier('eliteDamageBonus', effects.eliteDamageBonus);
+      }
+      if (effects.upgradeChoices !== undefined) {
+        this.addModifier('upgradeChoices', effects.upgradeChoices);
       }
     }
   }
@@ -217,6 +232,17 @@ export class UpgradeManager {
     }
     if (this.modifiers.get('prosperity')! !== 0) {
       summary.push({ name: 'Prosperity', value: formatFlat(this.modifiers.get('prosperity')!) });
+    }
+    if (this.modifiers.get('dangerLevel')! !== 0) {
+      const dl = this.modifiers.get('dangerLevel')!;
+      const scoreMult = Math.round(dl * 15);
+      summary.push({ name: 'Danger Level', value: `${dl} (+${scoreMult}% score)` });
+    }
+    if (this.modifiers.get('eliteDamageBonus')! !== 0) {
+      summary.push({ name: 'Elite Damage', value: formatPercent(this.modifiers.get('eliteDamageBonus')!) });
+    }
+    if (this.modifiers.get('upgradeChoices')! !== 0) {
+      summary.push({ name: 'Extra Choices', value: formatFlat(this.modifiers.get('upgradeChoices')!) });
     }
 
     return summary;

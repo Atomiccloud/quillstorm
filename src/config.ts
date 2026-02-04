@@ -215,6 +215,28 @@ export const ENEMY_SCALING = {
   bossHealthTierFactor: 0.75, // Quadratic scaling factor per tier^2
 };
 
+// Elite enemy configuration - rare, tougher variants with boosted rewards
+export const ELITE_CONFIG = {
+  healthMultiplier: 2.0,       // 2x health
+  damageMultiplier: 3.0,       // 3x damage
+  speedMultiplier: 1.15,       // 15% faster
+  sizeMultiplier: 1.15,        // 15% visually larger
+  pointsMultiplier: 2.5,       // 2.5x score
+  xpMultiplier: 3.0,           // 3x XP
+  baseSpawnChance: 0.01,       // 1% base chance per non-boss spawn
+  glowColor: 0xffd700,         // Gold glow
+  glowAlpha: 0.6,              // Glow opacity
+};
+
+// Danger Level - opt-in difficulty scaling per stack
+export const DANGER_CONFIG = {
+  enemyHealthBonusPerStack: 0.12,    // +12% enemy HP per stack
+  enemyDamageBonusPerStack: 0.08,    // +8% enemy damage per stack
+  eliteChanceBonusPerStack: 0.03,    // +3% elite spawn chance per stack
+  scoreMultiplierPerStack: 0.15,     // +15% score multiplier per stack
+  xpMultiplierPerStack: 0.10,        // +10% XP multiplier per stack
+};
+
 export const UPGRADE_CONFIG = {
   choicesPerUpgrade: 3,
   rarityWeights: {
@@ -223,6 +245,7 @@ export const UPGRADE_CONFIG = {
     rare: 10,
     epic: 4,
     legendary: 1,
+    mythic: 0.05,
   },
 };
 
@@ -255,7 +278,8 @@ export const COLORS = {
     rare: 0x5555ff,
     epic: 0xaa55ff,
     legendary: 0xffaa00,
-  },
+    mythic: 0xff2222,
+  } as Record<string, number>,
   chest: 0xffd700, // Gold
   xpOrb: 0x00ffff, // Cyan
   xpOrbHigh: 0xffd700, // Gold for high-value orbs

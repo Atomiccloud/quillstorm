@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG } from '../config';
+import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG } from '../config';
 
 export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss';
 
@@ -13,6 +13,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   public damage: number;
   public speed: number;
   public points: number;
+  public isElite: boolean = false;
 
   private target: Phaser.GameObjects.Container | null = null;
   private facingRight: boolean = true;
@@ -57,7 +58,8 @@ export class Enemy extends Phaser.GameObjects.Container {
     y: number,
     type: EnemyType,
     wave: number = 1,
-    difficultyMultiplier: number = 1.0
+    difficultyMultiplier: number = 1.0,
+    isElite: boolean = false
   ) {
     super(scene, x, y);
 
@@ -100,6 +102,16 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.speed = Math.floor(config.speed * speedMultiplier * Math.min(difficultyMultiplier, 1.3));
     this.points = config.points;
 
+    // Apply elite stat boosts
+    this.isElite = isElite;
+    if (isElite) {
+      this.health = Math.floor(this.health * ELITE_CONFIG.healthMultiplier);
+      this.maxHealth = this.health;
+      this.damage = Math.floor(this.damage * ELITE_CONFIG.damageMultiplier);
+      this.speed = Math.floor(this.speed * ELITE_CONFIG.speedMultiplier);
+      this.points = Math.floor(this.points * ELITE_CONFIG.pointsMultiplier);
+    }
+
     if (type === 'shellback') {
       this.blockAngle = (config as typeof ENEMY_CONFIG.shellback).blockAngle;
     }
@@ -108,10 +120,12 @@ export class Enemy extends Phaser.GameObjects.Container {
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
-    // Set up physics body
+    // Set up physics body (elites are slightly larger)
     this.body = this.body as Phaser.Physics.Arcade.Body;
-    this.body.setSize(config.width, config.height);
-    this.body.setOffset(-config.width / 2, -config.height / 2);
+    const bodyW = isElite ? config.width * ELITE_CONFIG.sizeMultiplier : config.width;
+    const bodyH = isElite ? config.height * ELITE_CONFIG.sizeMultiplier : config.height;
+    this.body.setSize(bodyW, bodyH);
+    this.body.setOffset(-bodyW / 2, -bodyH / 2);
 
     // Flying enemies don't have gravity
     if (type === 'swooper' || type === 'healer' || type === 'flyingBoss') {
@@ -655,6 +669,11 @@ export class Enemy extends Phaser.GameObjects.Container {
     const h = config.height;
     const dir = this.facingRight ? 1 : -1;
 
+    // Elites are drawn slightly larger
+    if (this.isElite) {
+      this.graphics.setScale(ELITE_CONFIG.sizeMultiplier);
+    }
+
     switch (this.enemyType) {
       case 'scurrier':
         this.drawScurrier(w, h, dir, config.color);
@@ -690,6 +709,11 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     // Health bar
     this.drawHealthBar(w);
+
+    // Elite visual overlay (gold glow + crown)
+    if (this.isElite) {
+      this.drawEliteOverlay(w, h);
+    }
   }
 
   private drawScurrier(w: number, h: number, dir: number, color: number): void {
@@ -1076,11 +1100,41 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.graphics.fillStyle(0x333333);
     this.graphics.fillRect(-barWidth / 2, y, barWidth, barHeight);
 
-    // Health
+    // Health - elites get a gold health bar
     const healthPercent = this.health / this.maxHealth;
-    const healthColor = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000;
+    const healthColor = this.isElite
+      ? ELITE_CONFIG.glowColor
+      : healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000;
     this.graphics.fillStyle(healthColor);
     this.graphics.fillRect(-barWidth / 2, y, barWidth * healthPercent, barHeight);
+  }
+
+  private drawEliteOverlay(w: number, h: number): void {
+    // Pulsing gold glow ellipse around the enemy
+    const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.004);
+    this.graphics.lineStyle(2, ELITE_CONFIG.glowColor, ELITE_CONFIG.glowAlpha * pulse);
+    this.graphics.strokeEllipse(0, 0, w * 1.3, h * 1.3);
+
+    // Small star indicator above the enemy
+    const starY = -h * 0.5 - 14;
+    const outerR = 5;
+    const innerR = 2.25;
+    const points = 5;
+    this.graphics.fillStyle(ELITE_CONFIG.glowColor);
+    this.graphics.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = (i * Math.PI) / points - Math.PI / 2;
+      const sx = Math.cos(angle) * r;
+      const sy = starY + Math.sin(angle) * r;
+      if (i === 0) {
+        this.graphics.moveTo(sx, sy);
+      } else {
+        this.graphics.lineTo(sx, sy);
+      }
+    }
+    this.graphics.closePath();
+    this.graphics.fillPath();
   }
 
   _uf(amount: number, fromAngle?: number): boolean {

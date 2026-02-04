@@ -17,6 +17,9 @@ export class Quill extends Phaser.GameObjects.Container {
   private enemiesGroup?: Phaser.GameObjects.Group;
   private quillColor: number;
   private tipColor: number;
+  private rainbow: boolean;
+  private rainbowColors: number[] = [0xff0000, 0xff8800, 0xffff00, 0x00ff00, 0x0088ff, 0x8800ff];
+  private rainbowTimer: number = 0;
 
   public damage: number;
 
@@ -28,13 +31,15 @@ export class Quill extends Phaser.GameObjects.Container {
     upgradeManager: UpgradeManager,
     enemiesGroup?: Phaser.GameObjects.Group,
     quillColor?: number,
-    tipColor?: number
+    tipColor?: number,
+    rainbow?: boolean
   ) {
     super(scene, x, y);
 
     this.upgradeManager = upgradeManager;
     this.quillColor = quillColor ?? COLORS.quill;
     this.tipColor = tipColor ?? 0xcccccc;
+    this.rainbow = rainbow ?? false;
     this.quillAngle = angle;
     this.lifetime = QUILL_CONFIG.lifetime;
 
@@ -114,6 +119,18 @@ export class Quill extends Phaser.GameObjects.Container {
     // Update rotation to match velocity
     this.quillAngle = Math.atan2(this.body.velocity.y, this.body.velocity.x);
     this.rotation = this.quillAngle;
+
+    // Rainbow color cycling
+    if (this.rainbow) {
+      this.rainbowTimer += delta;
+      if (this.rainbowTimer >= 80) {
+        this.rainbowTimer = 0;
+        const idx = Math.floor(Math.random() * this.rainbowColors.length);
+        this.quillColor = this.rainbowColors[idx];
+        this.tipColor = this.rainbowColors[(idx + 1) % this.rainbowColors.length];
+        this.draw();
+      }
+    }
 
     // Fade out near end of life
     if (this.lifetime < 500) {

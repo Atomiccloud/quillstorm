@@ -13,6 +13,7 @@ import { StatsPanel } from '../ui/StatsPanel';
 interface SessionStats {
   totalKills: number;
   killsByType: Record<string, number>;
+  eliteKillsByType: Record<string, number>;
   damageTaken: number;
   shieldsUsed: number;
 }
@@ -515,6 +516,9 @@ export class GameOverScene extends Phaser.Scene {
 
     if (killedTypes.length === 0) return;
 
+    // Count total elite kills
+    const totalEliteKills = Object.values(stats.eliteKillsByType || {}).reduce((sum, c) => sum + c, 0);
+
     // Calculate panel height based on content
     const headerHeight = 40;
     const contentHeight = killedTypes.length * LINE_HEIGHT;
@@ -531,8 +535,9 @@ export class GameOverScene extends Phaser.Scene {
     bg.strokeRoundedRect(0, 0, PANEL_WIDTH, panelHeight, 8);
     this.killsPanel.add(bg);
 
-    // Title
-    const title = this.add.text(PANEL_PADDING, 12, 'KILLS', {
+    // Title - show elite count if any
+    const titleStr = totalEliteKills > 0 ? `KILLS (${totalEliteKills}\u2605)` : 'KILLS';
+    const title = this.add.text(PANEL_PADDING, 12, titleStr, {
       fontSize: '16px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ff8844',
@@ -557,10 +562,14 @@ export class GameOverScene extends Phaser.Scene {
       });
       this.killsPanel.add(nameText);
 
-      const countText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, `${count}`, {
+      // Show elite kills inline: "5 + 2★" or just "5"
+      const eliteCount = stats.eliteKillsByType?.[type] || 0;
+      const countStr = eliteCount > 0 ? `${count - eliteCount} + ${eliteCount}\u2605` : `${count}`;
+      const countColor = eliteCount > 0 ? '#ffd700' : '#ff8844';
+      const countText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, countStr, {
         fontSize: '13px',
         fontFamily: 'Arial',
-        color: '#ff8844',
+        color: countColor,
       }).setOrigin(1, 0);
       this.killsPanel.add(countText);
 

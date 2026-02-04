@@ -6,6 +6,8 @@ Quick reference for AI assistants working on this codebase.
 
 **All planned and completed work is tracked in [docs/TRACKER.md](docs/TRACKER.md).** This is the single source of truth for features, bugs, and roadmap items. Check it before starting new work.
 
+When completing features, check off items in TRACKER.md and update this file if new configs or systems are added.
+
 ## Quick Links by Topic
 
 ### Bugs and Issues
@@ -19,8 +21,9 @@ Quick reference for AI assistants working on this codebase.
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`
 - **Leaderboard changes** → API in `api/leaderboard/`, client in `src/systems/LeaderboardManager.ts`
-- **Removing cheated scores** → See [docs/LEADERBOARD_ADMIN.md](docs/LEADERBOARD_ADMIN.md) — use the CLI commands there, do NOT just give instructions
 - **Progression/XP changes** → `src/systems/ProgressionManager.ts`, `src/config.ts` XP_CONFIG
+- **Elite enemies** → `src/config.ts` ELITE_CONFIG, applied in `src/entities/Enemy.ts`
+- **Danger system** → `src/config.ts` DANGER_CONFIG, upgrades in `src/data/upgrades.ts`
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 
 ### Understanding Systems
@@ -83,6 +86,8 @@ Edit `src/config.ts`:
 - `CHEST_CONFIG` - Chest drop rates, despawn time, rarity weights
 - `PROSPERITY_CONFIG` - Prosperity effects on drops/rarity/crit
 - `INFINITE_SWARM_CONFIG` - Endless mode spawn/difficulty scaling
+- `ELITE_CONFIG` - Elite enemy stat multipliers, spawn chance, glow color
+- `DANGER_CONFIG` - Danger level scaling per stack (HP, damage, elite chance, score, XP)
 
 ### Adding a New Enemy Type
 1. Add config to `ENEMY_CONFIG` in `src/config.ts`

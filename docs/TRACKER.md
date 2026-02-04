@@ -63,10 +63,20 @@ Single source of truth for all completed and planned work.
 
 ---
 
-## In Progress (v0.3.4)
+## In Progress (v0.4.0)
 
 - [x] Fingerprint collision fix (PR #26, merged)
-- [x] PlayerDataManager wiring (uncommitted on `feature/0.3.4`)
+- [x] PlayerDataManager wiring
+- [x] Elite enemies (1% base spawn, gold glow, 2x HP, 3x damage, 15% faster, 2.5x points, 3x XP)
+- [x] Danger Level system (opt-in difficulty upgrades, uncapped stacks, scales enemy stats + rewards)
+- [x] Elite damage upgrade cards (Elite Hunter, Elite Slayer)
+- [x] Mythic rarity tier (0.05 weight, red color)
+- [x] Expanded Options upgrade (extra card slot, mythic rarity)
+- [x] Anti-cheat: elite kill tracking by type + danger level in wave reports
+- [x] HUD danger level indicator
+- [x] Elite kill sound effect
+- [x] Game over kill screen: elite kills in breakdown panel
+- [x] Version bump to 0.4.0 + changelog entry
 - [ ] Achievements & challenges (see below)
 
 ---
@@ -168,7 +178,7 @@ Track milestones during natural play, award exclusive cosmetics on completion.
 ## Not Planned
 
 - Save mid-run (conflicts with roguelike design)
-- Difficulty settings (prefer skill-based progression)
+- ~~Difficulty settings~~ — Added as opt-in Danger Level system in v0.4.0
 - Inventory/equipment system (keep it simple)
 
 ---

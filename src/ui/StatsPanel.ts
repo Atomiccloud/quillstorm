@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, PROSPERITY_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, PROSPERITY_CONFIG, DANGER_CONFIG, ELITE_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class StatsPanel {
@@ -236,11 +236,36 @@ export class StatsPanel {
     const projectileSize = this.upgradeManager.getModifier('projectileSize');
     if (projectileSize !== 0) special.push({ name: 'Quill Size', value: formatPercent(projectileSize) });
 
+    const upgradeChoices = this.upgradeManager.getModifier('upgradeChoices');
+    if (upgradeChoices !== 0) special.push({ name: 'Extra Choices', value: formatFlat(upgradeChoices) });
+
+    // Elite damage bonus goes in combat
+    const eliteDamageBonus = this.upgradeManager.getModifier('eliteDamageBonus');
+    if (eliteDamageBonus !== 0) combat.push({ name: 'Elite Damage', value: formatPercent(eliteDamageBonus) });
+
+    // Danger level section
+    const danger: { name: string; value: string }[] = [];
+    const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
+    if (dangerLevel > 0) {
+      danger.push({ name: 'Danger Level', value: `x${dangerLevel}` });
+      const hpBuff = Math.round(dangerLevel * DANGER_CONFIG.enemyHealthBonusPerStack * 100);
+      const dmgBuff = Math.round(dangerLevel * DANGER_CONFIG.enemyDamageBonusPerStack * 100);
+      danger.push({ name: 'Mob HP', value: `+${hpBuff}%` });
+      danger.push({ name: 'Mob Damage', value: `+${dmgBuff}%` });
+      const eliteChance = Math.round((ELITE_CONFIG.baseSpawnChance + dangerLevel * DANGER_CONFIG.eliteChanceBonusPerStack) * 100);
+      danger.push({ name: 'Elite Chance', value: `${eliteChance}%` });
+      const scoreMult = Math.round(dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack * 100);
+      danger.push({ name: 'Score Bonus', value: `+${scoreMult}%` });
+      const xpMult = Math.round(dangerLevel * DANGER_CONFIG.xpMultiplierPerStack * 100);
+      danger.push({ name: 'XP Bonus', value: `+${xpMult}%` });
+    }
+
     return [
       { name: 'COMBAT', items: combat },
       { name: 'DEFENSE', items: defense },
       { name: 'MOVEMENT', items: movement },
       { name: 'SPECIAL', items: special },
+      ...(danger.length > 0 ? [{ name: 'DANGER', items: danger }] : []),
     ];
   }
 

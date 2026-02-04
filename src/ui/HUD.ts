@@ -27,6 +27,7 @@ export class HUD {
   private aimLine!: Phaser.GameObjects.Graphics;
   private infiniteSwarmText!: Phaser.GameObjects.Text;
   private pineconeText!: Phaser.GameObjects.Text;
+  private quillText!: Phaser.GameObjects.Text;
 
   private progressionManager: ProgressionManager | null = null;
   public score: number = 0;
@@ -42,7 +43,6 @@ export class HUD {
     this.player = player;
     this.quillManager = quillManager;
     this.waveManager = waveManager;
-
     this.createUI();
   }
 
@@ -103,11 +103,11 @@ export class HUD {
       color: '#daa520', // Goldenrod
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
 
-    // Quill state text
-    this.stateText = this.scene.add.text(20, 90, '', {
-      fontSize: '16px',
-      color: '#ffffff',
-    }).setScrollFactor(0).setDepth(100);
+    // Quill state text (NAKED warning, shown to right of quill count)
+    this.stateText = this.scene.add.text(170, 68, '', {
+      fontSize: '14px',
+      color: '#ff4444',
+    }).setScrollFactor(0).setDepth(100).setVisible(false);
 
     // Aim line
     this.aimLine = this.scene.add.graphics();
@@ -118,13 +118,13 @@ export class HUD {
     this.xpBar.setScrollFactor(0);
     this.xpBar.setDepth(100);
 
-    // Level text (next to wave text)
-    this.levelText = this.scene.add.text(GAME_CONFIG.width / 2 + 120, 20, 'Lv.1', {
-      fontSize: '22px',
+    // Level text (beneath XP bar)
+    this.levelText = this.scene.add.text(20, 100, 'Level 1', {
+      fontSize: '16px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffd700',
       stroke: '#000000',
-      strokeThickness: 3,
+      strokeThickness: 2,
     }).setOrigin(0, 0).setScrollFactor(0).setDepth(100);
 
     // Infinite swarm indicator (hidden by default)
@@ -135,6 +135,15 @@ export class HUD {
       stroke: '#000000',
       strokeThickness: 4,
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100).setVisible(false);
+
+    // Quill count (directly beneath quill bar)
+    this.quillText = this.scene.add.text(20, 70, 'Quills: 30/30', {
+      fontSize: '14px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0, 0).setScrollFactor(0).setDepth(100);
   }
 
   setProgressionManager(manager: ProgressionManager): void {
@@ -229,7 +238,7 @@ export class HUD {
     if (!this.progressionManager) return;
 
     const x = 20;
-    const y = 72;
+    const y = 90;
     const width = 200;
     const height = 8;
 
@@ -270,7 +279,7 @@ export class HUD {
       this.waveText.setVisible(true);
       this.infiniteSwarmText.setVisible(false);
 
-      if (this.waveManager.isBossWave()) {
+      if (this.waveManager.currentWave > 0 && this.waveManager.isBossWave()) {
         this.waveText.setText(`BOSS - Wave ${this.waveManager.currentWave}`);
         this.waveText.setColor('#ff4444');
       } else {
@@ -283,33 +292,38 @@ export class HUD {
     // Update level display
     if (this.progressionManager) {
       const level = this.progressionManager.getCurrentLevel();
-      this.levelText.setText(`Lv.${level}`);
-      this.levelText.setColor('#ffd700');
+      this.levelText.setText(`Level ${level}`);
     }
     this.scoreText.setText(`Score: ${this.score}`);
 
-    // State indicator
+    // State indicator (NAKED warning only)
     const state = this.player.getQuillState();
     if (state === 'naked') {
       this.stateText.setText('NAKED! Cannot shoot!');
-      this.stateText.setColor('#ff4444');
-    } else if (state === 'sparse') {
-      this.stateText.setText('Low on quills...');
-      this.stateText.setColor('#ffaa44');
+      this.stateText.setVisible(true);
     } else {
-      this.stateText.setText('');
+      this.stateText.setVisible(false);
     }
 
-    // Show current quill count
+    // Update quill count display
     const currentQuills = Math.floor(this.quillManager.currentQuills);
     const maxQuills = this.quillManager.maxQuills;
-    this.stateText.setText(this.stateText.text + `\nQuills: ${currentQuills}/${maxQuills}`);
+    this.quillText.setText(`Quills: ${currentQuills}/${maxQuills}`);
+    // Color quill text based on state
+    if (state === 'naked') {
+      this.quillText.setColor('#ff4444');
+    } else if (state === 'sparse') {
+      this.quillText.setColor('#ffaa44');
+    } else {
+      this.quillText.setColor('#ffffff');
+    }
 
     // Update pinecone display
     if (this.progressionManager) {
       const pinecones = this.progressionManager.getSessionPinecones();
       this.pineconeText.setText(`🌰 ${pinecones}`);
     }
+
   }
 
   private drawAimLine(): void {
@@ -514,5 +528,6 @@ export class HUD {
     this.aimLine.destroy();
     this.infiniteSwarmText.destroy();
     this.pineconeText.destroy();
+    this.quillText.destroy();
   }
 }

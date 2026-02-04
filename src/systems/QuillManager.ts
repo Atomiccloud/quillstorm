@@ -109,6 +109,7 @@ export class QuillManager {
     const equippedQuill = getCosmeticManager().getEquipped('quillStyle');
     const quillColor = equippedQuill?.colors?.primary;
     const tipColor = equippedQuill?.colors?.secondary;
+    const rainbow = equippedQuill?.renderData?.rainbow === true;
 
     for (let i = 0; i < projectileCount; i++) {
       // Calculate offset angle for spread
@@ -127,7 +128,8 @@ export class QuillManager {
         this.upgradeManager,
         this.enemiesGroup,
         quillColor,
-        tipColor
+        tipColor,
+        rainbow
       );
 
       this.quills.add(quill);
