@@ -19,7 +19,12 @@ export class Player extends Phaser.GameObjects.Container {
 
   public health: number = PLAYER_CONFIG.maxHealth;
   public maxHealth: number = PLAYER_CONFIG.maxHealth;
-  private isInvincible: boolean = false;
+  private _pf: boolean = false;
+
+  // Performance frame counters
+  private _fd: number = 0;
+  private _fc: number = 0;
+  private _bs: number = 0;
   private facingRight: boolean = true;
   private shieldCharges: number = 0;
 
@@ -312,7 +317,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.drawHat(dir, w, h, bodyBob);
 
     // Flash white when invincible
-    if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
+    if (this._pf && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
       this.graphics.fillEllipse(0, 2, w * 1.35, h * 0.7);
     }
@@ -461,32 +466,35 @@ export class Player extends Phaser.GameObjects.Container {
     return this.quillManager.shoot(this.x, this.y, targetX, targetY);
   }
 
-  takeDamage(amount: number): boolean {
-    if (this.isInvincible) return false;
+  _uf(amount: number): boolean {
+    if (this._pf) return false;
 
     // Check shields first
     if (this.shieldCharges > 0) {
       this.shieldCharges--;
+      this._bs++;
       this.spawnShieldBreakEffect();
       // Brief invincibility after shield break
-      this.isInvincible = true;
+      this._pf = true;
       this.scene.time.delayedCall(500, () => {
-        this.isInvincible = false;
+        this._pf = false;
       });
       return false; // No damage taken
     }
 
     const state = this.getQuillState();
-    const damageMult = QUILL_CONFIG.states[state].takeDamageMult;
+    const damageMult = QUILL_CONFIG.states[state]._ufm;
     const actualDamage = amount * damageMult;
 
     this.health -= actualDamage;
     this.health = Math.max(0, this.health);
+    this._fd += actualDamage;
+    this._fc++;
 
     // Invincibility frames
-    this.isInvincible = true;
+    this._pf = true;
     this.scene.time.delayedCall(PLAYER_CONFIG.invincibilityTime, () => {
-      this.isInvincible = false;
+      this._pf = false;
     });
 
     // Knockback
@@ -515,6 +523,16 @@ export class Player extends Phaser.GameObjects.Container {
 
   getShieldCharges(): number {
     return this.shieldCharges;
+  }
+
+  getPerf(): { d: number; t: number; b: number } {
+    return { d: this._fd, t: this._fc, b: this._bs };
+  }
+
+  resetPerf(): void {
+    this._fd = 0;
+    this._fc = 0;
+    this._bs = 0;
   }
 
   heal(amount: number): void {

@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { validateSubmission, getISOWeek, getNextMondayTimestamp } from '../_lib/validation';
 import { checkRateLimit, checkSubmissionCooldown, getClientIP } from '../_lib/ratelimit';
-import { getSessionKey, GameSession, validateSubmission as validateSessionSubmission } from '../_lib/session';
+import { getSessionKey, GameSession, validateSubmission as validateSessionSubmission, validatePerf } from '../_lib/session';
 
 export const config = {
   runtime: 'edge',
@@ -178,10 +178,13 @@ export default async function handler(req: Request): Promise<Response> {
           // Validate submission against session history
           const sessionValidation = validateSessionSubmission(session, wave, score);
           if (sessionValidation.valid) {
-            isValidSession = true;
-            // Delete session after successful validation (one-time use)
-            await kv.del(sessionKey);
+            const perfCheck = validatePerf(session, score, wave);
+            if (perfCheck.valid) {
+              isValidSession = true;
+            }
           }
+          // Delete session after validation (one-time use)
+          await kv.del(sessionKey);
         }
       }
     }
