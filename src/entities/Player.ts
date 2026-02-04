@@ -613,6 +613,14 @@ export class Player extends Phaser.GameObjects.Container {
     this.shieldCharges = this.upgradeManager.getModifier('shieldCharges');
   }
 
+  syncNewShieldCharges(): void {
+    // Grant new charges from upgrades picked mid-wave without resetting spent charges
+    const maxCharges = this.upgradeManager.getModifier('shieldCharges');
+    if (maxCharges > this.shieldCharges) {
+      this.shieldCharges = maxCharges;
+    }
+  }
+
   getShieldCharges(): number {
     return this.shieldCharges;
   }

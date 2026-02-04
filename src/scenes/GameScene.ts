@@ -1072,6 +1072,9 @@ export class GameScene extends Phaser.Scene {
     const healthBonus = this.upgradeManager.getModifier('maxHealth');
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
 
+    // Grant any new shield charges immediately (so mid-wave shield pickups work)
+    this.player.syncNewShieldCharges();
+
     // Update companions immediately if a companion upgrade was selected
     this.updateCompanions();
 
