@@ -15,6 +15,7 @@ interface GameOverRequest {
   finalWave: number;
   finalScore: number;
   kills?: KillCounts;
+  pm?: { d: number; t: number; b: number };
 }
 
 interface GameOverResponse {
@@ -129,6 +130,9 @@ export default async function handler(req: Request): Promise<Response> {
     session.finalScore = body.finalScore;
     if (body.kills && typeof body.kills === 'object') {
       session.finalKills = body.kills;
+    }
+    if (body.pm && typeof body.pm === 'object') {
+      session.finalPm = body.pm;
     }
 
     // Update session in Redis (shorter TTL since game is over)

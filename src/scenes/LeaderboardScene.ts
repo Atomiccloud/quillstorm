@@ -6,6 +6,11 @@ import { AudioManager } from '../systems/AudioManager';
 
 type TabType = 'global' | 'weekly';
 
+interface LeaderboardSceneData {
+  returnScene?: string;
+  gameData?: any;
+}
+
 export class LeaderboardScene extends Phaser.Scene {
   private panel!: LeaderboardPanel;
   private currentTab: TabType = 'global';
@@ -13,12 +18,16 @@ export class LeaderboardScene extends Phaser.Scene {
   private weeklyButton!: Phaser.GameObjects.Container;
   private resetTimerText!: Phaser.GameObjects.Text;
   private weeklyResetsIn = 0;
+  private returnScene: string = 'MenuScene';
+  private returnData: any = undefined;
 
   constructor() {
     super({ key: 'LeaderboardScene' });
   }
 
-  create(): void {
+  create(data?: LeaderboardSceneData): void {
+    this.returnScene = data?.returnScene || 'MenuScene';
+    this.returnData = data?.gameData;
     const centerX = GAME_CONFIG.width / 2;
 
     // Background
@@ -50,7 +59,11 @@ export class LeaderboardScene extends Phaser.Scene {
     backButton.on('pointerout', () => backButton.setFillStyle(0x555555));
     backButton.on('pointerdown', () => {
       AudioManager.playButtonClick();
-      this.scene.start('MenuScene');
+      if (this.returnScene === 'GameOverScene' && this.returnData) {
+        this.scene.start('GameOverScene', this.returnData);
+      } else {
+        this.scene.start('MenuScene');
+      }
     });
 
     // Tab buttons

@@ -2,6 +2,10 @@
 
 Quick reference for AI assistants working on this codebase.
 
+## Project Tracker
+
+**All planned and completed work is tracked in [docs/TRACKER.md](docs/TRACKER.md).** This is the single source of truth for features, bugs, and roadmap items. Check it before starting new work.
+
 ## Quick Links by Topic
 
 ### Bugs and Issues
@@ -15,7 +19,9 @@ Quick reference for AI assistants working on this codebase.
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`
 - **Leaderboard changes** → API in `api/leaderboard/`, client in `src/systems/LeaderboardManager.ts`
+- **Removing cheated scores** → See [docs/LEADERBOARD_ADMIN.md](docs/LEADERBOARD_ADMIN.md) — use the CLI commands there, do NOT just give instructions
 - **Progression/XP changes** → `src/systems/ProgressionManager.ts`, `src/config.ts` XP_CONFIG
+- **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 
 ### Understanding Systems
 - **Overall architecture** → See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -45,11 +51,23 @@ Quick reference for AI assistants working on this codebase.
 | Name input UI | `src/ui/NameInputModal.ts` |
 | HUD rendering | `src/ui/HUD.ts` |
 | Stats panel (Tab) | `src/ui/StatsPanel.ts` |
+| Pinecone collectible | `src/entities/Pinecone.ts` |
+| Companion helper | `src/entities/Companion.ts` |
+| Cosmetic definitions | `src/data/cosmetics.ts` |
+| Cosmetic state | `src/systems/CosmeticManager.ts` |
+| Player data sync | `src/systems/PlayerDataManager.ts` |
+| Firebase auth | `src/systems/AuthManager.ts` |
+| Anti-cheat sessions | `src/systems/SessionManager.ts` |
+| Shop scene | `src/scenes/ShopScene.ts` |
+| Login scene | `src/scenes/LoginScene.ts` |
 | API: submit score | `api/leaderboard/submit.ts` |
 | API: global scores | `api/leaderboard/global.ts` |
 | API: weekly scores | `api/leaderboard/weekly.ts` |
 | API: validation | `api/_lib/validation.ts` |
 | API: rate limiting | `api/_lib/ratelimit.ts` |
+| API: session tracking | `api/session/start.ts`, `wave.ts`, `gameover.ts` |
+| API: player sync | `api/player/sync.ts` |
+| API: purchases | `api/player/purchase.ts` |
 
 ## Common Tasks
 
@@ -94,11 +112,13 @@ Edit `src/config.ts`:
 Scenes (Phaser.Scene)
 ├── BootScene           # Loading
 ├── MenuScene           # Main menu
+├── LoginScene          # Google sign-in / account
 ├── GameScene           # Main gameplay
 ├── UpgradeScene        # Upgrade selection overlay
 ├── PauseScene          # Pause menu overlay
 ├── GameOverScene       # End screen + score submission
-└── LeaderboardScene    # Global/weekly leaderboard view
+├── LeaderboardScene    # Global/weekly leaderboard view
+└── ShopScene           # Cosmetic shop (skins, hats, quills, trails)
 
 Entities (Phaser.GameObjects.Container)
 ├── Player              # Porcupine character
@@ -106,29 +126,41 @@ Entities (Phaser.GameObjects.Container)
 ├── Quill               # Projectile
 ├── Companion           # Baby porcupine helper
 ├── XPOrb               # Collectible XP drop
-└── TreasureChest       # Rare upgrade chest
+├── TreasureChest       # Rare upgrade chest
+└── Pinecone            # Currency drop
 
 UI Components
 ├── HUD                 # Health bar, quill bar, XP bar, wave info
 ├── StatsPanel          # Tab-toggleable modifier display
 ├── LeaderboardPanel    # Scrollable leaderboard table
-└── NameInputModal      # DOM-based name input
+├── NameInputModal      # DOM-based name input
+└── ChangelogModal      # Version changelog popup
 
 Systems (Singleton/Manager classes)
 ├── QuillManager        # Shooting, regeneration
 ├── WaveManager         # Spawning, wave progression, infinite swarm
 ├── UpgradeManager      # Modifier tracking
 ├── ProgressionManager  # XP, levels, prosperity, infinite swarm
+├── CosmeticManager     # Cosmetic state, purchases, equip
+├── PlayerDataManager   # Server sync, offline queue, auth-gated persistence
+├── AuthManager         # Firebase Auth, Google Sign-In
+├── SessionManager      # Anti-cheat session tracking (wave-by-wave kills)
 ├── SaveManager         # High score + player name persistence
 ├── AudioManager        # Procedural sounds
 ├── LevelGenerator      # Platform layouts
 └── LeaderboardManager  # API client, offline queue
 
 API (Vercel Edge Functions)
-├── api/leaderboard/submit.ts   # Score submission
-├── api/leaderboard/global.ts   # Global top 100
-├── api/leaderboard/weekly.ts   # Weekly top 100
+├── api/leaderboard/submit.ts   # Score submission + shadow honeypot
+├── api/leaderboard/global.ts   # Global top 100 + shadow merge
+├── api/leaderboard/weekly.ts   # Weekly top 100 + shadow merge
+├── api/session/start.ts        # Anti-cheat session creation
+├── api/session/wave.ts         # Wave kill report validation
+├── api/session/gameover.ts     # Game over report
+├── api/player/sync.ts          # Player data sync (pinecones, cosmetics)
+├── api/player/purchase.ts      # Server-side purchase validation
 ├── api/_lib/validation.ts      # Checksum + input validation
+├── api/_lib/session.ts         # Session types + kill validation
 └── api/_lib/ratelimit.ts       # Rate limiting
 ```
 
@@ -140,7 +172,8 @@ API (Vercel Edge Functions)
 - **Backend**: Vercel Edge Functions + Vercel KV (Upstash Redis)
 - **Audio**: Web Audio API (procedural, no files)
 - **Graphics**: All procedural (no image assets)
-- **Storage**: LocalStorage for saves, Vercel KV for leaderboards
+- **Auth**: Firebase Authentication (Google Sign-In)
+- **Storage**: LocalStorage for saves/cosmetics, Vercel KV for leaderboards + player data
 
 ## Running the Game
 

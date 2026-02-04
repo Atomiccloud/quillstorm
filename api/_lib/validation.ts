@@ -49,8 +49,8 @@ export async function validateSubmission(data: SubmissionData): Promise<Validati
     return { valid: false, error: 'Invalid score' };
   }
 
-  if (typeof data.wave !== 'number' || data.wave < 1 || data.wave > MAX_WAVE) {
-    return { valid: false, error: 'Invalid wave' };
+  if (typeof data.wave !== 'number' || data.wave < 5 || data.wave > MAX_WAVE) {
+    return { valid: false, error: 'Must reach wave 5 to submit' };
   }
 
   // Timestamp validation (must be within 3 seconds of server time)

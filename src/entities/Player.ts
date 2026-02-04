@@ -19,7 +19,12 @@ export class Player extends Phaser.GameObjects.Container {
 
   public health: number = PLAYER_CONFIG.maxHealth;
   public maxHealth: number = PLAYER_CONFIG.maxHealth;
-  private isInvincible: boolean = false;
+  private _pf: boolean = false;
+
+  // Performance frame counters
+  private _fd: number = 0;
+  private _fc: number = 0;
+  private _bs: number = 0;
   private facingRight: boolean = true;
   private shieldCharges: number = 0;
 
@@ -32,6 +37,7 @@ export class Player extends Phaser.GameObjects.Container {
 
   // Coyote time tracking
   private coyoteTimer: number = 0;
+  private _jumping: boolean = false;
 
   // Animation state
   private walkTimer: number = 0;
@@ -222,14 +228,26 @@ export class Player extends Phaser.GameObjects.Container {
       this.landSquash = Math.max(0, this.landSquash - delta * 0.006);
     }
 
-    // Jumping (with coyote time)
+    // Jumping (with coyote time + variable height)
     const jumpPressed = this.cursors.up.isDown || this.wasd.W.isDown || this.cursors.space.isDown;
     const canJump = onGround || this.coyoteTimer > 0;
-    if (jumpPressed && canJump) {
+    if (jumpPressed && canJump && !this._jumping) {
       const jumpMult = 1 + this.upgradeManager.getModifier('jumpHeight');
       this.body.setVelocityY(PLAYER_CONFIG.jumpForce * jumpMult);
       this.coyoteTimer = 0; // Consume coyote time
+      this._jumping = true;
       AudioManager.playJump();
+    }
+
+    // Jump cut: release key early to reduce jump height
+    if (!jumpPressed && this._jumping && this.body.velocity.y < 0) {
+      this.body.setVelocityY(this.body.velocity.y * PLAYER_CONFIG.jumpCutMultiplier);
+      this._jumping = false;
+    }
+
+    // Reset jump state on landing
+    if (onGround) {
+      this._jumping = false;
     }
   }
 
@@ -312,7 +330,7 @@ export class Player extends Phaser.GameObjects.Container {
     this.drawHat(dir, w, h, bodyBob);
 
     // Flash white when invincible
-    if (this.isInvincible && Math.floor(Date.now() / 100) % 2 === 0) {
+    if (this._pf && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
       this.graphics.fillEllipse(0, 2, w * 1.35, h * 0.7);
     }
@@ -331,68 +349,76 @@ export class Player extends Phaser.GameObjects.Container {
     }
   }
 
-  private drawHat(_dir: number, _w: number, h: number, bodyBob: number = 0): void {
+  private drawHat(dir: number, _w: number, h: number, bodyBob: number = 0): void {
     if (!this.equippedHat || this.equippedHat.id === 'hat_none') return;
 
     const hat = this.equippedHat;
     const colors = hat.colors || { primary: 0x888888 };
-    const hatY = -h * 0.5 - bodyBob; // Above head, bobs with body
+    const hatX = dir * 16; // Shift toward head/face direction
+    const hatY = -h * 0.43 - bodyBob; // On top of head, bobs with body
+
+    // Transform to hat position and tilt to follow rounded head
+    this.graphics.save();
+    this.graphics.translateCanvas(hatX, hatY);
+    this.graphics.rotateCanvas(dir * 0.2); // ~11 degrees, tilts forward
 
     switch (hat.id) {
       case 'hat_crown':
         // Crown base
         this.graphics.fillStyle(colors.primary);
-        this.graphics.fillRect(-10, hatY, 20, 10);
+        this.graphics.fillRect(-10, 0, 20, 10);
         // Crown points
-        this.graphics.fillTriangle(-10, hatY, -5, hatY, -7.5, hatY - 10);
-        this.graphics.fillTriangle(-2, hatY, 2, hatY, 0, hatY - 14);
-        this.graphics.fillTriangle(5, hatY, 10, hatY, 7.5, hatY - 10);
+        this.graphics.fillTriangle(-10, 0, -5, 0, -7.5, -10);
+        this.graphics.fillTriangle(-2, 0, 2, 0, 0, -14);
+        this.graphics.fillTriangle(5, 0, 10, 0, 7.5, -10);
         // Gem
         this.graphics.fillStyle(colors.secondary || 0xff4444);
-        this.graphics.fillCircle(0, hatY + 4, 3);
+        this.graphics.fillCircle(0, 4, 3);
         break;
 
       case 'hat_wizard':
         this.graphics.fillStyle(colors.primary);
-        this.graphics.fillTriangle(-12, hatY + 8, 12, hatY + 8, 0, hatY - 18);
+        this.graphics.fillTriangle(-8, 10, 8, 10, 0, -16);
         // Star decoration
         this.graphics.fillStyle(colors.secondary || 0xffdd44);
-        this.graphics.fillCircle(0, hatY - 2, 3);
+        this.graphics.fillCircle(0, 0, 3);
         break;
 
       case 'hat_viking':
         this.graphics.fillStyle(colors.primary);
-        this.graphics.fillEllipse(0, hatY + 5, 24, 12);
-        // Horns
+        this.graphics.fillEllipse(0, 5, 20, 12);
+        // Horns - tucked inside helmet, curving up from top
         this.graphics.fillStyle(colors.secondary || 0xcccc99);
-        this.graphics.fillTriangle(-14, hatY + 5, -10, hatY + 5, -18, hatY - 12);
-        this.graphics.fillTriangle(14, hatY + 5, 10, hatY + 5, 18, hatY - 12);
+        this.graphics.fillTriangle(-10, 4, -7, -1, -14, -10);
+        this.graphics.fillTriangle(10, 4, 7, -1, 14, -10);
         break;
 
       case 'hat_party':
         this.graphics.fillStyle(colors.primary);
-        this.graphics.fillTriangle(-8, hatY + 6, 8, hatY + 6, 0, hatY - 14);
+        this.graphics.fillTriangle(-8, 6, 8, 6, 0, -14);
         // Pom pom
         this.graphics.fillStyle(colors.secondary || 0x44ffaa);
-        this.graphics.fillCircle(0, hatY - 14, 4);
+        this.graphics.fillCircle(0, -14, 4);
         break;
 
       case 'hat_chef':
         this.graphics.fillStyle(colors.primary);
-        this.graphics.fillEllipse(0, hatY - 4, 22, 14);
-        this.graphics.fillRect(-12, hatY + 2, 24, 8);
+        this.graphics.fillEllipse(0, -12, 20, 10);
+        this.graphics.fillRect(-8, -8, 16, 16);
         break;
 
       case 'hat_halo':
         // Glowing halo effect
         if (colors.glow) {
           this.graphics.lineStyle(6, colors.glow, 0.3);
-          this.graphics.strokeEllipse(0, hatY - 8, 24, 8);
+          this.graphics.strokeEllipse(0, -8, 24, 8);
         }
         this.graphics.lineStyle(3, colors.primary);
-        this.graphics.strokeEllipse(0, hatY - 8, 22, 7);
+        this.graphics.strokeEllipse(0, -8, 22, 7);
         break;
     }
+
+    this.graphics.restore();
   }
 
   private drawQuills(_state: QuillState, dir: number): void {
@@ -429,8 +455,8 @@ export class Player extends Phaser.GameObjects.Container {
 
     // Distribute quills along the back arc of the body ellipse
     // Arc goes from top (-90deg) to lower back, on the side away from the face
-    const arcStart = -110 * Math.PI / 180; // just past top
-    const arcEnd = -5 * Math.PI / 180;     // stop before lower belly
+    const arcStart = -94 * Math.PI / 180; // just past top
+    const arcEnd = -1 * Math.PI / 180;     // stop before lower belly
     const arcRange = arcEnd - arcStart;
 
     for (let i = 0; i < quillCount; i++) {
@@ -461,32 +487,35 @@ export class Player extends Phaser.GameObjects.Container {
     return this.quillManager.shoot(this.x, this.y, targetX, targetY);
   }
 
-  takeDamage(amount: number): boolean {
-    if (this.isInvincible) return false;
+  _uf(amount: number): boolean {
+    if (this._pf) return false;
 
     // Check shields first
     if (this.shieldCharges > 0) {
       this.shieldCharges--;
+      this._bs++;
       this.spawnShieldBreakEffect();
       // Brief invincibility after shield break
-      this.isInvincible = true;
+      this._pf = true;
       this.scene.time.delayedCall(500, () => {
-        this.isInvincible = false;
+        this._pf = false;
       });
       return false; // No damage taken
     }
 
     const state = this.getQuillState();
-    const damageMult = QUILL_CONFIG.states[state].takeDamageMult;
+    const damageMult = QUILL_CONFIG.states[state]._ufm;
     const actualDamage = amount * damageMult;
 
     this.health -= actualDamage;
     this.health = Math.max(0, this.health);
+    this._fd += actualDamage;
+    this._fc++;
 
     // Invincibility frames
-    this.isInvincible = true;
+    this._pf = true;
     this.scene.time.delayedCall(PLAYER_CONFIG.invincibilityTime, () => {
-      this.isInvincible = false;
+      this._pf = false;
     });
 
     // Knockback
@@ -515,6 +544,16 @@ export class Player extends Phaser.GameObjects.Container {
 
   getShieldCharges(): number {
     return this.shieldCharges;
+  }
+
+  getPerf(): { d: number; t: number; b: number } {
+    return { d: this._fd, t: this._fc, b: this._bs };
+  }
+
+  resetPerf(): void {
+    this._fd = 0;
+    this._fc = 0;
+    this._bs = 0;
   }
 
   heal(amount: number): void {

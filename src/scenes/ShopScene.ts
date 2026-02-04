@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { getCosmeticManager, CosmeticManager } from '../systems/CosmeticManager';
+import { PlayerDataManager } from '../systems/PlayerDataManager';
 import {
   Cosmetic,
   CosmeticCategory,
@@ -330,11 +331,11 @@ export class ShopScene extends Phaser.Scene {
           graphics.fillCircle(x, y - 5, 5);
         } else if (cosmetic.id === 'hat_viking') {
           graphics.fillStyle(colors.primary);
-          graphics.fillEllipse(x, y + 5, 40, 20);
-          // Horns
+          graphics.fillEllipse(x, y + 5, 34, 20);
+          // Horns - tucked inside helmet, curving up from top
           graphics.fillStyle(colors.secondary || 0xcccc99);
-          graphics.fillTriangle(x - 25, y + 5, x - 18, y + 5, x - 30, y - 20);
-          graphics.fillTriangle(x + 25, y + 5, x + 18, y + 5, x + 30, y - 20);
+          graphics.fillTriangle(x - 14, y + 2, x - 10, y - 4, x - 24, y - 18);
+          graphics.fillTriangle(x + 14, y + 2, x + 10, y - 4, x + 24, y - 18);
         } else if (cosmetic.id === 'hat_party') {
           graphics.fillStyle(colors.primary);
           graphics.fillTriangle(x - 15, y + 10, x + 15, y + 10, x, y - 25);
@@ -343,8 +344,8 @@ export class ShopScene extends Phaser.Scene {
           graphics.fillCircle(x, y - 25, 6);
         } else if (cosmetic.id === 'hat_chef') {
           graphics.fillStyle(colors.primary);
-          graphics.fillEllipse(x, y - 10, 35, 25);
-          graphics.fillRect(x - 18, y, 36, 15);
+          graphics.fillEllipse(x, y - 18, 30, 14);
+          graphics.fillRect(x - 12, y - 12, 24, 25);
         } else if (cosmetic.id === 'hat_halo') {
           graphics.lineStyle(4, colors.primary);
           graphics.strokeEllipse(x, y - 15, 35, 12);
@@ -410,14 +411,19 @@ export class ShopScene extends Phaser.Scene {
       this.cosmeticManager.equip(cosmetic.id);
       this.displayCategory(this.currentCategory);
     } else if (isPurchasable(cosmetic)) {
-      // Purchase
-      const result = this.cosmeticManager.purchase(cosmetic.id);
-      if (result.success) {
+      // Purchase (optimistic local + server sync)
+      PlayerDataManager.purchase(cosmetic.id).then(result => {
+        // Update display after server responds (may adjust pinecone balance)
+        if (result.success) {
+          this.updatePineconeDisplay();
+        }
+      });
+      // Immediate UI feedback (local purchase already happened synchronously)
+      if (this.cosmeticManager.isUnlocked(cosmetic.id)) {
         AudioManager.playChestOpen();
         this.updatePineconeDisplay();
         this.displayCategory(this.currentCategory);
       } else {
-        // Show error feedback
         AudioManager.playPlayerDamage();
       }
     }

@@ -15,6 +15,8 @@ export class Quill extends Phaser.GameObjects.Container {
   private sizeMultiplier: number;
   private homingStrength: number;
   private enemiesGroup?: Phaser.GameObjects.Group;
+  private quillColor: number;
+  private tipColor: number;
 
   public damage: number;
 
@@ -24,11 +26,15 @@ export class Quill extends Phaser.GameObjects.Container {
     y: number,
     angle: number,
     upgradeManager: UpgradeManager,
-    enemiesGroup?: Phaser.GameObjects.Group
+    enemiesGroup?: Phaser.GameObjects.Group,
+    quillColor?: number,
+    tipColor?: number
   ) {
     super(scene, x, y);
 
     this.upgradeManager = upgradeManager;
+    this.quillColor = quillColor ?? COLORS.quill;
+    this.tipColor = tipColor ?? 0xcccccc;
     this.quillAngle = angle;
     this.lifetime = QUILL_CONFIG.lifetime;
 
@@ -168,7 +174,7 @@ export class Quill extends Phaser.GameObjects.Container {
     const h = QUILL_CONFIG.height * this.sizeMultiplier;
 
     // Quill body (pointed shape)
-    this.graphics.fillStyle(COLORS.quill);
+    this.graphics.fillStyle(this.quillColor);
 
     // Draw as a pointed needle shape
     this.graphics.beginPath();
@@ -179,8 +185,8 @@ export class Quill extends Phaser.GameObjects.Container {
     this.graphics.closePath();
     this.graphics.fillPath();
 
-    // Add a slight dark tip
-    this.graphics.fillStyle(0xcccccc);
+    // Add a slight tip highlight
+    this.graphics.fillStyle(this.tipColor);
     this.graphics.fillTriangle(
       w / 2, 0,
       w / 4, -h / 4,

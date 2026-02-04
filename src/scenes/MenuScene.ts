@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS } from '../config';
+import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { AuthManager } from '../systems/AuthManager';
+import { PlayerDataManager } from '../systems/PlayerDataManager';
 import { GAME_VERSION } from '../data/version';
 import { ChangelogModal } from '../ui/ChangelogModal';
 
@@ -26,12 +27,16 @@ export class MenuScene extends Phaser.Scene {
     AudioManager.initialize();
     // Initialize Firebase Auth
     AuthManager.initialize();
+    // Initialize player data sync (auth state listener + offline queue)
+    PlayerDataManager.initialize();
+    // Sync player data if due (handles returning from game, offline queue retry)
+    PlayerDataManager.syncIfNeeded();
 
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
 
     // Title
-    this.add.text(centerX, centerY - 150, 'QUILLSTORM', {
+    this.add.text(centerX, centerY - 280, 'QUILLSTORM', {
       fontSize: '72px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
@@ -40,82 +45,35 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Subtitle
-    this.add.text(centerX, centerY - 80, 'A Porcupine Roguelike', {
+    this.add.text(centerX, centerY - 215, 'A Porcupine Roguelike', {
       fontSize: '24px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    // Draw a cute porcupine
-    this.drawPorcupine(centerX, centerY + 20);
+    // Mascot image
+    this.add.image(centerX, centerY - 10, 'mascot').setScale(0.4);
 
     // Play button
-    const playButton = this.add.rectangle(centerX, centerY + 150, 200, 60, 0x4a6741)
-      .setInteractive({ useHandCursor: true });
-
-    this.add.text(centerX, centerY + 150, 'PLAY', {
-      fontSize: '32px',
-      fontFamily: 'Arial Black, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-
-    playButton.on('pointerover', () => {
-      playButton.setFillStyle(0x5a7751);
-    });
-
-    playButton.on('pointerout', () => {
-      playButton.setFillStyle(0x4a6741);
-    });
-
-    playButton.on('pointerdown', () => {
+    const playBtnY = centerY + 150;
+    this.createRoundedButton(centerX, playBtnY, 220, 56, 12, 0x4a6741, 0x5a7751, 'PLAY', '30px', () => {
       AudioManager.resume();
       AudioManager.playButtonClick();
       this.scene.start('GameScene');
     });
 
-    // Shop button
-    const shopButton = this.add.rectangle(centerX, centerY + 220, 120, 40, 0x8b4513)
-      .setInteractive({ useHandCursor: true });
+    // Shop and Leaderboard side by side
+    const secondRowY = playBtnY + 85;
+    const btnWidth = 190;
+    const gap = 20;
 
-    this.add.text(centerX, centerY + 220, 'SHOP', {
-      fontSize: '18px',
-      fontFamily: 'Arial Black, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-
-    shopButton.on('pointerover', () => {
-      shopButton.setFillStyle(0xa0522d);
-    });
-
-    shopButton.on('pointerout', () => {
-      shopButton.setFillStyle(0x8b4513);
-    });
-
-    shopButton.on('pointerdown', () => {
+    this.createRoundedButton(centerX - btnWidth / 2 - gap / 2, secondRowY, btnWidth, 46, 10, 0x8b4513, 0xa0522d, 'SHOP', '20px', () => {
       AudioManager.playButtonClick();
       this.scene.start('ShopScene');
     });
 
-    // Leaderboard button
-    const leaderboardButton = this.add.rectangle(centerX, centerY + 270, 160, 40, 0x444477)
-      .setInteractive({ useHandCursor: true });
-
-    this.add.text(centerX, centerY + 270, 'LEADERBOARD', {
-      fontSize: '18px',
-      fontFamily: 'Arial Black, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-
-    leaderboardButton.on('pointerover', () => {
-      leaderboardButton.setFillStyle(0x555588);
-    });
-
-    leaderboardButton.on('pointerout', () => {
-      leaderboardButton.setFillStyle(0x444477);
-    });
-
-    leaderboardButton.on('pointerdown', () => {
+    this.createRoundedButton(centerX + btnWidth / 2 + gap / 2, secondRowY, btnWidth, 46, 10, 0x444477, 0x555588, 'LEADERBOARD', '20px', () => {
       AudioManager.playButtonClick();
-      this.scene.start('LeaderboardScene');
+      this.scene.start('LeaderboardScene', { returnScene: 'MenuScene' });
     });
 
     // Account button (top right)
@@ -169,7 +127,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Changelog modal
-    this.changelogModal = new ChangelogModal(this, () => {});
+    this.changelogModal = new ChangelogModal(this, () => { });
     this.add.existing(this.changelogModal);
 
     // M key to toggle mute
@@ -263,46 +221,31 @@ export class MenuScene extends Phaser.Scene {
     this.muteText.setText(muted ? 'MUTE' : 'ON');
   }
 
-  drawPorcupine(x: number, y: number): void {
-    const graphics = this.add.graphics();
+  private createRoundedButton(
+    x: number, y: number, w: number, h: number, radius: number,
+    color: number, hoverColor: number,
+    label: string, fontSize: string,
+    onClick: () => void
+  ): void {
+    const gfx = this.add.graphics();
+    const drawBtn = (c: number) => {
+      gfx.clear();
+      gfx.fillStyle(c);
+      gfx.fillRoundedRect(x - w / 2, y - h / 2, w, h, radius);
+    };
+    drawBtn(color);
 
-    // Body (oval)
-    graphics.fillStyle(COLORS.player.full);
-    graphics.fillEllipse(x, y, 80, 50);
+    // Invisible hit area
+    const hitZone = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
 
-    // Quills on back
-    graphics.fillStyle(0xffffff);
-    for (let i = -4; i <= 4; i++) {
-      const angle = (i * 15 - 90) * Math.PI / 180;
-      const startX = x + Math.cos(angle) * 25;
-      const startY = y + Math.sin(angle) * 20;
-      const endX = x + Math.cos(angle) * 50;
-      const endY = y + Math.sin(angle) * 40;
+    this.add.text(x, y, label, {
+      fontSize,
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5);
 
-      graphics.lineStyle(3, 0xffffff);
-      graphics.beginPath();
-      graphics.moveTo(startX, startY);
-      graphics.lineTo(endX, endY);
-      graphics.strokePath();
-    }
-
-    // Face
-    graphics.fillStyle(0x6b5344);
-    graphics.fillEllipse(x + 30, y + 5, 30, 25);
-
-    // Eye
-    graphics.fillStyle(0x000000);
-    graphics.fillCircle(x + 38, y, 5);
-    graphics.fillStyle(0xffffff);
-    graphics.fillCircle(x + 40, y - 2, 2);
-
-    // Nose
-    graphics.fillStyle(0x000000);
-    graphics.fillCircle(x + 48, y + 5, 4);
-
-    // Legs
-    graphics.fillStyle(COLORS.player.full);
-    graphics.fillRect(x - 20, y + 20, 12, 15);
-    graphics.fillRect(x + 8, y + 20, 12, 15);
+    hitZone.on('pointerover', () => drawBtn(hoverColor));
+    hitZone.on('pointerout', () => drawBtn(color));
+    hitZone.on('pointerdown', onClick);
   }
 }

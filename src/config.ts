@@ -13,6 +13,7 @@ export const PLAYER_CONFIG = {
   gravity: 1200,
   airControl: 0.8, // Multiplier for air movement
   coyoteTime: 100, // ms after leaving a platform where jump is still allowed
+  jumpCutMultiplier: 0.4, // Velocity multiplier when jump key released early (lower = shorter min jump)
 
   // Health
   maxHealth: 100,
@@ -45,10 +46,10 @@ export const QUILL_CONFIG = {
 
   // States (percentage thresholds)
   states: {
-    full: { min: 0.70, speedMult: 1, damageMult: 1, takeDamageMult: 1 },
-    patchy: { min: 0.40, speedMult: 1, damageMult: 1, takeDamageMult: 1 },
-    sparse: { min: 0.03, speedMult: 1.1, damageMult: 0.85, takeDamageMult: 1 },
-    naked: { min: 0, speedMult: 1.25, damageMult: 0, takeDamageMult: 2 },
+    full: { min: 0.70, speedMult: 1, damageMult: 1, _ufm: 1 },
+    patchy: { min: 0.40, speedMult: 1, damageMult: 1, _ufm: 1 },
+    sparse: { min: 0.03, speedMult: 1.1, damageMult: 0.85, _ufm: 1 },
+    naked: { min: 0, speedMult: 1.25, damageMult: 0, _ufm: 2 },
   },
 };
 

@@ -5,9 +5,17 @@ import { SaveManager } from '../systems/SaveManager';
 import { LeaderboardManager, SubmissionResult } from '../systems/LeaderboardManager';
 import { SessionManager } from '../systems/SessionManager';
 import { getCosmeticManager } from '../systems/CosmeticManager';
+import { PlayerDataManager } from '../systems/PlayerDataManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { NameInputModal } from '../ui/NameInputModal';
 import { StatsPanel } from '../ui/StatsPanel';
+
+interface SessionStats {
+  totalKills: number;
+  killsByType: Record<string, number>;
+  damageTaken: number;
+  shieldsUsed: number;
+}
 
 interface GameOverData {
   score: number;
@@ -18,12 +26,19 @@ interface GameOverData {
   highestWave?: number;
   sessionPinecones?: number;
   upgradeManager?: UpgradeManager;
+  sessionStats?: SessionStats;
+  isReturn?: boolean;
+}
+
+function formatEnemyName(type: string): string {
+  return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
 export class GameOverScene extends Phaser.Scene {
   private gameData!: GameOverData;
   private nameModal!: NameInputModal;
   private statsPanel: StatsPanel | null = null;
+  private killsPanel: Phaser.GameObjects.Container | null = null;
   private rankText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private buttonsContainer!: Phaser.GameObjects.Container;
@@ -42,10 +57,12 @@ export class GameOverScene extends Phaser.Scene {
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
 
-    // Add session pinecones to player's total
-    if (data.sessionPinecones && data.sessionPinecones > 0) {
+    // Add session pinecones to player's total (only on first visit, not when returning from leaderboard)
+    if (!data.isReturn && data.sessionPinecones && data.sessionPinecones > 0) {
       const cosmeticManager = getCosmeticManager();
       cosmeticManager.addPinecones(data.sessionPinecones);
+      // Sync updated balance to server (fire-and-forget)
+      PlayerDataManager.syncToServer();
     }
 
     const title = data.victory ? 'VICTORY!' : 'GAME OVER';
@@ -94,14 +111,15 @@ export class GameOverScene extends Phaser.Scene {
     const panelWidth = 280;
     const panelX = centerX - panelWidth / 2;
     const panelY = centerY - 60;
-    const panelHeight = 100;
+    const hasStats = !!data.sessionStats;
+    const panelHeight = hasStats ? 145 : 100;
 
     // Panel background
-    const statsPanel = this.add.graphics();
-    statsPanel.fillStyle(0x1a1a2e, 0.9);
-    statsPanel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
-    statsPanel.lineStyle(2, 0x4a6741, 0.8);
-    statsPanel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+    const statsPanelBg = this.add.graphics();
+    statsPanelBg.fillStyle(0x1a1a2e, 0.9);
+    statsPanelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+    statsPanelBg.lineStyle(2, 0x4a6741, 0.8);
+    statsPanelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
 
     // Panel header
     this.add.text(centerX, panelY + 16, 'THIS RUN', {
@@ -134,6 +152,50 @@ export class GameOverScene extends Phaser.Scene {
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
+
+    // Session stats (kills, damage) — summary row in center panel
+    if (data.sessionStats) {
+      const stats = data.sessionStats;
+
+      // Divider line
+      const dividerG = this.add.graphics();
+      dividerG.lineStyle(1, 0x444444, 0.4);
+      dividerG.lineBetween(panelX + 20, panelY + 90, panelX + panelWidth - 20, panelY + 90);
+
+      // Kills
+      this.add.text(centerX - 60, panelY + 105, 'KILLS', {
+        fontSize: '12px',
+        fontFamily: 'Arial',
+        color: '#888888',
+      }).setOrigin(0.5);
+
+      this.add.text(centerX - 60, panelY + 125, `${stats.totalKills}`, {
+        fontSize: '24px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#ff8844',
+      }).setOrigin(0.5);
+
+      // Damage taken
+      const dmgLabel = stats.shieldsUsed > 0 ? 'DMG / SHIELDS' : 'DAMAGE';
+      const dmgValue = stats.shieldsUsed > 0
+        ? `${Math.round(stats.damageTaken)} / ${stats.shieldsUsed}`
+        : `${Math.round(stats.damageTaken)}`;
+
+      this.add.text(centerX + 60, panelY + 105, dmgLabel, {
+        fontSize: '12px',
+        fontFamily: 'Arial',
+        color: '#888888',
+      }).setOrigin(0.5);
+
+      this.add.text(centerX + 60, panelY + 125, dmgValue, {
+        fontSize: '24px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#ff4444',
+      }).setOrigin(0.5);
+
+      // Kill breakdown — left side pane (mirrors StatsPanel on the right)
+      this.createKillsPanel(data.sessionStats);
+    }
 
     // Pinecones earned (golden accent)
     if (data.sessionPinecones && data.sessionPinecones > 0) {
@@ -215,7 +277,7 @@ export class GameOverScene extends Phaser.Scene {
     // Hints at bottom (combined into one line)
     const hintsY = GAME_CONFIG.height - 40;
     const hints = data.upgradeManager
-      ? 'R: Restart  |  TAB: View Stats'
+      ? 'R: Restart  |  TAB: Toggle Panels'
       : 'R: Restart';
 
     this.add.text(centerX, hintsY, hints, {
@@ -223,14 +285,18 @@ export class GameOverScene extends Phaser.Scene {
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    // Stats panel (Tab to toggle)
+    // Stats panel (shown by default on game over, Tab to toggle)
     if (data.upgradeManager) {
       this.statsPanel = new StatsPanel(this, data.upgradeManager);
+      this.statsPanel.show();
 
       // Tab key to toggle stats
       this.tabKeyHandler = () => {
         if (this.statsPanel) {
           this.statsPanel.toggle();
+        }
+        if (this.killsPanel) {
+          this.killsPanel.setVisible(!this.killsPanel.visible);
         }
       };
       this.input.keyboard?.on('keydown-TAB', this.tabKeyHandler);
@@ -246,8 +312,12 @@ export class GameOverScene extends Phaser.Scene {
     };
     this.input.keyboard?.on('keydown-R', this.rKeyHandler);
 
-    // Check if we need name input
-    this.checkNameAndSubmit();
+    // Check if we need name input (skip on return from leaderboard)
+    if (data.isReturn) {
+      this.inputEnabled = true;
+    } else {
+      this.checkNameAndSubmit();
+    }
   }
 
   private createButtons(): void {
@@ -306,7 +376,10 @@ export class GameOverScene extends Phaser.Scene {
       if (!this.inputEnabled) return;
       AudioManager.playButtonClick();
       this.cleanup();
-      this.scene.start('LeaderboardScene');
+      this.scene.start('LeaderboardScene', {
+        returnScene: 'GameOverScene',
+        gameData: { ...this.gameData, isReturn: true },
+      });
     });
 
     menuButton.on('pointerover', () => menuButton.setFillStyle(0x666666));
@@ -320,6 +393,15 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private async checkNameAndSubmit(): Promise<void> {
+    // Must reach wave 5 to submit to leaderboard
+    if (this.gameData.wave < 5) {
+      SessionManager.clearSession();
+      this.statusText.setText('Reach wave 5 to submit to the leaderboard');
+      this.statusText.setColor('#888888');
+      this.inputEnabled = true;
+      return;
+    }
+
     // Always show name input modal, pre-filled with saved name if available
     // This lets players change their name between runs
     const savedName = SaveManager.hasPlayerName() ? SaveManager.getPlayerName() : '';
@@ -408,6 +490,10 @@ export class GameOverScene extends Phaser.Scene {
       this.statsPanel.destroy();
       this.statsPanel = null;
     }
+    if (this.killsPanel) {
+      this.killsPanel.destroy();
+      this.killsPanel = null;
+    }
     if (this.rKeyHandler) {
       this.input.keyboard?.off('keydown-R', this.rKeyHandler);
       this.rKeyHandler = null;
@@ -415,6 +501,70 @@ export class GameOverScene extends Phaser.Scene {
     if (this.tabKeyHandler) {
       this.input.keyboard?.off('keydown-TAB', this.tabKeyHandler);
       this.tabKeyHandler = null;
+    }
+  }
+
+  private createKillsPanel(stats: SessionStats): void {
+    const PANEL_WIDTH = 200;
+    const PANEL_PADDING = 16;
+    const LINE_HEIGHT = 22;
+
+    const killedTypes = Object.entries(stats.killsByType)
+      .filter(([, count]) => count > 0)
+      .sort(([, a], [, b]) => b - a);
+
+    if (killedTypes.length === 0) return;
+
+    // Calculate panel height based on content
+    const headerHeight = 40;
+    const contentHeight = killedTypes.length * LINE_HEIGHT;
+    const panelHeight = headerHeight + contentHeight + PANEL_PADDING;
+
+    this.killsPanel = this.add.container(16, 80);
+    this.killsPanel.setDepth(200);
+
+    // Background
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a1a2e, 0.95);
+    bg.fillRoundedRect(0, 0, PANEL_WIDTH, panelHeight, 8);
+    bg.lineStyle(2, 0xcc8833, 0.8);
+    bg.strokeRoundedRect(0, 0, PANEL_WIDTH, panelHeight, 8);
+    this.killsPanel.add(bg);
+
+    // Title
+    const title = this.add.text(PANEL_PADDING, 12, 'KILLS', {
+      fontSize: '16px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ff8844',
+    });
+    this.killsPanel.add(title);
+
+    // Total kills (right-aligned in header)
+    const totalText = this.add.text(PANEL_WIDTH - PANEL_PADDING, 14, `${stats.totalKills}`, {
+      fontSize: '14px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(1, 0);
+    this.killsPanel.add(totalText);
+
+    // Per-type breakdown
+    let y = headerHeight;
+    for (const [type, count] of killedTypes) {
+      const nameText = this.add.text(PANEL_PADDING + 4, y, formatEnemyName(type), {
+        fontSize: '13px',
+        fontFamily: 'Arial',
+        color: '#aaaaaa',
+      });
+      this.killsPanel.add(nameText);
+
+      const countText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, `${count}`, {
+        fontSize: '13px',
+        fontFamily: 'Arial',
+        color: '#ff8844',
+      }).setOrigin(1, 0);
+      this.killsPanel.add(countText);
+
+      y += LINE_HEIGHT;
     }
   }
 

@@ -27,3 +27,6 @@ npm-debug.log*
 .cache/
 .vercel
 .env*.local
+
+# Internal reference docs
+docs/OBFUSCATION_REFERENCE.md

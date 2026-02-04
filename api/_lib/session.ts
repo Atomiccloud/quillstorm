@@ -31,12 +31,20 @@ export interface KillCounts {
   flyingBoss?: number;
 }
 
+// Performance metrics per wave
+export interface PerfMetrics {
+  d: number;
+  t: number;
+  b: number;
+}
+
 // Wave data recorded during gameplay
 export interface WaveRecord {
   wave: number;
   kills: KillCounts;
   score: number;          // Total score at end of wave
   timestamp: number;
+  pm?: PerfMetrics;
 }
 
 // Full session data stored in Redis
@@ -49,6 +57,7 @@ export interface GameSession {
   finalScore?: number;
   finalWave?: number;
   finalKills?: KillCounts;
+  finalPm?: PerfMetrics;
 }
 
 // Session validation result
@@ -173,6 +182,38 @@ export function validateSubmission(
 
   // Score shouldn't be significantly less than recorded
   if (finalScore < lastRecordedScore * 0.9) {
+    return { valid: false, error: 'Invalid session' };
+  }
+
+  return { valid: true };
+}
+
+// Validate performance metrics across session waves
+export function validatePerf(
+  session: GameSession,
+  score: number,
+  wave: number
+): { valid: boolean; error?: string } {
+  // Only check high scores at wave 20+
+  if (wave < 20 || score < 35000) {
+    return { valid: true };
+  }
+
+  // Collect waves with pm data
+  const wavesWithPm = session.waves.filter(w => w.pm);
+
+  // No data (old client) — pass
+  if (wavesWithPm.length === 0) {
+    return { valid: true };
+  }
+
+  // Fail if every single wave shows zero engagement (no damage, no hits, no shield blocks)
+  const allZero = wavesWithPm.every(w => {
+    const pm = w.pm!;
+    return pm.d === 0 && pm.t === 0 && pm.b === 0;
+  });
+
+  if (allZero) {
     return { valid: false, error: 'Invalid session' };
   }
 

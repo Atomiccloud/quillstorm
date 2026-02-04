@@ -43,6 +43,12 @@ export class GameScene extends Phaser.Scene {
   private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
   private effectsOpacity: number = 1;
 
+  // Cumulative session stats (for game over display)
+  private sessionKills: number = 0;
+  private sessionKillsByType: Record<string, number> = {};
+  private totalDamageTaken: number = 0;
+  private totalShieldsUsed: number = 0;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -112,6 +118,7 @@ export class GameScene extends Phaser.Scene {
     // Start first wave
     this.time.delayedCall(1000, () => {
       this.player.resetShieldsForWave();
+      this.player.resetPerf();
       this.updateCompanions();
       this.waveManager.startWave();
     });
@@ -464,7 +471,7 @@ export class GameScene extends Phaser.Scene {
         // AOE damage to player if in range
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         if (dist <= config.surfaceRadius) {
-          if (this.player.takeDamage(config.surfaceDamage)) {
+          if (this.player._uf(config.surfaceDamage)) {
             AudioManager.playPlayerDamage();
           }
         }
@@ -553,7 +560,7 @@ export class GameScene extends Phaser.Scene {
 
     // Deal damage
     const damage = quill.getDamage();
-    const killed = enemy.takeDamage(damage, hitAngle);
+    const killed = enemy._uf(damage, hitAngle);
 
     // Vampirism - chance to heal based on damage dealt
     const vampirism = this.upgradeManager.getModifier('vampirism');
@@ -572,7 +579,7 @@ export class GameScene extends Phaser.Scene {
         if (otherEnemy === enemy || otherEnemy.isDead()) return;
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, otherEnemy.x, otherEnemy.y);
         if (dist <= explosionRadius) {
-          otherEnemy.takeDamage(damage * 0.5); // AOE does 50% damage
+          otherEnemy._uf(damage * 0.5); // AOE does 50% damage
         }
       });
     }
@@ -582,6 +589,7 @@ export class GameScene extends Phaser.Scene {
       this.hud.addScore(enemy.points);
       this.spawnDeathParticles(enemy.x, enemy.y);
       SessionManager.recordKill(enemy.enemyType);
+      this.recordSessionKill(enemy.enemyType);
 
       // Splitter splits into 2 splitlings on death
       if (enemy.isSplitter()) {
@@ -634,7 +642,7 @@ export class GameScene extends Phaser.Scene {
     // Rolling shellback deals roll damage and knockback
     if (enemy.isRolling) {
       const damage = enemy.getRollDamage();
-      if (this.player.takeDamage(damage)) {
+      if (this.player._uf(damage)) {
         AudioManager.playPlayerDamage();
         // Strong knockback from roll attack
         const knockbackDir = this.player.x > enemy.x ? 1 : -1;
@@ -646,7 +654,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player.takeDamage(enemy.damage)) {
+    if (this.player._uf(enemy.damage)) {
       AudioManager.playPlayerDamage();
     }
   }
@@ -654,7 +662,7 @@ export class GameScene extends Phaser.Scene {
   private onProjectileHitPlayer(_playerObj: Phaser.GameObjects.GameObject, projectileObj: Phaser.GameObjects.GameObject): void {
     const projectile = projectileObj as Phaser.GameObjects.Arc;
 
-    if (this.player.takeDamage(15)) {
+    if (this.player._uf(15)) {
       AudioManager.playPlayerDamage();
     }
     projectile.destroy();
@@ -987,7 +995,13 @@ export class GameScene extends Phaser.Scene {
     this.hud.showWaveComplete();
 
     // Report wave completion for anti-cheat
+    const wavePerf = this.player.getPerf();
+    SessionManager.setPerf(wavePerf);
     SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
+
+    // Accumulate session damage stats
+    this.totalDamageTaken += wavePerf.d;
+    this.totalShieldsUsed += wavePerf.b;
 
     // Clear any remaining enemy projectiles (they shouldn't persist between waves)
     this.enemyProjectiles.clear(true, true);
@@ -1013,9 +1027,9 @@ export class GameScene extends Phaser.Scene {
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
 
-    // Block shooting briefly to prevent accidental shots when clicking upgrade button
+    // Block shooting briefly to prevent the upgrade-select click from firing a shot
     this.shootingBlocked = true;
-    this.time.delayedCall(150, () => {
+    this.time.delayedCall(50, () => {
       this.shootingBlocked = false;
     });
 
@@ -1078,6 +1092,7 @@ export class GameScene extends Phaser.Scene {
     // Start next wave
     this.time.delayedCall(500, () => {
       this.player.resetShieldsForWave();
+      this.player.resetPerf();
       this.updateCompanions();
       if (isBossWave) {
         this.hud.showBossWarning();
@@ -1114,6 +1129,11 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private recordSessionKill(enemyType: string): void {
+    this.sessionKills++;
+    this.sessionKillsByType[enemyType] = (this.sessionKillsByType[enemyType] || 0) + 1;
+  }
+
   private onPlayerDeath(): void {
     this.gameOver = true;
     AudioManager.playGameOver();
@@ -1123,7 +1143,13 @@ export class GameScene extends Phaser.Scene {
     const finalWave = this.waveManager.currentWave;
 
     // Report game over for anti-cheat
+    const deathPerf = this.player.getPerf();
+    SessionManager.setPerf(deathPerf);
     SessionManager.reportGameOver(finalWave, finalScore);
+
+    // Accumulate final wave's damage stats
+    this.totalDamageTaken += deathPerf.d;
+    this.totalShieldsUsed += deathPerf.b;
 
     // Submit score
     const isNewHighScore = SaveManager.submitRun(finalScore, finalWave);
@@ -1142,6 +1168,12 @@ export class GameScene extends Phaser.Scene {
         highestWave: SaveManager.getHighestWave(),
         sessionPinecones,
         upgradeManager: this.upgradeManager,
+        sessionStats: {
+          totalKills: this.sessionKills,
+          killsByType: { ...this.sessionKillsByType },
+          damageTaken: this.totalDamageTaken,
+          shieldsUsed: this.totalShieldsUsed,
+        },
       });
     });
   }
@@ -1203,12 +1235,13 @@ export class GameScene extends Phaser.Scene {
       if (!enemy.isDead()) {
         // Companion quills do base damage (less than player upgraded quills)
         const damage = 10 * (1 + this.upgradeManager.getModifier('damage') * 0.5);
-        const killed = enemy.takeDamage(damage);
+        const killed = enemy._uf(damage);
         if (killed) {
           AudioManager.playEnemyDeath();
           this.hud.addScore(enemy.points);
           this.spawnDeathParticles(enemy.x, enemy.y);
           SessionManager.recordKill(enemy.enemyType);
+          this.recordSessionKill(enemy.enemyType);
           // Splitter splits on death from companion quills too
           if (enemy.isSplitter()) {
             AudioManager.playSplit();
