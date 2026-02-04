@@ -26,6 +26,8 @@ Single source of truth for all completed and planned work.
 - [x] Prosperity system (luck-like stat: chest drops, rarity shift, crit bonus) — config + upgrades
 - [x] XP system (orbs, magnetic collection, level-up upgrades) — `src/entities/XPOrb.ts`, `src/systems/ProgressionManager.ts`
 - [x] Infinite swarm mode (endless at level 20, continuous spawns) — `src/systems/WaveManager.ts`
+- [x] Shield visual indicator (cyan diamond + charge pips above porcupine) — `src/entities/Player.ts`
+- [x] Infinite swarm shield regen (time-based, 1 charge per 30s) — `src/entities/Player.ts`, `src/config.ts`
 - [x] Pinecone currency drops from enemies — `src/entities/Pinecone.ts`
 
 ### Shop & Cosmetics

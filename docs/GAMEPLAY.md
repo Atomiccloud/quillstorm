@@ -386,6 +386,10 @@ Upgrades are offered after each wave. Rarity determines power level.
 - Absorb one hit each before breaking
 - Reset to full at the start of each wave
 - Brief invincibility (500ms) when shield breaks
+- Cyan diamond icon with charge pips displayed above the porcupine when active
+- In infinite swarm: regenerate 1 charge every 30s (configurable via `INFINITE_SWARM_CONFIG.shieldRegenInterval`)
+- Taking a hit resets the regen timer
+- New shield charges from mid-wave upgrades are granted immediately
 
 ### Companions (Baby Porcupines)
 - Obtained through upgrades (Baby Buddy, Porcupine Pack, Porcupine Army)

@@ -294,6 +294,45 @@ During infinite swarm:
 
 ---
 
+## Shield Regeneration
+
+Since there are no wave transitions in infinite swarm, shields cannot reset between waves. Instead, shields regenerate on a timer.
+
+### Config
+
+| Parameter | Value |
+|-----------|-------|
+| Regen interval | 30,000ms (30 seconds per charge) |
+| Config key | `INFINITE_SWARM_CONFIG.shieldRegenInterval` |
+
+### Behavior
+
+- **Full reset on activation** — shields reset to max when infinite swarm begins
+- **Time-based regen** — one shield charge regenerates every 30 seconds
+- **Reset on hit** — taking a hit (shield absorb) resets the regen timer to 0
+- **Capped at max** — charges never exceed the upgrade total
+
+### Example: Fortress (3 charges)
+
+| Event | Charges | Timer |
+|-------|---------|-------|
+| Swarm starts | 3/3 | 0s |
+| Hit at 10s | 2/3 | reset → 0s |
+| Hit at 15s | 1/3 | reset → 0s |
+| 30s passes | 2/3 | reset → 0s |
+| Hit at 5s | 1/3 | reset → 0s |
+| 30s passes | 2/3 | reset → 0s |
+| 30s passes | 3/3 | paused (full) |
+
+### Visual Indicator
+
+- Cyan diamond icon floats above the porcupine (above hats) when charges > 0
+- Charge pips below the icon: filled = active, hollow = depleted (shown when max > 1)
+- Icon pulses gently via sine wave animation
+- Cyan sparkle effect plays when a charge regenerates
+
+---
+
 ## What Does NOT Happen
 
 - **No wave completion triggers** — upgrades are not offered between spawns
