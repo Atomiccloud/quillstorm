@@ -357,9 +357,8 @@ Only for high scores: **wave >= 20 AND score >= 35,000**. Lower scores are not c
 
 ### Detection Logic
 
-- A "zero engagement" wave is one where all three metrics are zero
-- **Fail if** more than 4 consecutive zero-engagement waves
-- **Fail if** 50% or more of waves with data show zero engagement
+- **Fail if** every single wave shows zero engagement (no damage taken, no hits, no shield blocks)
+- Any wave with at least one hit, damage, or shield break counts as engagement and passes validation
 - Shield blocks count as engagement (legitimate defensive play)
 
 ### Integration

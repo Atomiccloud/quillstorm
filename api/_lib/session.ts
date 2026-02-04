@@ -202,36 +202,18 @@ export function validatePerf(
   // Collect waves with pm data
   const wavesWithPm = session.waves.filter(w => w.pm);
 
-  // Not enough data (old client or short game)
-  if (wavesWithPm.length < 8) {
+  // No data (old client) — pass
+  if (wavesWithPm.length === 0) {
     return { valid: true };
   }
 
-  // Count zero-engagement waves (no damage, no hits, no shield blocks)
-  let zeroCount = 0;
-  let maxConsecutiveZero = 0;
-  let currentConsecutiveZero = 0;
-
-  for (const w of wavesWithPm) {
+  // Fail if every single wave shows zero engagement (no damage, no hits, no shield blocks)
+  const allZero = wavesWithPm.every(w => {
     const pm = w.pm!;
-    const isZero = pm.d === 0 && pm.t === 0 && pm.b === 0;
+    return pm.d === 0 && pm.t === 0 && pm.b === 0;
+  });
 
-    if (isZero) {
-      zeroCount++;
-      currentConsecutiveZero++;
-      maxConsecutiveZero = Math.max(maxConsecutiveZero, currentConsecutiveZero);
-    } else {
-      currentConsecutiveZero = 0;
-    }
-  }
-
-  // Fail: too many consecutive zero-engagement waves
-  if (maxConsecutiveZero > 4) {
-    return { valid: false, error: 'Invalid session' };
-  }
-
-  // Fail: too high a fraction of zero-engagement waves
-  if (zeroCount / wavesWithPm.length >= 0.5) {
+  if (allZero) {
     return { valid: false, error: 'Invalid session' };
   }
 
