@@ -31,7 +31,9 @@ export const QUILL_CONFIG = {
 
   // Regeneration
   regenRate: 1.0, // Quills per second (base)
-  regenDelay: 800, // ms before regen starts after firing
+  regenDelay: 600, // base ms before regen starts after firing (scales down with regen rate)
+  regenDelayMin: 100, // minimum regen delay at high regen rate
+  regenDelayMaxRegen: 2.0, // regen bonus at which delay hits minimum (200%)
   nakedRegenMultiplier: 3, // Faster regen when naked
 
   // Firing

@@ -26,7 +26,7 @@ Your quill percentage determines your state:
 
 ### Quill Regeneration
 - **Base Rate**: 1.0 quill/sec
-- **Regen Delay**: 800ms pause after shooting
+- **Regen Delay**: 600ms pause after shooting (scales down with regen rate, min 100ms at 200%+)
 - **Naked Bonus**: 3x regeneration when in naked state
 
 ### Shooting
