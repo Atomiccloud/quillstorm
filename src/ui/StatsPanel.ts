@@ -252,47 +252,51 @@ export class StatsPanel {
     const eliteDamageBonus = this.upgradeManager.getModifier('eliteDamageBonus');
     if (eliteDamageBonus !== 0) combat.push({ name: 'Elite Damage', value: formatPercent(eliteDamageBonus) });
 
-    // Elemental stats
+    // Elemental stats (strength-based with diminishing returns formula)
     const elemental: { name: string; value: string }[] = [];
+    const getChance = (str: number) => str > 0 ? (str * 0.1) / (1 + str * 0.1) : 0;
 
-    const shockChance = this.upgradeManager.getModifier('shockChance');
-    if (shockChance > 0) {
-      elemental.push({ name: 'Shock', value: formatPercent(shockChance) });
-      const shockDuration = this.upgradeManager.getModifier('shockDuration');
-      if (shockDuration > 0) elemental.push({ name: '  Duration', value: `${shockDuration}ms` });
+    const shockStrength = this.upgradeManager.getModifier('shockStrength');
+    if (shockStrength > 0) {
+      const chance = Math.round(getChance(shockStrength) * 100);
+      elemental.push({ name: 'Shock', value: `${chance}% (${shockStrength} str)` });
       const chainLightning = this.upgradeManager.getModifier('chainLightning');
       if (chainLightning > 0) elemental.push({ name: '  Chain', value: `${chainLightning} targets` });
     }
 
-    const freezeChance = this.upgradeManager.getModifier('freezeChance');
-    if (freezeChance > 0) {
-      elemental.push({ name: 'Freeze', value: formatPercent(freezeChance) });
-      const freezeDuration = this.upgradeManager.getModifier('freezeDuration');
-      if (freezeDuration > 0) elemental.push({ name: '  Duration', value: `${freezeDuration}ms` });
+    const freezeStrength = this.upgradeManager.getModifier('freezeStrength');
+    if (freezeStrength > 0) {
+      const chance = Math.round(getChance(freezeStrength) * 100);
+      elemental.push({ name: 'Freeze', value: `${chance}% (${freezeStrength} str)` });
       const shatterDamage = this.upgradeManager.getModifier('shatterDamage');
-      if (shatterDamage > 0) elemental.push({ name: '  Shatter', value: formatPercent(shatterDamage) });
+      if (shatterDamage > 0) elemental.push({ name: '  Shatter', value: `${Math.round(shatterDamage * 100)}% HP` });
+      const frostSlow = this.upgradeManager.getModifier('frostSlow');
+      if (frostSlow > 0) elemental.push({ name: '  Slow', value: `${Math.round(Math.min(frostSlow, 1) * 100)}%` });
     }
 
-    const burnChance = this.upgradeManager.getModifier('burnChance');
-    if (burnChance > 0) {
-      elemental.push({ name: 'Burn', value: formatPercent(burnChance) });
-      const burnDPS = this.upgradeManager.getModifier('burnDPS');
-      if (burnDPS > 0) {
-        const damageMult = 1 + this.upgradeManager.getModifier('damage');
-        const scaledDPS = Math.round(burnDPS * damageMult);
-        const duration = STATUS_EFFECT_CONFIG.burn.defaultDuration / 1000;
-        elemental.push({ name: '  DPS/stack', value: `${scaledDPS} (${duration}s)` });
-      }
+    const burnStrength = this.upgradeManager.getModifier('burnStrength');
+    if (burnStrength > 0) {
+      const chance = Math.round(getChance(burnStrength) * 100);
+      const damageMult = 1 + this.upgradeManager.getModifier('damage');
+      const scaledDPS = Math.round(burnStrength * 8 * damageMult);
+      const duration = STATUS_EFFECT_CONFIG.burn.defaultDuration / 1000;
+      elemental.push({ name: 'Burn', value: `${chance}% (${burnStrength} str)` });
+      elemental.push({ name: '  DPS/stack', value: `${scaledDPS} (${duration}s)` });
+      const fireExplosion = this.upgradeManager.getModifier('fireExplosion');
+      if (fireExplosion > 0) elemental.push({ name: '  Explosion', value: `${fireExplosion}px` });
+      const fireAura = this.upgradeManager.getModifier('fireAura');
+      if (fireAura > 0) elemental.push({ name: '  Aura', value: `${fireAura}px` });
     }
 
-    const poisonChance = this.upgradeManager.getModifier('poisonChance');
-    if (poisonChance > 0) {
-      elemental.push({ name: 'Poison', value: formatPercent(poisonChance) });
-      const poisonAmp = this.upgradeManager.getModifier('poisonAmp');
-      if (poisonAmp > 0) {
-        const duration = STATUS_EFFECT_CONFIG.poison.defaultDuration / 1000;
-        elemental.push({ name: '  Amp/stack', value: `${formatPercent(poisonAmp)} (${duration}s)` });
-      }
+    const poisonStrength = this.upgradeManager.getModifier('poisonStrength');
+    if (poisonStrength > 0) {
+      const chance = Math.round(getChance(poisonStrength) * 100);
+      const amp = poisonStrength * 5; // 5% per strength
+      const duration = STATUS_EFFECT_CONFIG.poison.defaultDuration / 1000;
+      elemental.push({ name: 'Poison', value: `${chance}% (${poisonStrength} str)` });
+      elemental.push({ name: '  Amp/stack', value: `${amp}% (${duration}s)` });
+      const poisonCloud = this.upgradeManager.getModifier('poisonCloud');
+      if (poisonCloud > 0) elemental.push({ name: '  Cloud', value: `${poisonCloud}px` });
     }
 
     const rerollChance = this.upgradeManager.getModifier('rerollChance');

@@ -1334,41 +1334,49 @@ export class GameScene extends Phaser.Scene {
     return rerollChance > 0 && Math.random() < rerollChance && Math.random() < chance;
   }
 
+  /** Calculate elemental proc chance from strength using diminishing returns formula */
+  private getElementalChance(strength: number): number {
+    if (strength <= 0) return 0;
+    const x = strength * 0.1;
+    return x / (1 + x);
+  }
+
   /** Apply elemental status effects from quill hit. Empowered quills (Apotheosis) auto-proc all elements. */
   private applyElementalProcs(enemy: Enemy, empowered: boolean = false): void {
-    // Lightning - shock (stun)
-    const shockChance = this.upgradeManager.getModifier('shockChance');
-    if (shockChance > 0 && (empowered || this.rollProc(shockChance))) {
-      const shockDuration = this.upgradeManager.getModifier('shockDuration');
-      enemy.applyShock(shockDuration);
+    // Lightning - shock (stun) — strength-based proc chance
+    const shockStrength = this.upgradeManager.getModifier('shockStrength');
+    const shockChance = this.getElementalChance(shockStrength);
+    if (shockStrength > 0 && (empowered || this.rollProc(shockChance))) {
+      enemy.applyShock(STATUS_EFFECT_CONFIG.shock.defaultDuration);
 
       // Chain lightning - arcs to nearby enemies on shock proc
       const chainCount = Math.floor(this.upgradeManager.getModifier('chainLightning'));
       if (chainCount > 0) {
-        this.triggerChainLightning(enemy, chainCount, shockDuration);
+        this.triggerChainLightning(enemy, chainCount, STATUS_EFFECT_CONFIG.shock.defaultDuration);
       }
     }
 
-    // Ice - freeze (immobilize)
-    const freezeChance = this.upgradeManager.getModifier('freezeChance');
-    if (freezeChance > 0 && (empowered || this.rollProc(freezeChance))) {
-      const freezeDuration = this.upgradeManager.getModifier('freezeDuration');
-      enemy.applyFreeze(freezeDuration);
+    // Ice - freeze (immobilize) — strength-based proc chance
+    const freezeStrength = this.upgradeManager.getModifier('freezeStrength');
+    const freezeChance = this.getElementalChance(freezeStrength);
+    if (freezeStrength > 0 && (empowered || this.rollProc(freezeChance))) {
+      enemy.applyFreeze(STATUS_EFFECT_CONFIG.freeze.defaultDuration);
     }
 
-    // Fire - burn (stacking DoT) — DPS scales with damage modifier
-    const burnChance = this.upgradeManager.getModifier('burnChance');
-    if (burnChance > 0 && (empowered || this.rollProc(burnChance))) {
-      const burnDPS = this.upgradeManager.getModifier('burnDPS');
+    // Fire - burn (stacking DoT) — DPS = strength * 8 * damageMult
+    const burnStrength = this.upgradeManager.getModifier('burnStrength');
+    const burnChance = this.getElementalChance(burnStrength);
+    if (burnStrength > 0 && (empowered || this.rollProc(burnChance))) {
       const damageMult = 1 + this.upgradeManager.getModifier('damage');
-      const scaledDPS = burnDPS * damageMult;
+      const scaledDPS = burnStrength * 8 * damageMult;
       enemy.applyBurn(scaledDPS, STATUS_EFFECT_CONFIG.burn.defaultDuration);
     }
 
-    // Poison - venom (stacking damage amp) — uses fixed duration from config
-    const poisonChance = this.upgradeManager.getModifier('poisonChance');
-    if (poisonChance > 0 && (empowered || this.rollProc(poisonChance))) {
-      const poisonAmp = this.upgradeManager.getModifier('poisonAmp');
+    // Poison - venom (stacking damage amp) — amp = strength * 5%
+    const poisonStrength = this.upgradeManager.getModifier('poisonStrength');
+    const poisonChance = this.getElementalChance(poisonStrength);
+    if (poisonStrength > 0 && (empowered || this.rollProc(poisonChance))) {
+      const poisonAmp = poisonStrength * 0.05;
       enemy.applyPoison(poisonAmp, STATUS_EFFECT_CONFIG.poison.defaultDuration);
     }
   }
@@ -1443,9 +1451,9 @@ export class GameScene extends Phaser.Scene {
       // Scale explosion with burn stack count
       const stacks = enemy.getBurnStackCount();
       const radius = fireExplosionRadius * (1 + stacks * 0.15);
-      const burnDPS = this.upgradeManager.getModifier('burnDPS');
+      const burnStrength = this.upgradeManager.getModifier('burnStrength');
       const damageMult = 1 + this.upgradeManager.getModifier('damage');
-      const scaledDPS = burnDPS * damageMult;
+      const scaledDPS = burnStrength * 8 * damageMult;
       const explosionDamage = scaledDPS * stacks * 2; // Burst damage based on active burn stacks
 
       this.waveManager.enemies.getChildren().forEach((obj) => {
@@ -1468,7 +1476,8 @@ export class GameScene extends Phaser.Scene {
 
     if (enemy.isPoisoned() && (hasPoisonSpread || poisonCloudRadius > 0)) {
       const spreadRange = hasPoisonSpread ? STATUS_EFFECT_CONFIG.poison.spreadRange : 0;
-      const poisonAmp = this.upgradeManager.getModifier('poisonAmp');
+      const poisonStrength = this.upgradeManager.getModifier('poisonStrength');
+      const poisonAmp = poisonStrength * 0.05;
       const poisonDur = STATUS_EFFECT_CONFIG.poison.defaultDuration;
 
       if (hasPoisonSpread) {

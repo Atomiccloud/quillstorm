@@ -26,25 +26,19 @@ export type ModifierType =
   | 'dangerLevel'
   | 'eliteDamageBonus'
   | 'upgradeChoices'
-  // Elemental - Lightning
-  | 'shockChance'
-  | 'shockDuration'
+  // Elemental - Lightning (strength-based)
+  | 'shockStrength'
   | 'chainLightning'
-  // Elemental - Ice
-  | 'freezeChance'
-  | 'freezeDuration'
+  // Elemental - Ice (strength-based)
+  | 'freezeStrength'
   | 'frostSlow'
   | 'shatterDamage'
-  // Elemental - Fire
-  | 'burnChance'
-  | 'burnDPS'
-  | 'burnDuration'
+  // Elemental - Fire (strength-based)
+  | 'burnStrength'
   | 'fireAura'
   | 'fireExplosion'
-  // Elemental - Poison
-  | 'poisonChance'
-  | 'poisonAmp'
-  | 'poisonDuration'
+  // Elemental - Poison (strength-based)
+  | 'poisonStrength'
   | 'poisonSpread'
   | 'poisonCloud'
   // Defense
@@ -89,25 +83,19 @@ export class UpgradeManager {
     this.modifiers.set('dangerLevel', 0);
     this.modifiers.set('eliteDamageBonus', 0);
     this.modifiers.set('upgradeChoices', 0);
-    // Elemental - Lightning
-    this.modifiers.set('shockChance', 0);
-    this.modifiers.set('shockDuration', 0);
+    // Elemental - Lightning (strength-based)
+    this.modifiers.set('shockStrength', 0);
     this.modifiers.set('chainLightning', 0);
-    // Elemental - Ice
-    this.modifiers.set('freezeChance', 0);
-    this.modifiers.set('freezeDuration', 0);
+    // Elemental - Ice (strength-based)
+    this.modifiers.set('freezeStrength', 0);
     this.modifiers.set('frostSlow', 0);
     this.modifiers.set('shatterDamage', 0);
-    // Elemental - Fire
-    this.modifiers.set('burnChance', 0);
-    this.modifiers.set('burnDPS', 0);
-    this.modifiers.set('burnDuration', 0);
+    // Elemental - Fire (strength-based)
+    this.modifiers.set('burnStrength', 0);
     this.modifiers.set('fireAura', 0);
     this.modifiers.set('fireExplosion', 0);
-    // Elemental - Poison
-    this.modifiers.set('poisonChance', 0);
-    this.modifiers.set('poisonAmp', 0);
-    this.modifiers.set('poisonDuration', 0);
+    // Elemental - Poison (strength-based)
+    this.modifiers.set('poisonStrength', 0);
     this.modifiers.set('poisonSpread', 0);
     this.modifiers.set('poisonCloud', 0);
     // Defense
@@ -204,22 +192,16 @@ export class UpgradeManager {
       if (effects.upgradeChoices !== undefined) {
         this.addModifier('upgradeChoices', effects.upgradeChoices);
       }
-      // Elemental - Lightning
-      if (effects.shockChance !== undefined) {
-        this.addModifier('shockChance', effects.shockChance);
-      }
-      if (effects.shockDuration !== undefined) {
-        this.addModifier('shockDuration', effects.shockDuration);
+      // Elemental - Lightning (strength-based)
+      if (effects.shockStrength !== undefined) {
+        this.addModifier('shockStrength', effects.shockStrength);
       }
       if (effects.chainLightning !== undefined) {
         this.addModifier('chainLightning', effects.chainLightning);
       }
-      // Elemental - Ice
-      if (effects.freezeChance !== undefined) {
-        this.addModifier('freezeChance', effects.freezeChance);
-      }
-      if (effects.freezeDuration !== undefined) {
-        this.addModifier('freezeDuration', effects.freezeDuration);
+      // Elemental - Ice (strength-based)
+      if (effects.freezeStrength !== undefined) {
+        this.addModifier('freezeStrength', effects.freezeStrength);
       }
       if (effects.frostSlow !== undefined) {
         this.addModifier('frostSlow', effects.frostSlow);
@@ -227,15 +209,9 @@ export class UpgradeManager {
       if (effects.shatterDamage !== undefined) {
         this.addModifier('shatterDamage', effects.shatterDamage);
       }
-      // Elemental - Fire
-      if (effects.burnChance !== undefined) {
-        this.addModifier('burnChance', effects.burnChance);
-      }
-      if (effects.burnDPS !== undefined) {
-        this.addModifier('burnDPS', effects.burnDPS);
-      }
-      if (effects.burnDuration !== undefined) {
-        this.addModifier('burnDuration', effects.burnDuration);
+      // Elemental - Fire (strength-based)
+      if (effects.burnStrength !== undefined) {
+        this.addModifier('burnStrength', effects.burnStrength);
       }
       if (effects.fireAura !== undefined) {
         this.addModifier('fireAura', effects.fireAura);
@@ -243,15 +219,9 @@ export class UpgradeManager {
       if (effects.fireExplosion !== undefined) {
         this.addModifier('fireExplosion', effects.fireExplosion);
       }
-      // Elemental - Poison
-      if (effects.poisonChance !== undefined) {
-        this.addModifier('poisonChance', effects.poisonChance);
-      }
-      if (effects.poisonAmp !== undefined) {
-        this.addModifier('poisonAmp', effects.poisonAmp);
-      }
-      if (effects.poisonDuration !== undefined) {
-        this.addModifier('poisonDuration', effects.poisonDuration);
+      // Elemental - Poison (strength-based)
+      if (effects.poisonStrength !== undefined) {
+        this.addModifier('poisonStrength', effects.poisonStrength);
       }
       if (effects.poisonSpread !== undefined) {
         this.addModifier('poisonSpread', effects.poisonSpread);
@@ -372,21 +342,30 @@ export class UpgradeManager {
     if (this.modifiers.get('upgradeChoices')! !== 0) {
       summary.push({ name: 'Extra Choices', value: formatFlat(this.modifiers.get('upgradeChoices')!) });
     }
-    // Elemental
-    if (this.modifiers.get('shockChance')! !== 0) {
-      summary.push({ name: 'Shock Chance', value: formatPercent(this.modifiers.get('shockChance')!) });
+    // Elemental (strength-based with diminishing returns formula)
+    const getChance = (str: number) => str > 0 ? (str * 0.1) / (1 + str * 0.1) : 0;
+    const shockStr = this.modifiers.get('shockStrength')!;
+    if (shockStr !== 0) {
+      const chance = Math.round(getChance(shockStr) * 100);
+      summary.push({ name: 'Shock', value: `${chance}% (${shockStr} str)` });
     }
-    if (this.modifiers.get('freezeChance')! !== 0) {
-      summary.push({ name: 'Freeze Chance', value: formatPercent(this.modifiers.get('freezeChance')!) });
+    const freezeStr = this.modifiers.get('freezeStrength')!;
+    if (freezeStr !== 0) {
+      const chance = Math.round(getChance(freezeStr) * 100);
+      summary.push({ name: 'Freeze', value: `${chance}% (${freezeStr} str)` });
     }
-    if (this.modifiers.get('burnChance')! !== 0) {
-      summary.push({ name: 'Burn Chance', value: formatPercent(this.modifiers.get('burnChance')!) });
+    const burnStr = this.modifiers.get('burnStrength')!;
+    if (burnStr !== 0) {
+      const chance = Math.round(getChance(burnStr) * 100);
+      summary.push({ name: 'Burn', value: `${chance}% (${burnStr} str)` });
     }
-    if (this.modifiers.get('poisonChance')! !== 0) {
-      summary.push({ name: 'Poison Chance', value: formatPercent(this.modifiers.get('poisonChance')!) });
+    const poisonStr = this.modifiers.get('poisonStrength')!;
+    if (poisonStr !== 0) {
+      const chance = Math.round(getChance(poisonStr) * 100);
+      summary.push({ name: 'Poison', value: `${chance}% (${poisonStr} str)` });
     }
     if (this.modifiers.get('chainLightning')! !== 0) {
-      summary.push({ name: 'Chain Lightning', value: formatFlat(this.modifiers.get('chainLightning')!) });
+      summary.push({ name: 'Chain Lightning', value: `${this.modifiers.get('chainLightning')!} targets` });
     }
     // Defense
     if (this.modifiers.get('armor')! !== 0) {

@@ -404,10 +404,10 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Explosive Tips | 40px explosion radius | AOE damage on hit |
 | Energy Shield | +1 shield charge | Block 1 hit per wave |
 | Seeker Quills | +30% homing | Quills track enemies |
-| Static Quills | 8% shock, 500ms stun | Chance to stun enemies |
-| Frost Tips | 10% freeze, 600ms | Chance to freeze enemies |
-| Ember Quills | 12% burn, 8 DPS (scales w/ dmg) | Stacking burn DoT |
-| Toxic Quills | 12% poison, 15% amp | Stacking damage amplification |
+| Static Quills | +2 shock strength (17%) | Chance to stun enemies |
+| Frost Tips | +2 freeze strength (17%) | Chance to freeze enemies |
+| Ember Quills | +2 burn strength (17%, 16 DPS) | Stacking burn DoT |
+| Toxic Quills | +2 poison strength (17%, 10% amp) | Stacking damage amplification |
 | Iron Quills | +8% armor (×2) | Hardened quill damage resistance |
 | Acrobat | +8% evasion, +5% speed | Agile dodge build |
 
@@ -427,10 +427,10 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Cluster Bombs | 60px explosion, +20% damage | Bigger explosions |
 | Reinforced Shield | +2 shields, +15 health | Better defense |
 | Baby Buddy | +1 companion | Baby porcupine helper |
-| Lightning Quills | +12% shock, +300ms stun | Better stun procs |
-| Icicle Quills | +12% freeze, +400ms | Longer freeze |
-| Flame Quills | +10% burn, +8 DPS (scales w/ dmg) | Hotter stacking burns |
-| Noxious Spines | +10% poison, +10% amp | Deeper venom stacks |
+| Lightning Quills | +3 shock strength (23%) | Better stun procs |
+| Icicle Quills | +3 freeze strength (23%) | Longer freeze |
+| Flame Quills | +3 burn strength (23%, 24 DPS) | Hotter stacking burns |
+| Noxious Spines | +3 poison strength (23%, 15% amp) | Deeper venom stacks |
 | Porcupine Plate | +12% armor, +10 HP | Natural armor plating |
 | Shadow Step | +12% evasion | Phase through attacks |
 
@@ -450,10 +450,10 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Porcupine Pack | +2 companions | Two helpers |
 | Fortress | +3 shields, +30 health | Strong defense |
 | Smart Missiles | +70% homing, +1 pierce | Tracking quills |
-| Thunder Strike | +10% shock, +200ms, chain to 2 | Lightning arcs to nearby enemies |
-| Blizzard Quills | +8% freeze, +500ms, 50% slow | Frozen enemies chill nearby foes |
-| Inferno Quills | +8% burn, +8 DPS, 30px aura | Burning enemies scorch nearby |
-| Plague Bearer | +8% poison, +10% amp, spread | Poison spreads on death |
+| Thunder Strike | +3 shock strength, +3 chain targets | Lightning arcs to nearby enemies |
+| Blizzard Quills | +3 freeze strength, +50% slow aura | Frozen enemies chill nearby foes |
+| Inferno Quills | +3 burn strength, +30px fire aura | Burning enemies scorch nearby |
+| Plague Bearer | +3 poison strength, spread on death | Poison spreads on death |
 | Diamond Hide | +15% armor, 10 thorns | Reflects damage to attackers |
 | Phantom Porcupine | +15% evasion, +15% speed | Nearly untouchable |
 
@@ -472,53 +472,73 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Porcupine Army | +4 companions | 1 | Army of helpers |
 | Vampire Lord | +15% vampirism, +30% damage | 1 | Lifesteal build |
 | Immortal Fortress | +5 shields, +50 health | 1 | Unkillable defense |
-| Storm Caller | +10% shock, +200ms, chain to +3 | 1 | Storm of chain lightning |
-| Absolute Zero | +10% freeze, +500ms, 50% shatter | 1 | Frozen enemies shatter on death |
-| Hellfire | +10% burn, +8 DPS, 80px explosion | 1 | Burning enemies explode on death |
-| Pandemic | +10% poison, +15% amp, 50px cloud | 1 | Death releases poison cloud |
+| Storm Caller | +5 shock strength (33%), +3 chain targets | ∞ | Storm of chain lightning |
+| Absolute Zero | +5 freeze strength (33%), +50% shatter | ∞ | Frozen enemies shatter on death |
+| Hellfire | +5 burn strength (33%, 40 DPS), +80px explosion | ∞ | Burning enemies explode on death |
+| Pandemic | +5 poison strength (33%, 25% amp), +50px cloud | ∞ | Death releases poison cloud |
 
 ---
 
 ## Elemental Effects
 
 ### Overview
-Quills can proc elemental status effects on enemies. Each element has 4 upgrade tiers (uncommon → legendary). Fire and Poison **stack** on enemies (multiple independent stacks), while Lightning and Ice are **single instance** (new procs refresh duration).
+Quills can proc elemental status effects on enemies. Each element has 4 upgrade tiers (uncommon → legendary). **All elemental upgrades are infinitely stackable** — players can become extremely powerful.
+
+### Strength System
+Elemental proc chances use a **diminishing returns formula** for balanced scaling:
+
+```
+procChance = (strength × 0.1) / (1 + strength × 0.1)
+```
+
+| Strength | Proc Chance |
+|----------|-------------|
+| 2 | 16.7% |
+| 3 | 23.1% |
+| 5 | 33.3% |
+| 8 | 44.4% |
+| 10 | 50% |
+| 15 | 60% |
+| 20 | 66.7% |
+
+**Strength per tier**: Uncommon +2, Rare +3, Epic +3 (+ special effect), Legendary +5 (+ special effect)
 
 ### Lightning (Shock) — Crowd Control
 - **Behavior**: Stuns enemy, stopping all movement and attacks (including spitter projectiles)
-- **Stacking**: Single instance — new shock refreshes duration if longer
+- **Duration**: Fixed 500ms (from `STATUS_EFFECT_CONFIG.shock.defaultDuration`)
+- **Stacking**: Single instance — new shock refreshes duration
 - **Visual**: Yellow flash + jagged spark particles
-- **Chain Lightning** (Thunder Strike+): Arcs to nearby enemies on shock proc, range 150px
-- **Full stack**: 40% shock chance, 1200ms stun, chains to 5 enemies
+- **Chain Lightning** (Thunder Strike, Storm Caller): Arcs to nearby enemies on shock proc, +3 targets per upgrade (stacks additively)
+- **Example**: 2× Storm Caller = 10 strength (50% shock chance), 6 chain targets
 
 ### Ice (Freeze) — Immobilize
 - **Behavior**: Freezes enemy solid, stopping all movement and attacks
-- **Stacking**: Single instance — new freeze refreshes duration if longer
+- **Duration**: Fixed 600ms (from `STATUS_EFFECT_CONFIG.freeze.defaultDuration`)
+- **Stacking**: Single instance — new freeze refreshes duration
 - **Visual**: Blue tint + ice crystal outline
-- **Frost Slow** (Blizzard Quills): Frozen enemies chill nearby foes, slowing them 50%
-- **Shatter** (Absolute Zero): Frozen enemies that die deal 50% of max HP as AOE damage (100px range)
-- **Full stack**: 40% freeze chance, 2000ms freeze, slow aura, shatter AOE on kill
+- **Frost Slow** (Blizzard Quills): Frozen enemies chill nearby foes, +50% slow per upgrade (caps at 100%)
+- **Shatter** (Absolute Zero): Frozen enemies that die deal +50% of max HP as AOE damage per upgrade (100px range)
+- **Example**: 2× Absolute Zero = 10 strength (50% freeze chance), 100% max HP shatter damage
 
 ### Fire (Burn) — Stacking DoT
 - **Behavior**: Each proc adds an independent burn stack. Each stack ticks DPS independently.
-- **DPS Scaling**: Burn DPS scales with the player's damage modifier (e.g., +100% damage = double burn DPS)
+- **DPS Formula**: `DPS = burnStrength × 8 × (1 + damageModifier)`
 - **Duration**: Fixed 2s per stack (from `STATUS_EFFECT_CONFIG.burn.defaultDuration`)
 - **Stacking**: Up to 10 independent burn stacks per enemy
 - **Visual**: Orange glow, intensity scales with stack count, flicker ring at 2+ stacks
-- **Fire Aura** (Inferno Quills): Burning enemies scorch nearby foes (30px radius)
-- **Fire Explosion** (Hellfire): Burning enemies explode on death — radius scales with stacks, spreads burn
-- **Full stack**: 40% burn chance, 32 base DPS per stack for 2s (scales with damage), fire aura + death explosion
-- **Example**: With +50% damage, 3 burn stacks = 3 × (32 × 1.5) = 144 DPS total
+- **Fire Aura** (Inferno Quills): Burning enemies scorch nearby foes, +30px radius per upgrade
+- **Fire Explosion** (Hellfire): Burning enemies explode on death, +80px radius per upgrade (spreads burn)
+- **Example**: 2× Hellfire with +100% damage = 10 strength (50% burn, 160 DPS), 160px explosion
 
 ### Poison (Venom) — Stacking Damage Amplifier
 - **Behavior**: Each proc adds an independent poison stack. Damage amplification sums across all stacks.
+- **Amp Formula**: `amp = poisonStrength × 5%` per stack
 - **Duration**: Fixed 3s per stack (from `STATUS_EFFECT_CONFIG.poison.defaultDuration`)
 - **Stacking**: Up to 10 independent poison stacks per enemy
 - **Visual**: Green tint + drip particles, intensity scales with stack count
 - **Poison Spread** (Plague Bearer): Poison spreads to nearby enemies when a poisoned foe dies (100px range)
-- **Poison Cloud** (Pandemic): Death releases a lingering poison cloud (50px, 3s duration, ticks every 500ms)
-- **Full stack**: 40% poison chance, +50% damage amp per stack, death cloud + spread
-- **Example**: Enemy with 3 poison stacks takes 150% bonus damage
+- **Poison Cloud** (Pandemic): Death releases a lingering poison cloud, +50px radius per upgrade (3s duration, ticks every 500ms)
+- **Example**: 3× Pandemic = 15 strength (60% poison chance, 75% amp per stack), 150px poison cloud
 
 ---
 
@@ -581,9 +601,11 @@ Quills can proc elemental status effects on enemies. Each element has 4 upgrade 
 
 ### Elemental Procs
 - Each quill hit rolls independently for each unlocked element
-- Proc chances are additive across upgrade tiers (e.g., 8% + 12% = 20% shock chance)
+- Proc chances use diminishing returns formula: `chance = (str × 0.1) / (1 + str × 0.1)`
+- All elemental upgrades stack infinitely — no caps, just diminishing returns
 - Companion quills also trigger elemental procs
 - Fate's Favor mythic gives a 30% reroll chance on failed procs (applies to vampirism too)
+- Apotheosis (mythic) makes every 5th volley auto-proc all unlocked elements
 
 ### Quill Apotheosis (Empowered Volleys)
 - Every 5th shot (trigger pull, not individual quill) is empowered

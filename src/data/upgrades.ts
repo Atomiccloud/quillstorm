@@ -30,27 +30,21 @@ export interface UpgradeEffects {
   dangerLevel?: number;      // Opt-in difficulty stacks (+enemy stats, +rewards)
   eliteDamageBonus?: number; // Bonus damage vs elite enemies (multiplier)
   upgradeChoices?: number;   // Extra upgrade cards shown per selection
-  // Elemental - Lightning
-  shockChance?: number;      // Flat probability (0.08 = 8%)
-  shockDuration?: number;    // Milliseconds
-  chainLightning?: number;   // Flat count (enemies to chain to)
-  // Elemental - Ice
-  freezeChance?: number;     // Flat probability (0.10 = 10%)
-  freezeDuration?: number;   // Milliseconds
-  frostSlow?: number;        // Percentage slow (0.5 = 50%)
-  shatterDamage?: number;    // Multiplier (% of kill damage as AOE)
-  // Elemental - Fire
-  burnChance?: number;       // Flat probability (0.12 = 12%)
-  burnDPS?: number;          // Flat damage per second (stacks per application)
-  burnDuration?: number;     // Milliseconds
-  fireAura?: number;         // Radius in pixels (burning enemies damage nearby)
-  fireExplosion?: number;    // Radius in pixels (death explosion)
-  // Elemental - Poison
-  poisonChance?: number;     // Flat probability (0.12 = 12%)
-  poisonAmp?: number;        // Damage amplification per stack (0.15 = +15%)
-  poisonDuration?: number;   // Milliseconds
+  // Elemental - Lightning (strength-based: proc chance = str*0.1 / (1 + str*0.1))
+  shockStrength?: number;    // Strength points (Uncommon +2, Rare +3, Epic +3, Legendary +5)
+  chainLightning?: number;   // Flat count (enemies to chain to, stacks additively)
+  // Elemental - Ice (strength-based)
+  freezeStrength?: number;   // Strength points
+  frostSlow?: number;        // Percentage slow (0.5 = 50%, stacks additively)
+  shatterDamage?: number;    // Multiplier (% of max HP as AOE, stacks additively)
+  // Elemental - Fire (strength-based: DPS = strength * 8 * damageMult)
+  burnStrength?: number;     // Strength points
+  fireAura?: number;         // Radius in pixels (stacks additively)
+  fireExplosion?: number;    // Radius in pixels (stacks additively)
+  // Elemental - Poison (strength-based: amp = strength * 5%)
+  poisonStrength?: number;   // Strength points
   poisonSpread?: number;     // Boolean flag (1 = spreads on death)
-  poisonCloud?: number;      // Radius in pixels (death cloud)
+  poisonCloud?: number;      // Radius in pixels (stacks additively)
   // Defense
   armor?: number;            // Flat percentage damage reduction (capped at 0.5)
   evasion?: number;          // Flat dodge probability (capped at 0.4)
@@ -525,34 +519,34 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'static_quills',
     name: 'Static Quills',
-    description: 'Quills crackle with static. Small chance to stun enemies.',
+    description: 'Quills crackle with static. Chance to stun enemies.',
     rarity: 'uncommon',
-    effects: { shockChance: 0.08, shockDuration: 500 },
-    maxStacks: 1,
+    effects: { shockStrength: 2 },
+    // Stackable: +2 strength each (17% → 29% → 38%...)
   },
   {
     id: 'lightning_quills',
     name: 'Lightning Quills',
     description: 'Electrified quills stop enemies dead in their tracks.',
     rarity: 'rare',
-    effects: { shockChance: 0.12, shockDuration: 300 },
-    maxStacks: 1,
+    effects: { shockStrength: 3 },
+    // Stackable: +3 strength each (23% → 38% → 47%...)
   },
   {
     id: 'thunder_strike',
     name: 'Thunder Strike',
-    description: 'Lightning arcs to 2 nearby enemies on shock.',
+    description: 'Lightning arcs to 3 nearby enemies on shock.',
     rarity: 'epic',
-    effects: { shockChance: 0.10, shockDuration: 200, chainLightning: 2 },
-    maxStacks: 1,
+    effects: { shockStrength: 3, chainLightning: 3 },
+    // Stackable: +3 strength, +3 chain targets each
   },
   {
     id: 'storm_caller',
     name: 'Storm Caller',
     description: 'Unleash a storm of chain lightning across the battlefield.',
     rarity: 'legendary',
-    effects: { shockChance: 0.10, shockDuration: 200, chainLightning: 3 },
-    maxStacks: 1,
+    effects: { shockStrength: 5, chainLightning: 3 },
+    // Stackable: +5 strength (33%), +3 chain targets each
   },
 
   // === ELEMENTAL UPGRADES - ICE ===
@@ -561,32 +555,32 @@ export const UPGRADES: Upgrade[] = [
     name: 'Frost Tips',
     description: 'Chilled quills that can briefly freeze enemies solid.',
     rarity: 'uncommon',
-    effects: { freezeChance: 0.10, freezeDuration: 600 },
-    maxStacks: 1,
+    effects: { freezeStrength: 2 },
+    // Stackable: +2 strength each (17% → 29% → 38%...)
   },
   {
     id: 'icicle_quills',
     name: 'Icicle Quills',
     description: 'Deep cold locks enemies in place.',
     rarity: 'rare',
-    effects: { freezeChance: 0.12, freezeDuration: 400 },
-    maxStacks: 1,
+    effects: { freezeStrength: 3 },
+    // Stackable: +3 strength each (23% → 38% → 47%...)
   },
   {
     id: 'blizzard_quills',
     name: 'Blizzard Quills',
     description: 'Frozen enemies chill nearby foes, slowing them 50%.',
     rarity: 'epic',
-    effects: { freezeChance: 0.08, freezeDuration: 500, frostSlow: 0.5 },
-    maxStacks: 1,
+    effects: { freezeStrength: 3, frostSlow: 0.5 },
+    // Stackable: +3 strength, +50% slow each (caps at 100%)
   },
   {
     id: 'absolute_zero',
     name: 'Absolute Zero',
-    description: 'Frozen enemies that die shatter, dealing 50% damage to nearby foes.',
+    description: 'Frozen enemies that die shatter, dealing 50% max HP to nearby foes.',
     rarity: 'legendary',
-    effects: { freezeChance: 0.10, freezeDuration: 500, shatterDamage: 0.5 },
-    maxStacks: 1,
+    effects: { freezeStrength: 5, shatterDamage: 0.5 },
+    // Stackable: +5 strength (33%), +50% shatter damage each
   },
 
   // === ELEMENTAL UPGRADES - FIRE ===
@@ -595,66 +589,66 @@ export const UPGRADES: Upgrade[] = [
     name: 'Ember Quills',
     description: 'Smoldering quills set enemies ablaze. Burns stack.',
     rarity: 'uncommon',
-    effects: { burnChance: 0.12, burnDPS: 8 },
-    maxStacks: 1,
+    effects: { burnStrength: 2 },
+    // Stackable: +2 strength each (17% chance, +16 DPS)
   },
   {
     id: 'flame_quills',
     name: 'Flame Quills',
-    description: 'Hotter flames stack higher and burn longer.',
+    description: 'Hotter flames burn brighter and fiercer.',
     rarity: 'rare',
-    effects: { burnChance: 0.10, burnDPS: 8 },
-    maxStacks: 1,
+    effects: { burnStrength: 3 },
+    // Stackable: +3 strength each (23% chance, +24 DPS)
   },
   {
     id: 'inferno_quills',
     name: 'Inferno Quills',
-    description: 'Burning enemies scorch nearby foes. More stacks, wider aura.',
+    description: 'Burning enemies scorch nearby foes.',
     rarity: 'epic',
-    effects: { burnChance: 0.08, burnDPS: 8, fireAura: 30 },
-    maxStacks: 1,
+    effects: { burnStrength: 3, fireAura: 30 },
+    // Stackable: +3 strength, +30px aura each
   },
   {
     id: 'hellfire',
     name: 'Hellfire',
-    description: 'Burning enemies explode on death. More stacks, bigger boom.',
+    description: 'Burning enemies explode on death.',
     rarity: 'legendary',
-    effects: { burnChance: 0.10, burnDPS: 8, fireExplosion: 80 },
-    maxStacks: 1,
+    effects: { burnStrength: 5, fireExplosion: 80 },
+    // Stackable: +5 strength (33%, +40 DPS), +80px explosion each
   },
 
   // === ELEMENTAL UPGRADES - POISON ===
   {
     id: 'toxic_quills',
     name: 'Toxic Quills',
-    description: 'Venomous quills weaken enemies. Stacks for more vulnerability.',
+    description: 'Venomous quills weaken enemies. Amplifies damage taken.',
     rarity: 'uncommon',
-    effects: { poisonChance: 0.12, poisonAmp: 0.15 },
-    maxStacks: 1,
+    effects: { poisonStrength: 2 },
+    // Stackable: +2 strength each (17% chance, +10% amp)
   },
   {
     id: 'noxious_spines',
     name: 'Noxious Spines',
-    description: 'Deeper venom stacks make enemies crumble faster.',
+    description: 'Deeper venom makes enemies crumble faster.',
     rarity: 'rare',
-    effects: { poisonChance: 0.10, poisonAmp: 0.10 },
-    maxStacks: 1,
+    effects: { poisonStrength: 3 },
+    // Stackable: +3 strength each (23% chance, +15% amp)
   },
   {
     id: 'plague_bearer',
     name: 'Plague Bearer',
     description: 'Poison spreads to nearby enemies when a poisoned foe dies.',
     rarity: 'epic',
-    effects: { poisonChance: 0.08, poisonAmp: 0.10, poisonSpread: 1 },
-    maxStacks: 1,
+    effects: { poisonStrength: 3, poisonSpread: 1 },
+    // Stackable: +3 strength, spread flag
   },
   {
     id: 'pandemic',
     name: 'Pandemic',
     description: 'Death releases a poison cloud that infects all nearby enemies.',
     rarity: 'legendary',
-    effects: { poisonChance: 0.10, poisonAmp: 0.15, poisonCloud: 50 },
-    maxStacks: 1,
+    effects: { poisonStrength: 5, poisonCloud: 50 },
+    // Stackable: +5 strength (33%, +25% amp), +50px cloud each
   },
 
   // === DEFENSE UPGRADES - ARMOR ===
