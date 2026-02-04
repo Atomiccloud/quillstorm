@@ -21,6 +21,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`
 - **Leaderboard changes** → API in `api/leaderboard/`, client in `src/systems/LeaderboardManager.ts`
+- **Removing cheated scores** → See [docs/LEADERBOARD_ADMIN.md](docs/LEADERBOARD_ADMIN.md) — use the CLI commands there, do NOT just give instructions
 - **Progression/XP changes** → `src/systems/ProgressionManager.ts`, `src/config.ts` XP_CONFIG
 - **Elite enemies** → `src/config.ts` ELITE_CONFIG, applied in `src/entities/Enemy.ts`
 - **Danger system** → `src/config.ts` DANGER_CONFIG, upgrades in `src/data/upgrades.ts`
