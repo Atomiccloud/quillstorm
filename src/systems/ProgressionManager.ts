@@ -150,8 +150,9 @@ export class ProgressionManager {
     weights.common = Math.max(0, weights.common - commonTransfer);
     weights.uncommon = Math.max(0, weights.uncommon - uncommonTransfer);
     weights.rare += totalTransfer * 0.5;
-    weights.epic += totalTransfer * 0.3;
+    weights.epic += totalTransfer * 0.25;
     weights.legendary += totalTransfer * 0.2;
+    weights.mythic += totalTransfer * 0.05;
 
     return weights;
   }

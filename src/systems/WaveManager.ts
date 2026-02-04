@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import { WAVE_CONFIG, GAME_CONFIG, INFINITE_SWARM_CONFIG, XP_CONFIG } from '../config';
+import { WAVE_CONFIG, GAME_CONFIG, INFINITE_SWARM_CONFIG, XP_CONFIG, ELITE_CONFIG, DANGER_CONFIG } from '../config';
 import { Enemy, EnemyType } from '../entities/Enemy';
 import { ProgressionManager } from './ProgressionManager';
+import { UpgradeManager } from './UpgradeManager';
 
 export class WaveManager {
   private scene: Phaser.Scene;
@@ -18,6 +19,7 @@ export class WaveManager {
   // Infinite swarm state
   private infiniteSwarmActive: boolean = false;
   private progressionManager: ProgressionManager | null = null;
+  private upgradeManager: UpgradeManager | null = null;
 
   // Callback for when a splitter dies - GameScene sets this
   public onSplitterDeath: ((x: number, y: number) => void) | null = null;
@@ -36,6 +38,27 @@ export class WaveManager {
 
   setProgressionManager(progressionManager: ProgressionManager): void {
     this.progressionManager = progressionManager;
+  }
+
+  setUpgradeManager(upgradeManager: UpgradeManager): void {
+    this.upgradeManager = upgradeManager;
+  }
+
+  // Get elite spawn chance based on base rate + danger level bonus
+  private getEliteSpawnChance(): number {
+    const dangerLevel = this.upgradeManager?.getModifier('dangerLevel') ?? 0;
+    return ELITE_CONFIG.baseSpawnChance + dangerLevel * DANGER_CONFIG.eliteChanceBonusPerStack;
+  }
+
+  // Get danger difficulty multiplier for enemy stats (compounds with wave/swarm scaling)
+  getDangerDifficultyMultiplier(): number {
+    const dangerLevel = this.upgradeManager?.getModifier('dangerLevel') ?? 0;
+    return 1 + dangerLevel * DANGER_CONFIG.enemyHealthBonusPerStack;
+  }
+
+  getDangerDamageMultiplier(): number {
+    const dangerLevel = this.upgradeManager?.getModifier('dangerLevel') ?? 0;
+    return 1 + dangerLevel * DANGER_CONFIG.enemyDamageBonusPerStack;
   }
 
   activateInfiniteSwarm(currentTime: number): void {
@@ -203,7 +226,13 @@ export class WaveManager {
   private spawnInfiniteSwarmEnemy(): void {
     // Use difficulty multiplier for scaled enemy stats
     const type = this.getRandomEnemyType();
-    const difficultyMult = this.progressionManager?.getSwarmDifficultyMultiplier() ?? 1.0;
+    const swarmMult = this.progressionManager?.getSwarmDifficultyMultiplier() ?? 1.0;
+    // Danger compounds multiplicatively with swarm scaling
+    const difficultyMult = swarmMult * this.getDangerDifficultyMultiplier();
+
+    // Roll for elite (non-boss only)
+    const isBoss = type === 'boss' || type === 'flyingBoss';
+    const isElite = !isBoss && Math.random() < this.getEliteSpawnChance();
 
     let x: number;
     let y: number;
@@ -215,7 +244,7 @@ export class WaveManager {
     y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
 
     // Use very high wave for unlocking all enemy types (wave 100)
-    const enemy = new Enemy(this.scene, x, y, type, 100, difficultyMult);
+    const enemy = new Enemy(this.scene, x, y, type, 100, difficultyMult, isElite);
     if (this.target) {
       enemy.setTarget(this.target);
     }
@@ -243,7 +272,13 @@ export class WaveManager {
       y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
     }
 
-    const enemy = new Enemy(this.scene, x, y, type, this.currentWave);
+    // Roll for elite (non-boss only)
+    const isBoss = type === 'boss' || type === 'flyingBoss';
+    const isElite = !isBoss && Math.random() < this.getEliteSpawnChance();
+
+    // Danger compounds multiplicatively with wave scaling
+    const dangerMult = this.getDangerDifficultyMultiplier();
+    const enemy = new Enemy(this.scene, x, y, type, this.currentWave, dangerMult, isElite);
     if (this.target) {
       enemy.setTarget(this.target);
     }

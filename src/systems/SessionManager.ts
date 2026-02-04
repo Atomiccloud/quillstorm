@@ -68,6 +68,8 @@ export class SessionManager {
   private static currentToken: string | null = null;
   private static fingerprint: string = getBrowserFingerprint();
   private static waveKills: KillCounts = {};
+  private static eliteWaveKills: KillCounts = {};
+  private static dangerLevel: number = 0;
   private static _wpm = { d: 0, t: 0, b: 0 };
 
   // Start a new game session
@@ -104,10 +106,18 @@ export class SessionManager {
     this._wpm = { ...data };
   }
 
+  static setDangerLevel(level: number): void {
+    this.dangerLevel = level;
+  }
+
   // Record an enemy kill (accumulates until wave ends)
-  static recordKill(enemyType: string): void {
+  static recordKill(enemyType: string, isElite: boolean = false): void {
     const key = enemyType as keyof KillCounts;
-    this.waveKills[key] = (this.waveKills[key] || 0) + 1;
+    if (isElite) {
+      this.eliteWaveKills[key] = (this.eliteWaveKills[key] || 0) + 1;
+    } else {
+      this.waveKills[key] = (this.waveKills[key] || 0) + 1;
+    }
   }
 
   // Report wave completion to server
@@ -124,6 +134,8 @@ export class SessionManager {
           token: this.currentToken,
           wave,
           kills: { ...this.waveKills },
+          eliteKills: { ...this.eliteWaveKills },
+          dangerLevel: this.dangerLevel,
           score,
           pm: { ...this._wpm },
         }),
@@ -161,6 +173,8 @@ export class SessionManager {
           finalWave,
           finalScore,
           kills: { ...this.waveKills },
+          eliteKills: { ...this.eliteWaveKills },
+          dangerLevel: this.dangerLevel,
           pm: { ...this._wpm },
         }),
       });
@@ -197,6 +211,7 @@ export class SessionManager {
   // Reset kill counts for new wave
   private static resetKills(): void {
     this.waveKills = {};
+    this.eliteWaveKills = {};
     this._wpm = { d: 0, t: 0, b: 0 };
   }
 

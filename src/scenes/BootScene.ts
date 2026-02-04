@@ -38,8 +38,8 @@ export class BootScene extends Phaser.Scene {
   }
 
   createProceduralTextures(): void {
-    // We'll create graphics dynamically in each scene
-    // This keeps the game lightweight and allows easy color customization
+    // Load menu mascot image
+    this.load.image('mascot', 'assets/mascot.png');
   }
 
   create(): void {

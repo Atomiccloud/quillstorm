@@ -2,7 +2,7 @@ import { UPGRADE_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { ProgressionManager } from '../systems/ProgressionManager';
 
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export interface UpgradeEffects {
   damage?: number;           // Multiplier (0.1 = +10%)
@@ -27,6 +27,9 @@ export interface UpgradeEffects {
   homingStrength?: number;   // Projectile tracking (0-1)
   vampirism?: number;        // Chance to heal 1 HP on hit
   prosperity?: number;       // Luck stat: chest drops, rarity, crit
+  dangerLevel?: number;      // Opt-in difficulty stacks (+enemy stats, +rewards)
+  eliteDamageBonus?: number; // Bonus damage vs elite enemies (multiplier)
+  upgradeChoices?: number;   // Extra upgrade cards shown per selection
 }
 
 export interface Upgrade {
@@ -450,6 +453,55 @@ export const UPGRADES: Upgrade[] = [
     rarity: 'legendary',
     effects: { prosperity: 40, damage: 0.15 },
   },
+
+  // === DANGER LEVEL UPGRADES ===
+  {
+    id: 'danger_1',
+    name: 'Reckless',
+    description: '+12% mob strength, +3% elite spawn chance, +10% XP.',
+    rarity: 'uncommon',
+    effects: { dangerLevel: 1 },
+  },
+  {
+    id: 'danger_2',
+    name: 'Daredevil',
+    description: '+24% mob strength, +6% elite spawn chance, +20% XP.',
+    rarity: 'rare',
+    effects: { dangerLevel: 2 },
+  },
+  {
+    id: 'danger_3',
+    name: 'Death Wish',
+    description: '+36% mob strength, +9% elite spawn chance, +30% XP.',
+    rarity: 'epic',
+    effects: { dangerLevel: 3 },
+  },
+
+  // === ELITE DAMAGE UPGRADES ===
+  {
+    id: 'elite_hunter',
+    name: 'Elite Hunter',
+    description: 'Deal bonus damage to elite enemies.',
+    rarity: 'uncommon',
+    effects: { eliteDamageBonus: 0.25 },
+  },
+  {
+    id: 'elite_slayer',
+    name: 'Elite Slayer',
+    description: 'Massive bonus damage to elite enemies, with a small damage boost.',
+    rarity: 'rare',
+    effects: { eliteDamageBonus: 0.50, damage: 0.05 },
+  },
+
+  // === MYTHIC UPGRADES ===
+  {
+    id: 'expanded_options',
+    name: 'Expanded Options',
+    description: 'See an additional upgrade card when choosing upgrades.',
+    rarity: 'mythic',
+    effects: { upgradeChoices: 1 },
+    maxStacks: 1,
+  },
 ];
 
 export interface RarityWeights {
@@ -458,6 +510,7 @@ export interface RarityWeights {
   rare: number;
   epic: number;
   legendary: number;
+  mythic: number;
 }
 
 export interface UpgradeSelectionOptions {
@@ -479,6 +532,7 @@ export function getRandomUpgrades(
     rare: options?.customWeights?.rare ?? baseWeights.rare,
     epic: options?.customWeights?.epic ?? baseWeights.epic,
     legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
+    mythic: options?.customWeights?.mythic ?? baseWeights.mythic,
   };
 
   // Apply prosperity-based rarity shift if progressionManager is provided
@@ -487,7 +541,7 @@ export function getRandomUpgrades(
     weights = options.progressionManager.getModifiedRarityWeights(weights, excludeCommon);
   }
 
-  const totalWeight = weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary;
+  const totalWeight = weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary + weights.mythic;
 
   const selected: Upgrade[] = [];
   const availableUpgrades = UPGRADES.filter(upgrade => {
@@ -504,7 +558,7 @@ export function getRandomUpgrades(
   // If guaranteeRareOrBetter, ensure at least one rare+ upgrade
   if (options?.guaranteeRareOrBetter && count > 0) {
     const rareOrBetter = availableUpgrades.filter(
-      u => u.rarity === 'rare' || u.rarity === 'epic' || u.rarity === 'legendary'
+      u => u.rarity === 'rare' || u.rarity === 'epic' || u.rarity === 'legendary' || u.rarity === 'mythic'
     );
     if (rareOrBetter.length > 0) {
       const guaranteed = rareOrBetter[Math.floor(Math.random() * rareOrBetter.length)];
@@ -525,8 +579,10 @@ export function getRandomUpgrades(
       rarity = 'rare';
     } else if (roll < weights.common + weights.uncommon + weights.rare + weights.epic) {
       rarity = 'epic';
-    } else {
+    } else if (roll < weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary) {
       rarity = 'legendary';
+    } else {
+      rarity = 'mythic';
     }
 
     // Get upgrades of this rarity that we haven't selected yet

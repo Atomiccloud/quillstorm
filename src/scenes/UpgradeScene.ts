@@ -72,7 +72,9 @@ export class UpgradeScene extends Phaser.Scene {
       options.progressionManager = data.progressionManager;
     }
 
-    const upgrades = getRandomUpgrades(UPGRADE_CONFIG.choicesPerUpgrade, this.upgradeManager, options);
+    const extraChoices = Math.floor(this.upgradeManager.getModifier('upgradeChoices'));
+    const totalChoices = UPGRADE_CONFIG.choicesPerUpgrade + extraChoices;
+    const upgrades = getRandomUpgrades(totalChoices, this.upgradeManager, options);
 
     // Display upgrade cards
     const cardWidth = 280;
@@ -189,6 +191,29 @@ export class UpgradeScene extends Phaser.Scene {
       graphics.fillCircle(x + 12, y, 10);
       graphics.fillCircle(x, y + 12, 10);
       graphics.fillCircle(x, y, 8);
+    } else if (upgrade.effects.dangerLevel) {
+      // Danger: red skull icon
+      graphics.fillStyle(0xff4444, 0.9);
+      graphics.fillCircle(x, y - 8, 14);
+      graphics.fillRect(x - 8, y, 16, 12);
+      graphics.fillStyle(0x000000, 1);
+      graphics.fillCircle(x - 5, y - 10, 3);
+      graphics.fillCircle(x + 5, y - 10, 3);
+      graphics.fillTriangle(x, y - 4, x - 3, y + 2, x + 3, y + 2);
+    } else if (upgrade.effects.eliteDamageBonus) {
+      // Elite damage: gold crown + sword
+      graphics.fillStyle(0xffd700, 0.9);
+      graphics.fillRect(x - 12, y - 5, 24, 8);
+      graphics.fillTriangle(x - 12, y - 5, x - 6, y - 18, x, y - 5);
+      graphics.fillTriangle(x, y - 5, x + 6, y - 18, x + 12, y - 5);
+      graphics.fillStyle(0xcccccc, 0.9);
+      graphics.fillRect(x - 2, y + 3, 4, 20);
+    } else if (upgrade.effects.upgradeChoices) {
+      // Extra choices: triple card icon
+      graphics.fillStyle(0xffffff, 0.8);
+      graphics.fillRect(x - 18, y - 12, 12, 24);
+      graphics.fillRect(x - 6, y - 15, 12, 24);
+      graphics.fillRect(x + 6, y - 12, 12, 24);
     } else {
       // Default star icon
       this.drawStar(graphics, x, y, 5, 20, 10);
@@ -270,6 +295,17 @@ export class UpgradeScene extends Phaser.Scene {
     }
     if (upgrade.effects.homingStrength) {
       effects.push(`Homing: +${Math.round(upgrade.effects.homingStrength * 100)}%`);
+    }
+    if (upgrade.effects.dangerLevel) {
+      effects.push(`Danger: +${upgrade.effects.dangerLevel} level`);
+      effects.push(`Enemies: +${upgrade.effects.dangerLevel * 12}% HP`);
+      effects.push(`Score: +${upgrade.effects.dangerLevel * 15}%`);
+    }
+    if (upgrade.effects.eliteDamageBonus) {
+      effects.push(`Elite Dmg: +${Math.round(upgrade.effects.eliteDamageBonus * 100)}%`);
+    }
+    if (upgrade.effects.upgradeChoices) {
+      effects.push(`+${upgrade.effects.upgradeChoices} upgrade choice`);
     }
 
     return effects.join('\n') || 'Special effect';

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -42,6 +42,13 @@ export class GameScene extends Phaser.Scene {
   private gameOver: boolean = false;
   private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
   private effectsOpacity: number = 1;
+
+  // Cumulative session stats (for game over display)
+  private sessionKills: number = 0;
+  private sessionKillsByType: Record<string, number> = {};
+  private sessionEliteKillsByType: Record<string, number> = {};
+  private totalDamageTaken: number = 0;
+  private totalShieldsUsed: number = 0;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -86,6 +93,7 @@ export class GameScene extends Phaser.Scene {
     this.waveManager = new WaveManager(this);
     this.waveManager.setTarget(this.player);
     this.waveManager.setProgressionManager(this.progressionManager);
+    this.waveManager.setUpgradeManager(this.upgradeManager);
 
     // Give quill manager access to enemies for homing quills
     this.quillManager.setEnemiesGroup(this.waveManager.enemies);
@@ -552,8 +560,14 @@ export class GameScene extends Phaser.Scene {
     // Calculate hit angle for shellback blocking
     const hitAngle = Math.atan2(enemy.y - quill.y, enemy.x - quill.x);
 
-    // Deal damage
-    const damage = quill.getDamage();
+    // Deal damage (apply elite damage bonus if target is elite)
+    let damage = quill.getDamage();
+    if (enemy.isElite) {
+      const eliteDmgBonus = this.upgradeManager.getModifier('eliteDamageBonus');
+      if (eliteDmgBonus > 0) {
+        damage = Math.floor(damage * (1 + eliteDmgBonus));
+      }
+    }
     const killed = enemy._uf(damage, hitAngle);
 
     // Vampirism - chance to heal based on damage dealt
@@ -579,10 +593,21 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (killed) {
-      AudioManager.playEnemyDeath();
-      this.hud.addScore(enemy.points);
+      if (enemy.isElite) {
+        AudioManager.playEliteKill();
+      } else {
+        AudioManager.playEnemyDeath();
+      }
+
+      // Apply danger score multiplier to points
+      const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
+      const dangerScoreMult = 1 + dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack;
+      const points = Math.floor(enemy.points * dangerScoreMult);
+      this.hud.addScore(points);
+
       this.spawnDeathParticles(enemy.x, enemy.y);
-      SessionManager.recordKill(enemy.enemyType);
+      SessionManager.recordKill(enemy.enemyType, enemy.isElite);
+      this.recordSessionKill(enemy.enemyType, enemy.isElite);
 
       // Splitter splits into 2 splitlings on death
       if (enemy.isSplitter()) {
@@ -595,8 +620,8 @@ export class GameScene extends Phaser.Scene {
         this.spawnQuillPickup(enemy.x, enemy.y);
       }
 
-      // Spawn XP orb
-      this.spawnXPOrb(enemy.x, enemy.y, enemy.isBoss());
+      // Spawn XP orb (elites give bonus XP)
+      this.spawnXPOrb(enemy.x, enemy.y, enemy.isBoss(), enemy.isElite);
 
       // Chance to drop treasure chest (affected by prosperity)
       const chestDropChance = this.progressionManager.getEffectiveChestDropChance();
@@ -835,8 +860,16 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private spawnXPOrb(x: number, y: number, isBoss: boolean): void {
-    const xpValue = this.progressionManager.getEnemyXPValue(isBoss, this.waveManager.currentWave);
+  private spawnXPOrb(x: number, y: number, isBoss: boolean, isElite: boolean = false): void {
+    let xpValue = this.progressionManager.getEnemyXPValue(isBoss, this.waveManager.currentWave);
+    // Elites give bonus XP, danger level also boosts XP
+    if (isElite) {
+      xpValue = Math.floor(xpValue * ELITE_CONFIG.xpMultiplier);
+    }
+    const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
+    if (dangerLevel > 0) {
+      xpValue = Math.floor(xpValue * (1 + dangerLevel * DANGER_CONFIG.xpMultiplierPerStack));
+    }
     const orb = new XPOrb(this, x, y, xpValue);
     orb.setMagnetTarget(this.player);
     this.xpOrbs.add(orb);
@@ -988,8 +1021,14 @@ export class GameScene extends Phaser.Scene {
     this.hud.showWaveComplete();
 
     // Report wave completion for anti-cheat
-    SessionManager.setPerf(this.player.getPerf());
+    const wavePerf = this.player.getPerf();
+    SessionManager.setPerf(wavePerf);
+    SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
     SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
+
+    // Accumulate session damage stats
+    this.totalDamageTaken += wavePerf.d;
+    this.totalShieldsUsed += wavePerf.b;
 
     // Clear any remaining enemy projectiles (they shouldn't persist between waves)
     this.enemyProjectiles.clear(true, true);
@@ -1015,9 +1054,9 @@ export class GameScene extends Phaser.Scene {
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
 
-    // Block shooting briefly to prevent accidental shots when clicking upgrade button
+    // Block shooting briefly to prevent the upgrade-select click from firing a shot
     this.shootingBlocked = true;
-    this.time.delayedCall(150, () => {
+    this.time.delayedCall(50, () => {
       this.shootingBlocked = false;
     });
 
@@ -1117,6 +1156,14 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  private recordSessionKill(enemyType: string, isElite: boolean = false): void {
+    this.sessionKills++;
+    this.sessionKillsByType[enemyType] = (this.sessionKillsByType[enemyType] || 0) + 1;
+    if (isElite) {
+      this.sessionEliteKillsByType[enemyType] = (this.sessionEliteKillsByType[enemyType] || 0) + 1;
+    }
+  }
+
   private onPlayerDeath(): void {
     this.gameOver = true;
     AudioManager.playGameOver();
@@ -1126,8 +1173,14 @@ export class GameScene extends Phaser.Scene {
     const finalWave = this.waveManager.currentWave;
 
     // Report game over for anti-cheat
-    SessionManager.setPerf(this.player.getPerf());
+    const deathPerf = this.player.getPerf();
+    SessionManager.setPerf(deathPerf);
+    SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
     SessionManager.reportGameOver(finalWave, finalScore);
+
+    // Accumulate final wave's damage stats
+    this.totalDamageTaken += deathPerf.d;
+    this.totalShieldsUsed += deathPerf.b;
 
     // Submit score
     const isNewHighScore = SaveManager.submitRun(finalScore, finalWave);
@@ -1146,6 +1199,13 @@ export class GameScene extends Phaser.Scene {
         highestWave: SaveManager.getHighestWave(),
         sessionPinecones,
         upgradeManager: this.upgradeManager,
+        sessionStats: {
+          totalKills: this.sessionKills,
+          killsByType: { ...this.sessionKillsByType },
+          eliteKillsByType: { ...this.sessionEliteKillsByType },
+          damageTaken: this.totalDamageTaken,
+          shieldsUsed: this.totalShieldsUsed,
+        },
       });
     });
   }
@@ -1209,10 +1269,17 @@ export class GameScene extends Phaser.Scene {
         const damage = 10 * (1 + this.upgradeManager.getModifier('damage') * 0.5);
         const killed = enemy._uf(damage);
         if (killed) {
-          AudioManager.playEnemyDeath();
-          this.hud.addScore(enemy.points);
+          if (enemy.isElite) {
+            AudioManager.playEliteKill();
+          } else {
+            AudioManager.playEnemyDeath();
+          }
+          const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
+          const dangerScoreMult = 1 + dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack;
+          this.hud.addScore(Math.floor(enemy.points * dangerScoreMult));
           this.spawnDeathParticles(enemy.x, enemy.y);
-          SessionManager.recordKill(enemy.enemyType);
+          SessionManager.recordKill(enemy.enemyType, enemy.isElite);
+          this.recordSessionKill(enemy.enemyType, enemy.isElite);
           // Splitter splits on death from companion quills too
           if (enemy.isSplitter()) {
             AudioManager.playSplit();

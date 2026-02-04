@@ -89,6 +89,14 @@ export class AudioManager {
     this.playNoise(0.1, 0.4);
   }
 
+  // Deeper, more impactful death sound for elite enemies
+  static playEliteKill(): void {
+    this.playTone(250, 0.15, 'square', 0.6);
+    this.playTone(180, 0.2, 'sawtooth', 0.5, 0.05);
+    this.playTone(350, 0.12, 'sine', 0.4, 0.15);
+    this.playNoise(0.15, 0.5);
+  }
+
   // Harsh sawtooth warning for player taking damage
   static playPlayerDamage(): void {
     this.playTone(150, 0.15, 'sawtooth', 0.5);

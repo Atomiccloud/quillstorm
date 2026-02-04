@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.3.3';
+export const GAME_VERSION = '0.4.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,27 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.4.0',
+    date: '2026-02-04',
+    changes: [
+      'Added elite enemies — rare, tougher variants with gold glow and boosted rewards',
+      'Added Danger Level system — opt-in difficulty upgrades that scale enemy strength and rewards',
+      'Added Elite Hunter and Elite Slayer upgrade cards for bonus damage vs elites',
+      'Added mythic rarity tier (ultra-rare, red border)',
+      'Added Expanded Options mythic upgrade — see 4 cards instead of 3',
+      'Added kill breakdown panel on game over screen with elite kill tracking',
+      'Added detailed stats panel (Tab) with danger level breakdown',
+      'Added variable-height jumping — tap for short hops, hold for full jumps',
+      'Added rainbow quill color cycling for Rainbow Quills cosmetic',
+      'Redesigned main menu with mascot art and rounded buttons',
+      'Improved hat positioning and rendering on porcupine',
+      'HUD reorganized — quill count under quill bar, level under XP bar',
+      'Leaderboard now accessible from game over screen',
+      'Minimum wave 5 required to submit to leaderboard',
+      'Player data now syncs to server across sessions',
+    ],
+  },
   {
     version: '0.3.3',
     date: '2026-02-03',

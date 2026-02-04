@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { QUILL_CONFIG } from '../config';
 import { Quill } from '../entities/Quill';
 import { UpgradeManager } from './UpgradeManager';
+import { getCosmeticManager } from './CosmeticManager';
 
 export class QuillManager {
   private scene: Phaser.Scene;
@@ -104,6 +105,12 @@ export class QuillManager {
     // Calculate spread for multiple projectiles
     const spreadAngle = projectileCount > 1 ? 0.15 : 0; // ~8.5 degrees spread per additional projectile
 
+    // Get equipped quill cosmetic colors
+    const equippedQuill = getCosmeticManager().getEquipped('quillStyle');
+    const quillColor = equippedQuill?.colors?.primary;
+    const tipColor = equippedQuill?.colors?.secondary;
+    const rainbow = equippedQuill?.renderData?.rainbow === true;
+
     for (let i = 0; i < projectileCount; i++) {
       // Calculate offset angle for spread
       let projectileAngle = angle;
@@ -119,7 +126,10 @@ export class QuillManager {
         fromY,
         projectileAngle,
         this.upgradeManager,
-        this.enemiesGroup
+        this.enemiesGroup,
+        quillColor,
+        tipColor,
+        rainbow
       );
 
       this.quills.add(quill);

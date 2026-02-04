@@ -17,6 +17,8 @@ interface WaveRequest {
   token: string;
   wave: number;
   kills: KillCounts;
+  eliteKills?: KillCounts;
+  dangerLevel?: number;
   score: number;
   pm?: { d: number; t: number; b: number };
 }
@@ -134,8 +136,8 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // Validate wave report
-    const validation = validateWaveReport(session, body.wave, body.kills, body.score);
+    // Validate wave report (include elite kills + danger for accurate score calculation)
+    const validation = validateWaveReport(session, body.wave, body.kills, body.score, body.eliteKills, body.dangerLevel);
     if (!validation.valid) {
       return new Response(JSON.stringify({ success: false, error: validation.error }), {
         status: 400,
@@ -150,6 +152,8 @@ export default async function handler(req: Request): Promise<Response> {
     const waveRecord: WaveRecord = {
       wave: body.wave,
       kills: body.kills,
+      ...(body.eliteKills && typeof body.eliteKills === 'object' ? { eliteKills: body.eliteKills } : {}),
+      ...(typeof body.dangerLevel === 'number' ? { dangerLevel: body.dangerLevel } : {}),
       score: body.score,
       timestamp: Date.now(),
       ...(body.pm && typeof body.pm === 'object' ? { pm: body.pm } : {}),

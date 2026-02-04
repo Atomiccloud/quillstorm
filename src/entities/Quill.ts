@@ -15,6 +15,11 @@ export class Quill extends Phaser.GameObjects.Container {
   private sizeMultiplier: number;
   private homingStrength: number;
   private enemiesGroup?: Phaser.GameObjects.Group;
+  private quillColor: number;
+  private tipColor: number;
+  private rainbow: boolean;
+  private rainbowColors: number[] = [0xff0000, 0xff8800, 0xffff00, 0x00ff00, 0x0088ff, 0x8800ff];
+  private rainbowTimer: number = 0;
 
   public damage: number;
 
@@ -24,11 +29,17 @@ export class Quill extends Phaser.GameObjects.Container {
     y: number,
     angle: number,
     upgradeManager: UpgradeManager,
-    enemiesGroup?: Phaser.GameObjects.Group
+    enemiesGroup?: Phaser.GameObjects.Group,
+    quillColor?: number,
+    tipColor?: number,
+    rainbow?: boolean
   ) {
     super(scene, x, y);
 
     this.upgradeManager = upgradeManager;
+    this.quillColor = quillColor ?? COLORS.quill;
+    this.tipColor = tipColor ?? 0xcccccc;
+    this.rainbow = rainbow ?? false;
     this.quillAngle = angle;
     this.lifetime = QUILL_CONFIG.lifetime;
 
@@ -109,6 +120,18 @@ export class Quill extends Phaser.GameObjects.Container {
     this.quillAngle = Math.atan2(this.body.velocity.y, this.body.velocity.x);
     this.rotation = this.quillAngle;
 
+    // Rainbow color cycling
+    if (this.rainbow) {
+      this.rainbowTimer += delta;
+      if (this.rainbowTimer >= 80) {
+        this.rainbowTimer = 0;
+        const idx = Math.floor(Math.random() * this.rainbowColors.length);
+        this.quillColor = this.rainbowColors[idx];
+        this.tipColor = this.rainbowColors[(idx + 1) % this.rainbowColors.length];
+        this.draw();
+      }
+    }
+
     // Fade out near end of life
     if (this.lifetime < 500) {
       this.alpha = this.lifetime / 500;
@@ -168,7 +191,7 @@ export class Quill extends Phaser.GameObjects.Container {
     const h = QUILL_CONFIG.height * this.sizeMultiplier;
 
     // Quill body (pointed shape)
-    this.graphics.fillStyle(COLORS.quill);
+    this.graphics.fillStyle(this.quillColor);
 
     // Draw as a pointed needle shape
     this.graphics.beginPath();
@@ -179,8 +202,8 @@ export class Quill extends Phaser.GameObjects.Container {
     this.graphics.closePath();
     this.graphics.fillPath();
 
-    // Add a slight dark tip
-    this.graphics.fillStyle(0xcccccc);
+    // Add a slight tip highlight
+    this.graphics.fillStyle(this.tipColor);
     this.graphics.fillTriangle(
       w / 2, 0,
       w / 4, -h / 4,
