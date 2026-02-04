@@ -271,9 +271,10 @@ export class HUD {
       const pulse = Math.sin(this.scene.time.now / 200) * 0.2 + 0.8;
       this.infiniteSwarmText.setAlpha(pulse);
 
-      // Show difficulty multiplier
-      const mult = this.progressionManager.getSwarmDifficultyMultiplier();
-      this.enemyText.setText(`Difficulty: x${mult.toFixed(1)} | Enemies: ${this.waveManager.getEnemyCount()}`);
+      // Show split HP/DMG difficulty multipliers
+      const hpMult = this.progressionManager.getSwarmHPMultiplier();
+      const dmgMult = this.progressionManager.getSwarmDamageMultiplier();
+      this.enemyText.setText(`HP: x${hpMult.toFixed(1)} | DMG: x${dmgMult.toFixed(1)} | Enemies: ${this.waveManager.getEnemyCount()}`);
     } else {
       // Normal wave display
       this.waveText.setVisible(true);

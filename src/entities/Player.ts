@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PLAYER_CONFIG, COLORS, QUILL_CONFIG } from '../config';
+import { PLAYER_CONFIG, COLORS, QUILL_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
 import { QuillManager } from '../systems/QuillManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { AudioManager } from '../systems/AudioManager';
@@ -27,6 +27,9 @@ export class Player extends Phaser.GameObjects.Container {
   private _bs: number = 0;
   private facingRight: boolean = true;
   private shieldCharges: number = 0;
+  private shieldPulsePhase: number = 0;
+  private shieldRegenTimer: number = 0;
+  private infiniteSwarmShieldRegen: boolean = false;
 
   // Cosmetic cache
   private equippedSkin: Cosmetic | undefined;
@@ -107,6 +110,10 @@ export class Player extends Phaser.GameObjects.Container {
   update(time: number, delta: number): void {
     this.handleMovement(delta);
     this.updateLowHealthEffect();
+    this.updateShieldRegen(delta);
+    if (this.shieldCharges > 0) {
+      this.shieldPulsePhase += delta * 0.003;
+    }
     this.drawPorcupine();
     this.updateTrail(time);
   }
@@ -329,6 +336,9 @@ export class Player extends Phaser.GameObjects.Container {
     // Draw hat
     this.drawHat(dir, w, h, bodyBob);
 
+    // Draw shield indicator above head
+    this.drawShieldIndicator();
+
     // Flash white when invincible
     if (this._pf && Math.floor(Date.now() / 100) % 2 === 0) {
       this.graphics.fillStyle(0xffffff, 0.5);
@@ -480,6 +490,66 @@ export class Player extends Phaser.GameObjects.Container {
     }
   }
 
+  private drawShieldIndicator(): void {
+    if (this.shieldCharges <= 0) return;
+
+    const maxCharges = this.upgradeManager.getModifier('shieldCharges');
+    const h = PLAYER_CONFIG.height;
+
+    const indicatorY = -h * 1.0; // -50px, above all hats
+    const indicatorX = 0;
+
+    // Subtle pulse: scale between 0.9 and 1.1
+    const pulse = 1.0 + Math.sin(this.shieldPulsePhase) * 0.1;
+    const size = 8 * pulse;
+
+    // Faint glow behind icon
+    this.graphics.fillStyle(0x00aaff, 0.15);
+    this.graphics.fillCircle(indicatorX, indicatorY, size + 4);
+
+    // Shield diamond shape
+    this.graphics.fillStyle(0x00aaff, 0.7);
+    this.graphics.beginPath();
+    this.graphics.moveTo(indicatorX, indicatorY - size);
+    this.graphics.lineTo(indicatorX + size * 0.7, indicatorY);
+    this.graphics.lineTo(indicatorX, indicatorY + size * 0.6);
+    this.graphics.lineTo(indicatorX - size * 0.7, indicatorY);
+    this.graphics.closePath();
+    this.graphics.fillPath();
+
+    // Shield border
+    this.graphics.lineStyle(1.5, 0x00ddff, 0.9);
+    this.graphics.beginPath();
+    this.graphics.moveTo(indicatorX, indicatorY - size);
+    this.graphics.lineTo(indicatorX + size * 0.7, indicatorY);
+    this.graphics.lineTo(indicatorX, indicatorY + size * 0.6);
+    this.graphics.lineTo(indicatorX - size * 0.7, indicatorY);
+    this.graphics.closePath();
+    this.graphics.strokePath();
+
+    // Charge pips below icon (only when max > 1)
+    if (maxCharges > 1) {
+      const pipRadius = 2.5;
+      const pipSpacing = 7;
+      const totalWidth = (maxCharges - 1) * pipSpacing;
+      const startX = indicatorX - totalWidth / 2;
+      const pipY = indicatorY + size + 6;
+
+      for (let i = 0; i < maxCharges; i++) {
+        const pipX = startX + i * pipSpacing;
+        if (i < this.shieldCharges) {
+          // Active charge pip
+          this.graphics.fillStyle(0x00aaff, 0.9);
+          this.graphics.fillCircle(pipX, pipY, pipRadius);
+        } else {
+          // Depleted charge pip
+          this.graphics.lineStyle(1, 0x00aaff, 0.3);
+          this.graphics.strokeCircle(pipX, pipY, pipRadius);
+        }
+      }
+    }
+  }
+
   shoot(targetX: number, targetY: number): boolean {
     const state = this.getQuillState();
     if (state === 'naked') return false;
@@ -494,6 +564,7 @@ export class Player extends Phaser.GameObjects.Container {
     if (this.shieldCharges > 0) {
       this.shieldCharges--;
       this._bs++;
+      this.shieldRegenTimer = 0;
       this.spawnShieldBreakEffect();
       // Brief invincibility after shield break
       this._pf = true;
@@ -554,6 +625,41 @@ export class Player extends Phaser.GameObjects.Container {
     this._fd = 0;
     this._fc = 0;
     this._bs = 0;
+  }
+
+  enableInfiniteSwarmShieldRegen(): void {
+    this.infiniteSwarmShieldRegen = true;
+    this.shieldRegenTimer = 0;
+  }
+
+  private updateShieldRegen(delta: number): void {
+    if (!this.infiniteSwarmShieldRegen) return;
+
+    const maxCharges = this.upgradeManager.getModifier('shieldCharges');
+    if (maxCharges <= 0 || this.shieldCharges >= maxCharges) {
+      this.shieldRegenTimer = 0;
+      return;
+    }
+
+    this.shieldRegenTimer += delta;
+
+    if (this.shieldRegenTimer >= INFINITE_SWARM_CONFIG.shieldRegenInterval) {
+      this.shieldRegenTimer -= INFINITE_SWARM_CONFIG.shieldRegenInterval;
+      this.shieldCharges = Math.min(this.shieldCharges + 1, maxCharges);
+      this.spawnShieldRegenEffect();
+    }
+  }
+
+  private spawnShieldRegenEffect(): void {
+    const sparkle = this.scene.add.circle(this.x, this.y - 30, 15, 0x00aaff, 0.0);
+    this.scene.tweens.add({
+      targets: sparkle,
+      alpha: 0.5,
+      scale: 1.5,
+      duration: 200,
+      yoyo: true,
+      onComplete: () => sparkle.destroy(),
+    });
   }
 
   heal(amount: number): void {

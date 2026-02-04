@@ -973,6 +973,10 @@ export class GameScene extends Phaser.Scene {
 
     // Activate infinite swarm in wave manager
     this.waveManager.activateInfiniteSwarm(this.time.now);
+
+    // Reset shields and enable time-based regen for infinite swarm
+    this.player.resetShieldsForWave();
+    this.player.enableInfiniteSwarmShieldRegen();
   }
 
   private showChestUpgradeSelection(): void {

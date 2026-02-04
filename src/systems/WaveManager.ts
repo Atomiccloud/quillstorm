@@ -18,6 +18,7 @@ export class WaveManager {
 
   // Infinite swarm state
   private infiniteSwarmActive: boolean = false;
+  private lastBossSpawnTime: number = 0;
   private progressionManager: ProgressionManager | null = null;
   private upgradeManager: UpgradeManager | null = null;
 
@@ -65,6 +66,7 @@ export class WaveManager {
     this.infiniteSwarmActive = true;
     this.isWaveActive = true;
     this.spawnTimer = 0;
+    this.lastBossSpawnTime = 0;
     // Initialize progression manager's infinite swarm state
     if (this.progressionManager) {
       this.progressionManager.activateInfiniteSwarm(currentTime);
@@ -223,28 +225,76 @@ export class WaveManager {
     });
   }
 
+  private getBossCooldown(): number {
+    const dangerLevel = this.upgradeManager?.getModifier('dangerLevel') ?? 0;
+    const dangerAboveMin = Math.max(0, dangerLevel - INFINITE_SWARM_CONFIG.bossMinDangerLevel);
+    const msPerDanger = (INFINITE_SWARM_CONFIG.bossCooldownMaxMs - INFINITE_SWARM_CONFIG.bossCooldownMinMs)
+      / INFINITE_SWARM_CONFIG.bossCooldownDangerRange;
+    return Math.max(
+      INFINITE_SWARM_CONFIG.bossCooldownMinMs,
+      INFINITE_SWARM_CONFIG.bossCooldownMaxMs - dangerAboveMin * msPerDanger
+    );
+  }
+
   private spawnInfiniteSwarmEnemy(): void {
-    // Use difficulty multiplier for scaled enemy stats
-    const type = this.getRandomEnemyType();
-    const swarmMult = this.progressionManager?.getSwarmDifficultyMultiplier() ?? 1.0;
-    // Danger compounds multiplicatively with swarm scaling
-    const difficultyMult = swarmMult * this.getDangerDifficultyMultiplier();
+    const dangerLevel = this.upgradeManager?.getModifier('dangerLevel') ?? 0;
+    const now = this.scene.time.now;
+
+    // Determine if this spawn should be a boss
+    let type: EnemyType;
+    if (
+      dangerLevel >= INFINITE_SWARM_CONFIG.bossMinDangerLevel &&
+      now - this.lastBossSpawnTime >= this.getBossCooldown()
+    ) {
+      const dangerAboveMin = dangerLevel - INFINITE_SWARM_CONFIG.bossMinDangerLevel;
+      const bossChance = Math.min(
+        INFINITE_SWARM_CONFIG.bossMaxChance,
+        INFINITE_SWARM_CONFIG.bossBaseChance + dangerAboveMin * INFINITE_SWARM_CONFIG.bossChancePerDanger
+      );
+      if (Math.random() < bossChance) {
+        type = Math.random() < 0.5 ? 'boss' : 'flyingBoss';
+        this.lastBossSpawnTime = now;
+      } else {
+        type = this.getRandomEnemyType();
+      }
+    } else {
+      type = this.getRandomEnemyType();
+    }
+
+    // Get separate HP and damage multipliers (swarm × danger)
+    const hpMult = (this.progressionManager?.getSwarmHPMultiplier() ?? 1.0) * this.getDangerDifficultyMultiplier();
+    const dmgMult = (this.progressionManager?.getSwarmDamageMultiplier() ?? 1.0) * this.getDangerDamageMultiplier();
+    const damageCap = INFINITE_SWARM_CONFIG.damageCaps[type] ?? 999;
 
     // Roll for elite (non-boss only)
     const isBoss = type === 'boss' || type === 'flyingBoss';
     const isElite = !isBoss && Math.random() < this.getEliteSpawnChance();
 
+    // Spawn position
     let x: number;
     let y: number;
 
-    // Random edge spawn
-    const side = Math.random() < 0.5 ? 'left' : 'right';
-    x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
-    // Flying enemies spawn at top
-    y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
+    if (isBoss) {
+      if (type === 'flyingBoss') {
+        x = GAME_CONFIG.width / 2 + (Math.random() - 0.5) * 200;
+        y = 100;
+      } else {
+        const side = Math.random() < 0.5 ? 'left' : 'right';
+        x = side === 'left' ? 80 : GAME_CONFIG.width - 80;
+        y = GAME_CONFIG.height - 150;
+      }
+    } else {
+      const side = Math.random() < 0.5 ? 'left' : 'right';
+      x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
+      y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
+    }
 
-    // Use very high wave for unlocking all enemy types (wave 100)
-    const enemy = new Enemy(this.scene, x, y, type, 100, difficultyMult, isElite);
+    // Wave 20 for type unlocking; pass 1.0 as legacy multiplier (overrides used instead)
+    const enemy = new Enemy(this.scene, x, y, type, 20, 1.0, isElite, {
+      hpMultiplier: hpMult,
+      dmgMultiplier: dmgMult,
+      damageCap: damageCap,
+    });
     if (this.target) {
       enemy.setTarget(this.target);
     }
@@ -315,6 +365,7 @@ export class WaveManager {
     this.totalSpawns = 0;
     this.spawnedCount = 0;
     this.infiniteSwarmActive = false;
+    this.lastBossSpawnTime = 0;
     this.spawnTimer = 0;
     this.enemies.clear(true, true);
   }

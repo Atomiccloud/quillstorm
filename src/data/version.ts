@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.4.0';
+export const GAME_VERSION = '0.4.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.4.1',
+    date: '2026-02-04',
+    changes: [
+      'Rebalanced infinite swarm — enemies are tankier but deal less damage',
+      'Split HP and damage scaling (quadratic HP, square root damage with per-type caps)',
+      'Slower spawn rate ramp — 10ms floor now reached at ~12 min instead of ~7 min',
+      'Bosses now spawn during infinite swarm at danger level 5+',
+      'Boss spawn chance and cooldown scale with danger level',
+      'Added shield visual indicator with charge pips above player',
+      'Shield charges regenerate every 30s during infinite swarm',
+      'Fixed wave scaling bug that inflated swarm enemy stats',
+      'HUD now shows separate HP and damage multipliers during infinite swarm',
+    ],
+  },
   {
     version: '0.4.0',
     date: '2026-02-04',

@@ -59,7 +59,8 @@ export class Enemy extends Phaser.GameObjects.Container {
     type: EnemyType,
     wave: number = 1,
     difficultyMultiplier: number = 1.0,
-    isElite: boolean = false
+    isElite: boolean = false,
+    overrides?: { hpMultiplier?: number; dmgMultiplier?: number; damageCap?: number }
   ) {
     super(scene, x, y);
 
@@ -83,26 +84,33 @@ export class Enemy extends Phaser.GameObjects.Container {
       1 + scalingSteps * ENEMY_SCALING.speedPerWave
     );
 
-    // Apply infinite swarm difficulty multiplier on top of wave scaling
+    // Use split multipliers when provided (infinite swarm), else fall back to single multiplier
+    const hpDiffMult = overrides?.hpMultiplier ?? difficultyMultiplier;
+    const dmgDiffMult = overrides?.dmgMultiplier ?? difficultyMultiplier;
+
     // Bosses use tier-based scaling: first boss (wave 5) = base HP, later bosses get bonus
     const isBoss = type === 'boss' || type === 'flyingBoss';
     let bossBonus = 1;
     if (isBoss) {
-      // Boss tier: wave 5 = tier 0, wave 10 = tier 1, wave 15 = tier 2, etc.
-      // Quadratic scaling: multiplier = 1 + (tier^2 * factor)
-      // Wave 5 (tier 0): 300 HP, Wave 10: 525, Wave 15: 1200, Wave 20: 2325
       const bossTier = Math.max(0, Math.floor(wave / WAVE_CONFIG.bossWaveInterval) - 1);
       bossBonus = 1 + (bossTier * bossTier * ENEMY_SCALING.bossHealthTierFactor);
     }
     // Note: Bosses don't get wave-based healthMultiplier, only tier bonus
     const effectiveHealthMult = isBoss ? bossBonus : healthMultiplier;
-    this.health = Math.floor(config.health * effectiveHealthMult * difficultyMultiplier);
+    this.health = Math.floor(config.health * effectiveHealthMult * hpDiffMult);
     this.maxHealth = this.health;
-    this.damage = Math.floor(config.damage * damageMultiplier * difficultyMultiplier);
-    this.speed = Math.floor(config.speed * speedMultiplier * Math.min(difficultyMultiplier, 1.3));
+
+    // Calculate damage with optional cap (cap applied BEFORE elite multiplier)
+    let rawDamage = Math.floor(config.damage * damageMultiplier * dmgDiffMult);
+    if (overrides?.damageCap !== undefined) {
+      rawDamage = Math.min(rawDamage, overrides.damageCap);
+    }
+    this.damage = rawDamage;
+
+    this.speed = Math.floor(config.speed * speedMultiplier * Math.min(hpDiffMult, 1.3));
     this.points = config.points;
 
-    // Apply elite stat boosts
+    // Apply elite stat boosts (damage cap already applied above, so elites CAN exceed it)
     this.isElite = isElite;
     if (isElite) {
       this.health = Math.floor(this.health * ELITE_CONFIG.healthMultiplier);
