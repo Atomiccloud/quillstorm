@@ -4,6 +4,8 @@ import {
   getSessionKey,
   GameSession,
   KillCounts,
+  StatMetrics,
+  validateStatMetrics,
 } from '../_lib/session';
 
 export const config = {
@@ -18,6 +20,7 @@ interface GameOverRequest {
   eliteKills?: KillCounts;
   dangerLevel?: number;
   pm?: { d: number; t: number; b: number };
+  sm?: StatMetrics;
 }
 
 interface GameOverResponse {
@@ -141,6 +144,14 @@ export default async function handler(req: Request): Promise<Response> {
     }
     if (body.pm && typeof body.pm === 'object') {
       session.finalPm = body.pm;
+    }
+    if (body.sm && typeof body.sm === 'object') {
+      session.finalSm = body.sm;
+      // Validate stat metrics - silently flag if suspicious
+      const statValidation = validateStatMetrics(body.finalWave, body.sm);
+      if (!statValidation.valid) {
+        session.statsFlagged = true;
+      }
     }
 
     // Update session in Redis (shorter TTL since game is over)

@@ -6,7 +6,9 @@ import {
   GameSession,
   KillCounts,
   WaveRecord,
+  StatMetrics,
   validateWaveReport,
+  validateStatMetrics,
 } from '../_lib/session';
 
 export const config = {
@@ -21,6 +23,7 @@ interface WaveRequest {
   dangerLevel?: number;
   score: number;
   pm?: { d: number; t: number; b: number };
+  sm?: StatMetrics;
 }
 
 interface WaveResponse {
@@ -148,6 +151,12 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
+    // Validate stat metrics (HP/quills/prosperity) - silently flag if suspicious
+    const statValidation = validateStatMetrics(body.wave, body.sm);
+    if (!statValidation.valid) {
+      session.statsFlagged = true;
+    }
+
     // Add wave record
     const waveRecord: WaveRecord = {
       wave: body.wave,
@@ -157,6 +166,7 @@ export default async function handler(req: Request): Promise<Response> {
       score: body.score,
       timestamp: Date.now(),
       ...(body.pm && typeof body.pm === 'object' ? { pm: body.pm } : {}),
+      ...(body.sm && typeof body.sm === 'object' ? { sm: body.sm } : {}),
     };
     session.waves.push(waveRecord);
 

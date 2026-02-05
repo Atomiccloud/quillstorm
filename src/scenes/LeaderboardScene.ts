@@ -4,7 +4,7 @@ import { LeaderboardManager } from '../systems/LeaderboardManager';
 import { LeaderboardPanel } from '../ui/LeaderboardPanel';
 import { AudioManager } from '../systems/AudioManager';
 
-type TabType = 'global' | 'weekly';
+type TabType = 'global' | 'weekly' | 'notable';
 
 interface LeaderboardSceneData {
   returnScene?: string;
@@ -16,6 +16,7 @@ export class LeaderboardScene extends Phaser.Scene {
   private currentTab: TabType = 'global';
   private globalButton!: Phaser.GameObjects.Container;
   private weeklyButton!: Phaser.GameObjects.Container;
+  private notableButton!: Phaser.GameObjects.Container;
   private resetTimerText!: Phaser.GameObjects.Text;
   private weeklyResetsIn = 0;
   private returnScene: string = 'MenuScene';
@@ -66,11 +67,13 @@ export class LeaderboardScene extends Phaser.Scene {
       }
     });
 
-    // Tab buttons
-    this.globalButton = this.createTabButton(centerX - 80, 100, 'GLOBAL', 'global');
-    this.weeklyButton = this.createTabButton(centerX + 80, 100, 'WEEKLY', 'weekly');
+    // Tab buttons (3 tabs: global, weekly, notable)
+    this.globalButton = this.createTabButton(centerX - 150, 100, 'GLOBAL', 'global');
+    this.weeklyButton = this.createTabButton(centerX, 100, 'WEEKLY', 'weekly');
+    this.notableButton = this.createTabButton(centerX + 150, 100, 'NOTABLE', 'notable');
     this.add.existing(this.globalButton);
     this.add.existing(this.weeklyButton);
+    this.add.existing(this.notableButton);
 
     // Weekly reset timer
     this.resetTimerText = this.add.text(centerX, 135, '', {
@@ -145,13 +148,23 @@ export class LeaderboardScene extends Phaser.Scene {
 
     const globalBg = this.globalButton.getData('bg') as Phaser.GameObjects.Rectangle;
     const weeklyBg = this.weeklyButton.getData('bg') as Phaser.GameObjects.Rectangle;
+    const notableBg = this.notableButton.getData('bg') as Phaser.GameObjects.Rectangle;
 
     globalBg.setFillStyle(this.currentTab === 'global' ? activeColor : inactiveColor);
     weeklyBg.setFillStyle(this.currentTab === 'weekly' ? activeColor : inactiveColor);
+    notableBg.setFillStyle(this.currentTab === 'notable' ? activeColor : inactiveColor);
 
     // Show/hide reset timer
     this.resetTimerText.setVisible(this.currentTab === 'weekly');
   }
+
+  // Hardcoded notable entries (cheaters/exploiters hall of shame)
+  private static readonly NOTABLE_ENTRIES = [
+    { rank: 1, playerName: 'JONISNTGAMING (QoL Hax)', score: 976519, wave: 20, timestamp: 0 },
+    { rank: 2, playerName: 'PROGOONER (Bug Abuse)', score: 1230622, wave: 20, timestamp: 0 },
+    { rank: 3, playerName: 'Zezimareal (HP and Quill Hax)', score: 100698, wave: 20, timestamp: 0 },
+    { rank: 4, playerName: 'Josh (Honeypotted)', score: 69420, wave: 20, timestamp: 0 },
+  ];
 
   private async loadData(): Promise<void> {
     this.panel.showLoading();
@@ -161,13 +174,19 @@ export class LeaderboardScene extends Phaser.Scene {
       if (this.currentTab === 'global') { // Still on this tab
         this.panel.setEntries(data.entries);
       }
-    } else {
+    } else if (this.currentTab === 'weekly') {
       const data = await LeaderboardManager.getWeeklyLeaderboard();
       if (this.currentTab === 'weekly') {
         this.panel.setEntries(data.entries);
         this.weeklyResetsIn = data.resetsIn;
         this.updateResetTimer();
       }
+    } else if (this.currentTab === 'notable') {
+      // Sort by score descending and re-rank
+      const sorted = [...LeaderboardScene.NOTABLE_ENTRIES]
+        .sort((a, b) => b.score - a.score)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+      this.panel.setEntries(sorted);
     }
   }
 

@@ -1032,6 +1032,11 @@ export class GameScene extends Phaser.Scene {
     const wavePerf = this.player.getPerf();
     SessionManager.setPerf(wavePerf);
     SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
+    SessionManager.setStatMetrics(
+      this.player.maxHealth,
+      this.quillManager.maxQuills,
+      this.upgradeManager.getModifier('prosperity')
+    );
     SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
 
     // Accumulate session damage stats
@@ -1187,6 +1192,11 @@ export class GameScene extends Phaser.Scene {
     const deathPerf = this.player.getPerf();
     SessionManager.setPerf(deathPerf);
     SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
+    SessionManager.setStatMetrics(
+      this.player.maxHealth,
+      this.quillManager.maxQuills,
+      this.upgradeManager.getModifier('prosperity')
+    );
     SessionManager.reportGameOver(finalWave, finalScore);
 
     // Accumulate final wave's damage stats
