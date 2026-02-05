@@ -160,10 +160,11 @@ export class LeaderboardScene extends Phaser.Scene {
 
   // Hardcoded notable entries (cheaters/exploiters hall of shame)
   private static readonly NOTABLE_ENTRIES = [
-    { rank: 1, playerName: 'JONISNTGAMING (QoL Hax)', score: 976519, wave: 20, timestamp: 0 },
-    { rank: 2, playerName: 'PROGOONER (Bug Abuse)', score: 1230622, wave: 20, timestamp: 0 },
-    { rank: 3, playerName: 'Zezimareal (HP and Quill Hax)', score: 100698, wave: 20, timestamp: 0 },
-    { rank: 4, playerName: 'Josh (Honeypotted)', score: 69420, wave: 20, timestamp: 0 },
+    { rank: 1, playerName: 'Adamz (Unbalanced Patch)', score: 14377267, wave: 20, timestamp: 0 },
+    { rank: 2, playerName: 'JONISNTGAMING (QoL Hax)', score: 976519, wave: 20, timestamp: 0 },
+    { rank: 3, playerName: 'PROGOONER (Bug Abuse)', score: 1230622, wave: 20, timestamp: 0 },
+    { rank: 4, playerName: 'Zezimareal (HP and Quill Hax)', score: 100698, wave: 20, timestamp: 0 },
+    { rank: 5, playerName: 'Josh (Honeypotted)', score: 69420, wave: 20, timestamp: 0 },
   ];
 
   private async loadData(): Promise<void> {
