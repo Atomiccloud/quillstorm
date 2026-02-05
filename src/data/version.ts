@@ -42,6 +42,13 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Explosion radius capped at 400px maximum',
       'Stats panel now scrollable to fit armor/evasion display',
       'Score submission cap removed (was 2,999,999)',
+      // Multi-stage infinite swarm
+      '4-stage infinite swarm: Swarm (0-3 min), Surge (3-6 min), Frenzy (6-9 min), Apocalypse (9+ min)',
+      'Swarm enemies gain colored tint at each stage (orange → red → purple)',
+      'Stage transitions with screen flash and sound effect',
+      'Enemy damage fully uncapped — scales naturally with swarm multipliers',
+      'Elite spawn chance scales with stage (+0%/+5%/+10%/+20%)',
+      'Quadratic explosion scaling in Apocalypse stage — expect death by 12-15 minutes',
     ],
   },
   {
