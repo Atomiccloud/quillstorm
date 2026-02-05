@@ -367,14 +367,14 @@ export class UpgradeManager {
     if (this.modifiers.get('chainLightning')! !== 0) {
       summary.push({ name: 'Chain Lightning', value: `${this.modifiers.get('chainLightning')!} targets` });
     }
-    // Defense
+    // Defense (displayed as flat values - diminishing returns applied internally)
     if (this.modifiers.get('armor')! !== 0) {
-      const armor = Math.min(this.modifiers.get('armor')!, 0.5);
-      summary.push({ name: 'Armor', value: formatPercent(armor) });
+      const armor = Math.round(this.modifiers.get('armor')! * 100);
+      summary.push({ name: 'Armor', value: armor.toString() });
     }
     if (this.modifiers.get('evasion')! !== 0) {
-      const evasion = Math.min(this.modifiers.get('evasion')!, 0.4);
-      summary.push({ name: 'Evasion', value: formatPercent(evasion) });
+      const evasion = Math.round(this.modifiers.get('evasion')! * 100);
+      summary.push({ name: 'Evasion', value: evasion.toString() });
     }
     if (this.modifiers.get('thorns')! !== 0) {
       summary.push({ name: 'Thorns', value: formatFlat(this.modifiers.get('thorns')!) });

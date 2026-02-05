@@ -224,8 +224,10 @@ export class Quill extends Phaser.GameObjects.Container {
 
   onHitEnemy(): boolean {
     // Check for crit (empowered quills from Apotheosis always crit)
-    const critChance = this.upgradeManager.getModifier('critChance');
-    const isCrit = this.isEmpowered || Math.random() < critChance;
+    // v0.5.0: Crit now has diminishing returns: effective = raw / (raw + 1)
+    const rawCrit = this.upgradeManager.getModifier('critChance');
+    const effectiveCrit = rawCrit > 0 ? rawCrit / (rawCrit + 1) : 0;
+    const isCrit = this.isEmpowered || Math.random() < effectiveCrit;
 
     if (isCrit) {
       const critMult = 2 + this.upgradeManager.getModifier('critDamage');

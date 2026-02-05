@@ -385,8 +385,8 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Thick Hide | +20 max health | More survivability |
 | Thick Quills | +30% projectile size | Larger quills, easier to hit |
 | Life Leech | +5% vampirism | Heal when dealing damage |
-| Tough Skin | +5% armor (×3) | Reduces all incoming damage |
-| Quick Reflexes | +4% evasion (×3) | Small chance to dodge attacks |
+| Tough Skin | +5 Armor | Reduces incoming damage |
+| Quick Reflexes | +5 Evasion | Chance to dodge attacks |
 
 ---
 
@@ -408,8 +408,8 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Frost Tips | +2 freeze strength (17%) | Chance to freeze enemies |
 | Ember Quills | +2 burn strength (17%, 16 DPS) | Stacking burn DoT |
 | Toxic Quills | +2 poison strength (17%, 10% amp) | Stacking damage amplification |
-| Iron Quills | +8% armor (×2) | Hardened quill damage resistance |
-| Acrobat | +8% evasion, +5% speed | Agile dodge build |
+| Iron Quills | +10 Armor | Hardened quill damage resistance |
+| Acrobat | +10 Evasion | Agile dodge build |
 
 ---
 
@@ -431,8 +431,8 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Icicle Quills | +3 freeze strength (23%) | Longer freeze |
 | Flame Quills | +3 burn strength (23%, 24 DPS) | Hotter stacking burns |
 | Noxious Spines | +3 poison strength (23%, 15% amp) | Deeper venom stacks |
-| Porcupine Plate | +12% armor, +10 HP | Natural armor plating |
-| Shadow Step | +12% evasion | Phase through attacks |
+| Porcupine Plate | +15 Armor, +20 HP | Natural armor plating |
+| Shadow Step | +15 Evasion, +5% speed | Phase through attacks |
 
 ---
 
@@ -454,12 +454,12 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Blizzard Quills | +3 freeze strength, +50% slow aura | Frozen enemies chill nearby foes |
 | Inferno Quills | +3 burn strength, +30px fire aura | Burning enemies scorch nearby |
 | Plague Bearer | +3 poison strength, spread on death | Poison spreads on death |
-| Diamond Hide | +15% armor, 10 thorns | Reflects damage to attackers |
-| Phantom Porcupine | +15% evasion, +15% speed | Nearly untouchable |
+| Diamond Hide | +20 Armor, +10 Thorns | Reflects damage to attackers |
+| Phantom Porcupine | +20 Evasion, +10% speed | Nearly untouchable |
 
 ---
 
-### Legendary Upgrades (13)
+### Legendary Upgrades (15)
 
 | Name | Effect | Max Stacks | Description |
 |------|--------|------------|-------------|
@@ -472,6 +472,8 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Porcupine Army | +4 companions | 1 | Army of helpers |
 | Vampire Lord | +15% vampirism, +30% damage | 1 | Lifesteal build |
 | Immortal Fortress | +5 shields, +50 health | 1 | Unkillable defense |
+| Living Bastion | +40 Armor, +20 Thorns, +25 HP | ∞ | Unstoppable fortress |
+| Wraith Form | +25 Evasion, +15% speed | ∞ | Become intangible |
 | Storm Caller | +5 shock strength (33%), +3 chain targets | ∞ | Storm of chain lightning |
 | Absolute Zero | +5 freeze strength (33%), +50% shatter | ∞ | Frozen enemies shatter on death |
 | Hellfire | +5 burn strength (33%, 40 DPS), +80px explosion | ∞ | Burning enemies explode on death |
@@ -545,34 +547,95 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 ## Defense Stats
 
 ### Armor (Damage Reduction)
-- **Formula**: `actualDamage = rawDamage × (1 - armor)`
-- **Cap**: 50% maximum (`ARMOR_CONFIG.maxArmor`)
+- **Formula**: Logarithmic diminishing returns — `reduction = ln(1 + armor/100) / (ln(1 + armor/100) + 1.5)`
+- **Display**: Shown as flat "Armor" value (e.g., "50 Armor")
 - **Applied**: After shields, before quill state multiplier
-- **Max possible**: 5%×3 + 8%×2 + 12% + 15% = 58% → capped at 50%
+- **Infinitely stackable** with decreasing returns per point
+
+| Total Armor | Effective Reduction |
+|-------------|---------------------|
+| 5 | 3.2% |
+| 15 | 9.0% |
+| 30 | 16.0% |
+| 50 | 21.3% |
+| 75 | 27.4% |
+| 100 | 31.6% |
+| 150 | 37.8% |
+| 200 | 42.3% |
 
 ### Evasion (Dodge Chance)
-- **Formula**: Roll `Math.random() < evasion` before all other damage processing
-- **Cap**: 40% maximum (`EVASION_CONFIG.maxEvasion`)
+- **Formula**: Logarithmic diminishing returns — `dodge = ln(1 + evasion/100) / (ln(1 + evasion/100) + 2.0)`
+- **Display**: Shown as flat "Evasion" value (e.g., "50 Evasion")
 - **Applied**: Before shields — a dodge wastes no shield charges
 - **Visual**: "DODGE" floating text when triggered
-- **Max possible**: 4%×3 + 8% + 12% + 15% = 47% → capped at 40%
+- **Infinitely stackable** with decreasing returns per point
+
+| Total Evasion | Effective Dodge |
+|---------------|-----------------|
+| 5 | 2.4% |
+| 15 | 6.9% |
+| 30 | 11.6% |
+| 50 | 16.8% |
+| 75 | 22.0% |
+| 100 | 25.7% |
+| 150 | 31.2% |
+| 200 | 35.5% |
 
 ### Thorns (Damage Reflection)
-- **Source**: Diamond Hide epic upgrade (+10 flat thorns)
-- **Behavior**: When hit, deal flat thorns damage back to the attacking enemy
+- **Sources**: Diamond Hide (+10), Living Bastion (+20)
+- **Behavior**: When hit, deal thorns damage back to the attacking enemy
+- **Scaling**: Thorns damage scales with your damage modifier (`thorns × (1 + damageModifier)`)
 - **Applied**: On both regular contact damage and shellback roll attacks
+
+### Critical Hits (v0.5.0 Rebalanced)
+- **Formula**: Diminishing returns — `effectiveCrit = rawCrit / (rawCrit + 1)`
+- **Display**: Shown as "+100 Crit (50%)" where 100 is raw and 50% is effective
+- **Base crit damage**: 2.0x
+- **Crit damage bonuses**: Add to base (e.g., +1.0x = 3.0x total)
+
+| Raw Crit | Effective Chance |
+|----------|------------------|
+| 10% | 9% |
+| 25% | 20% |
+| 50% | 33% |
+| 100% | 50% |
+| 200% | 67% |
+| 300% | 75% |
+
+**Crit Upgrades:**
+| Name | Rarity | Crit Chance | Crit Damage |
+|------|--------|-------------|-------------|
+| Vital Points | Common | +10% | - |
+| Deadly Precision | Rare | +15% | +0.5x |
+| Critical Master | Legendary | +25% | +1.0x |
 
 ---
 
 ## Special Mechanics
 
-### Shields
-- Obtained through upgrades (Energy Shield, Reinforced Shield, Fortress, Immortal Fortress)
+### Shields (v0.5.0 Rebalanced)
+- Maximum 10 shield charges (hard cap regardless of upgrades)
+- Obtained through upgrades (Reinforced Shield, Fortress, Immortal Fortress)
 - Absorb one hit each before breaking
 - Reset to full at the start of each wave
-- Brief invincibility (500ms) when shield breaks
+
+**Diminishing Iframes:**
+- First hit: 400ms invincibility
+- Second hit: 240ms invincibility (×0.6)
+- Third hit: 144ms invincibility (×0.6)
+- Fourth+ hit: 100ms invincibility (floor)
+- Resets to 400ms after 2 seconds without shield breaks
+
+**Shield Upgrades:**
+| Upgrade | Rarity | Shields | Bonus |
+|---------|--------|---------|-------|
+| Reinforced Shield | Rare | +1 | - |
+| Fortress | Epic | +2 | +30 HP |
+| Immortal Fortress | Legendary | +4 | +100 HP |
+
+- Shield upgrades hidden from pool when at cap
 - Cyan diamond icon with charge pips displayed above the porcupine when active
-- In infinite swarm: regenerate 1 charge every 30s (configurable via `INFINITE_SWARM_CONFIG.shieldRegenInterval`)
+- In infinite swarm: regenerate 1 charge every 30s
 - Taking a hit resets the regen timer
 - New shield charges from mid-wave upgrades are granted immediately
 
@@ -695,66 +758,59 @@ Enemies drop XP orbs on death. Collect them to level up and gain bonus upgrades.
 Rare drops from enemies containing better upgrades.
 
 - **Base Drop Chance**: 1%
-- **Despawn**: 7 seconds (warning at 5s)
+- **Despawn**: 9 seconds (warning at 7s)
 - **Upgrades**: Never common, higher rare+ rates
 - **First 3 chests**: Guaranteed to contain at least one rare+ upgrade
 
-**Chest Rarity Weights:**
-| Rarity | Weight |
-|--------|--------|
-| Common | 0% |
-| Uncommon | 45% |
-| Rare | 35% |
-| Epic | 15% |
-| Legendary | 5% |
+**Chest Rarity (v0.5.0 - Linear scaling with prosperity)**
 
-### Prosperity
+| Prosperity | Uncommon | Rare | Epic | Legendary | Mythic |
+|------------|----------|------|------|-----------|--------|
+| 0 | 61% | 30% | 8% | 1% | 0.01% |
+| 100 | 51% | 36% | 10% | 3% | 0.1% |
+| 200 | 40% | 42% | 13% | 5% | 0.2% |
+| 300 | 30% | 48% | 15% | 6% | 0.3% |
+| 500 | 10% | 60% | 20% | 10% | 0.5% |
 
-A luck-like stat (inspired by Vampire Survivors) that affects **everything**: chest drops, critical chance, AND upgrade rarity. Stacks infinitely with diminishing returns per point.
+### Prosperity (v0.5.0 Rebalanced)
 
-**Core Formulas:**
-- Chest drop: `1% + (prosperity × 0.2%)`
-- Crit bonus: `prosperity × 0.2%`
-- Rarity shift: `prosperity × 0.5%` transferred to rare+
+A luck stat that affects **chest drops** and **upgrade rarity**. Crit bonus was removed in v0.5.0 to prevent stacking exploits.
 
-**Summary Table:**
+**v0.5.0 Changes:**
+- Chest drop curve now uses logarithmic formula (caps at 14%)
+- Crit bonus removed from prosperity
+- Level-up rarity uses two-phase system
+- Chest rarity uses linear scaling
 
-| Prosperity | Chest Drop | Crit Bonus | Rarity Shift |
-|------------|------------|------------|--------------|
-| 0 | 1% | +0% | None |
-| 25 | 6% | +5% | 12.5% |
-| 50 | 11% | +10% | 25% |
-| 100 | 21% | +20% | 50% |
-| 150 | 31% | +30% | 75% |
+**Chest Drop Formula:**
+```
+bonus = 0.13 × (1 - e^(-prosperity/161))
+```
+
+| Prosperity | Chest Drop |
+|------------|------------|
+| 0 | 1% |
+| 100 | 7% |
+| 200 | 10% |
+| 500 | 13% |
+| ∞ | 14% (cap) |
 
 ---
 
-#### Rarity Shift Formula
+#### Level-Up Rarity (Two-Phase System)
 
-Prosperity shifts weight from lower rarities to higher ones:
+**Base weights:** Common 65%, Uncommon 25%, Rare 6%, Epic 3.5%, Legendary 0.49%, Mythic 0.01%
 
-```
-shift = prosperity × 0.5%
+Phase 1 (0-100 prosperity): Common transfers to Uncommon
+Phase 2 (100-500 prosperity): Both transfer to higher rarities
 
-Common loses: common_weight × shift × 50%
-Uncommon loses: uncommon_weight × shift × 30%
-Total transferred = common loss + uncommon loss
-
-Rare gains: transferred × 50%
-Epic gains: transferred × 30%
-Legendary gains: transferred × 20%
-```
-
-**Example: Wave-End Upgrades (base 60/25/10/4/1)**
-
-| Prosperity | Common | Uncommon | Rare | Epic | Legendary |
-|------------|--------|----------|------|------|-----------|
-| 0 | 60% | 25% | 10% | 4% | 1% |
-| 50 | 52.5% | 23.1% | 12.3% | 5.5% | 1.6% |
-| 100 | 45% | 21.3% | 14.5% | 7% | 2.2% |
-| 150 | 37.5% | 19.4% | 16.8% | 8.4% | 2.9% |
-
-At 150 prosperity, you have **~3x** the legendary chance!
+| Prosperity | Common | Uncommon | Rare | Epic | Legend | Mythic |
+|------------|--------|----------|------|------|--------|--------|
+| 0 | 65% | 25% | 6% | 3.5% | 0.49% | 0.01% |
+| 100 | 25% | 60% | 10% | 4% | 0.8% | 0.02% |
+| 200 | 19% | 55% | 20% | 6% | 1% | 0.03% |
+| 300 | 13% | 50% | 29% | 7% | 1.1% | 0.04% |
+| 500 | 1% | 39% | 48% | 11% | 1.5% | 0.05% |
 
 ---
 
@@ -771,29 +827,30 @@ At 150 prosperity, you have **~3x** the legendary chance!
 - Prosperity stacks infinitely - no cap!
 - Early prosperity snowballs into better upgrades later
 - High prosperity makes chest drops much more rewarding
-- Combined with crit bonuses, prosperity is a powerful scaling stat
+- At 100 prosperity, uncommon upgrades dominate level-ups (60%)
+- At 500 prosperity, rare upgrades dominate level-ups (48%)
 
 ### Infinite Swarm Mode
 
-After defeating the wave 20 boss (4th boss), the game transitions to endless mode.
+After defeating the wave 20 boss (4th boss), the game transitions to endless mode with 4 escalating stages.
 
-- **Trigger**: Completing wave 20 activates infinite swarm (max wave is 20)
-- **Spawn Rate**: Starts at 600ms, decays by 1% per second (floor: 10ms)
-- **Difficulty**: Quadratic scaling - `multiplier = 1 + (seconds/30)²`
+- **Trigger**: Completing wave 20 activates infinite swarm
 - **No Wave Breaks**: Continuous spawning, no wave-end upgrades
 - **Upgrades**: Only from level-ups and treasure chests
+- **Damage**: Fully uncapped - scales naturally with multipliers
 
-**Difficulty Curve:**
+**4-Stage System:**
 
-| Time | Stat Multiplier | Spawn Interval |
-|------|-----------------|----------------|
-| 0s | 1.0x | 600ms |
-| 30s | 2.0x | ~360ms |
-| 60s | 5.0x | ~215ms |
-| 90s | 10.0x | ~130ms |
-| 2min | 17.0x | ~75ms |
+| Stage | Time | Name | Visual | HP Mult | DMG Mult | Spawn Floor |
+|-------|------|------|--------|---------|----------|-------------|
+| 1 | 0-3 min | Swarm | Red arena | 1.0x | 1.0x | 200ms |
+| 2 | 3-6 min | Surge | Orange enemies | 1.5x | 1.5x | 100ms |
+| 3 | 6-9 min | Frenzy | Red enemies | 2.5x | 2.0x | 50ms |
+| 4 | 9+ min | Apocalypse | Purple enemies | 5.0x+ | 3.0x+ | 10ms |
 
-The quadratic scaling makes late-game survival increasingly challenging without sudden difficulty spikes.
+Stage transitions trigger a screen flash and display the stage name. Stage 4 includes additional quadratic explosion terms that make damage scale out of control.
+
+See [INFINITE_SWARM.md](INFINITE_SWARM.md) for complete scaling tables.
 
 ---
 

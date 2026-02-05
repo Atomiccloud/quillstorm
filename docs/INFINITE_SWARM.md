@@ -8,75 +8,129 @@
 
 ---
 
-## Formulas
+## 4-Stage System
 
-### Spawn Interval Decay (deterministic, framerate-independent)
+The infinite swarm progresses through 4 escalating stages, each with increasing difficulty:
 
-```
-spawnInterval = max(10ms, 600 × 0.9943^t)    where t = seconds elapsed
-```
+| Stage | Time | Name | Visual | HP Mult | DMG Mult | Spawn Floor | Elite Bonus |
+|-------|------|------|--------|---------|----------|-------------|-------------|
+| 1 | 0:00-3:00 | Swarm | Red arena | 1.0x | 1.0x | 200ms | +0% |
+| 2 | 3:00-6:00 | Surge | Orange enemies | 1.5x | 1.5x | 100ms | +5% |
+| 3 | 6:00-9:00 | Frenzy | Deep red enemies | 2.5x | 2.0x | 50ms | +10% |
+| 4 | 9:00+ | Apocalypse | Purple enemies | 5.0x + quadratic | 3.0x + quadratic | 10ms | +20% |
 
-| Parameter | Value |
-|-----------|-------|
-| Starting spawn interval | 600ms (~1.67 enemies/sec) |
-| Decay rate | 0.57% reduction per second (compounding) |
-| Minimum spawn interval (floor) | 10ms (~100 enemies/sec theoretical max) |
-| Time to hit floor | ~12:00 |
+### Stage Transitions
 
-### HP Multiplier (Quadratic)
-
-```
-tiers = secondsElapsed / 15
-hpMultiplier = 1 + tiers^2
-```
-
-One "tier" = 15 seconds of elapsed time. No cap. Enemies become very tanky.
-
-### Damage Multiplier (Square Root)
-
-```
-tiers = secondsElapsed / 15
-dmgMultiplier = 1 + sqrt(tiers)
-```
-
-Damage grows much slower than HP. Per-enemy-type damage caps also apply.
+When a stage changes:
+- Brief screen flash in the stage color
+- Stage name displayed briefly (e.g., "SURGE")
+- Sound effect plays
+- Enemies spawned after transition have colored tint overlay
 
 ---
 
-## Complete Scaling Table (every 15 seconds)
+## Formulas
 
-| Time | HP Mult | DMG Mult | Spawn Interval | Enemies/sec |
-|------|---------|----------|----------------|-------------|
-| 0:00 | 1.0x | 1.0x | 600ms | 1.7 |
-| 0:15 | 2.0x | 2.0x | 551ms | 1.8 |
-| 0:30 | 5.0x | 2.4x | 506ms | 2.0 |
-| 0:45 | 10.0x | 2.7x | 464ms | 2.2 |
-| 1:00 | 17.0x | 3.0x | 426ms | 2.3 |
-| 1:15 | 26.0x | 3.2x | 391ms | 2.6 |
-| 1:30 | 37.0x | 3.4x | 359ms | 2.8 |
-| 1:45 | 50.0x | 3.6x | 329ms | 3.0 |
-| 2:00 | 65.0x | 3.8x | 302ms | 3.3 |
-| 2:15 | 82.0x | 4.0x | 277ms | 3.6 |
-| 2:30 | 101.0x | 4.2x | 255ms | 3.9 |
-| 2:45 | 122.0x | 4.3x | 234ms | 4.3 |
-| 3:00 | 145.0x | 4.5x | 214ms | 4.7 |
-| 3:15 | 170.0x | 4.6x | 197ms | 5.1 |
-| 3:30 | 197.0x | 4.7x | 181ms | 5.5 |
-| 3:45 | 226.0x | 4.9x | 166ms | 6.0 |
-| 4:00 | 257.0x | 5.0x | 152ms | 6.6 |
-| 4:15 | 290.0x | 5.1x | 139ms | 7.2 |
-| 4:30 | 325.0x | 5.2x | 128ms | 7.8 |
-| 4:45 | 362.0x | 5.4x | 117ms | 8.5 |
-| 5:00 | 401.0x | 5.5x | 108ms | 9.3 |
+### Base Scaling (applied at all stages)
 
-### Beyond 5 Minutes
+```
+tiers = secondsElapsed / 15
+baseHP = 1 + tiers^2
+baseDMG = 1 + sqrt(tiers)
+```
 
-| Time | HP Mult | DMG Mult | Spawn Interval | Enemies/sec |
-|------|---------|----------|----------------|-------------|
-| 6:00 | 577.0x | 5.9x | 77ms | 13.0 |
-| 8:00 | 1025.0x | 6.7x | 39ms | 25.8 |
-| 10:00 | 1601.0x | 7.3x | 19ms | 51.3 |
-| 12:00 | 2305.0x | 7.9x | 10ms (floor) | 100 |
+### Stage Multipliers
+
+```
+finalHP = baseHP × stage.hpMult
+finalDMG = baseDMG × stage.dmgMult
+```
+
+### Stage 4 (Apocalypse) Quadratic Explosion
+
+```
+stageTime = secondsElapsed - 540  // Time since stage 4 started
+explosionHP = (stageTime / 20)^2.5 × 500
+explosionDMG = (stageTime / 30)^2
+
+finalHP = baseHP × 5.0 + explosionHP
+finalDMG = baseDMG × 3.0 + explosionDMG
+```
+
+### Spawn Interval Decay
+
+```
+decayedInterval = 600 × 0.9943^totalSeconds
+spawnInterval = max(stage.spawnFloor, decayedInterval)
+```
+
+**Damage is fully uncapped** - scales naturally with swarm multipliers. No per-enemy damage caps.
+
+---
+
+## Complete Scaling Tables
+
+**Note:** Total multipliers include wave 20 base scaling (HP: 2.35x, DMG: 1.9x) compounded with swarm and stage multipliers.
+
+### Stage 1 - Swarm (0:00 - 3:00)
+
+| Time | Total HP Mult | Total DMG Mult | Scurrier HP | Swooper DMG | w/ 40% Armor | Spawn | Elite Bonus |
+|------|---------------|----------------|-------------|-------------|--------------|-------|-------------|
+| 0:00 | 2.35x | 1.9x | 70 | 38 | 23 | 600ms | +0% |
+| 0:30 | 11.8x | 4.6x | 353 | 91 | 55 | 500ms | +0% |
+| 1:00 | 40.0x | 5.7x | 1,199 | 114 | 68 | 420ms | +0% |
+| 1:30 | 87.0x | 6.6x | 2,609 | 133 | 80 | 350ms | +0% |
+| 2:00 | 153x | 7.2x | 4,589 | 144 | 86 | 290ms | +0% |
+| 2:30 | 237x | 7.9x | 7,122 | 159 | 95 | 245ms | +0% |
+| 3:00 | 341x | 8.5x | 10,221 | 171 | 103 | 200ms | +0% |
+
+### Stage 2 - Surge (3:00 - 6:00)
+
+| Time | Total HP Mult | Total DMG Mult | Scurrier HP | Swooper DMG | w/ 40% Armor | Spawn | Elite Bonus |
+|------|---------------|----------------|-------------|-------------|--------------|-------|-------------|
+| 3:00 | 511x | 12.8x | 15,332 | 256 | 154 | 200ms | +5% |
+| 3:30 | 695x | 13.4x | 20,850 | 268 | 161 | 150ms | +5% |
+| 4:00 | 906x | 14.3x | 27,172 | 286 | 172 | 120ms | +5% |
+| 4:30 | 1,145x | 14.8x | 34,347 | 296 | 178 | 100ms | +5% |
+| 5:00 | 1,413x | 15.6x | 42,375 | 312 | 187 | 100ms | +5% |
+| 5:30 | 1,708x | 16.2x | 51,256 | 324 | 194 | 100ms | +5% |
+| 6:00 | 2,033x | 16.9x | 60,991 | 338 | 203 | 100ms | +5% |
+
+### Stage 3 - Frenzy (6:00 - 9:00)
+
+| Time | Total HP Mult | Total DMG Mult | Scurrier HP | Swooper DMG | w/ 40% Armor | Spawn | Elite Bonus |
+|------|---------------|----------------|-------------|-------------|--------------|-------|-------------|
+| 6:00 | 3,389x | 22.4x | 101,652 | 448 | 269 | 100ms | +10% |
+| 6:30 | 3,977x | 23.1x | 119,316 | 462 | 277 | 75ms | +10% |
+| 7:00 | 4,612x | 23.9x | 138,359 | 478 | 287 | 60ms | +10% |
+| 7:30 | 5,293x | 24.7x | 158,781 | 494 | 296 | 50ms | +10% |
+| 8:00 | 6,020x | 25.4x | 180,583 | 508 | 305 | 50ms | +10% |
+| 8:30 | 6,793x | 26.1x | 203,764 | 522 | 313 | 50ms | +10% |
+| 9:00 | 7,612x | 26.6x | 228,324 | 532 | 319 | 50ms | +10% |
+
+### Stage 4 - Apocalypse (9:00+)
+
+| Time | Total HP Mult | Total DMG Mult | Scurrier HP | Swooper DMG | w/ 40% Armor | Spawn | Elite Bonus |
+|------|---------------|----------------|-------------|-------------|--------------|-------|-------------|
+| 9:00 | 15,224x | 39.9x | 456,648 | 798 | 479 | 50ms | +20% |
+| 9:30 | 18,153x | 45.6x | 544,599 | 912 | 547 | 35ms | +20% |
+| 10:00 | 23,512x | 53.2x | 705,360 | 1,064 | 638 | 25ms | +20% |
+| 10:30 | 31,314x | 62.7x | 939,408 | 1,254 | 752 | 20ms | +20% |
+| 11:00 | 41,560x | 74.1x | 1,246,791 | 1,482 | 889 | 15ms | +20% |
+| 11:30 | 54,250x | 87.4x | 1,627,500 | 1,748 | 1,049 | 12ms | +20% |
+| 12:00 | 69,384x | 102.6x | 2,081,520 | 2,052 | 1,231 | 10ms | +20% |
+| 15:00 | 211,512x | 313.5x | 6,345,360 | 6,270 | 3,762 | 10ms | +20% |
+
+### Lethality Summary
+
+| Stage | Time | Swooper Hits to Kill 500 HP (40% armor) | Feel |
+|-------|------|-----------------------------------------|------|
+| 1 | 0-3 min | 5-22 hits | Warmup |
+| 2 | 3-6 min | 2-3 hits | Getting dangerous |
+| 3 | 6-9 min | 1-2 hits | Very lethal |
+| 4 | 9+ min | **1 hit** | Apocalyptic |
+
+With uncapped damage, Stage 2-3 are noticeably harder. Players must play carefully from 3 minutes onward.
 
 ### Spawn Locations
 
@@ -97,84 +151,39 @@ All 8 regular enemy types are available (wave=20 used internally):
 
 ## What Scales
 
-HP and damage now scale **separately**:
+HP and damage scale **separately** with stage multipliers applied on top:
 
-- **Enemy HP** — quadratic multiplier `1 + (t/15)^2` (enemies become very tanky)
-- **Enemy Damage** — square root multiplier `1 + sqrt(t/15)` (slow growth, per-type caps)
-- **Enemy Speed** — capped at 1.3x max (uses HP multiplier)
-
-### Damage Caps
-
-Each enemy type has a maximum damage value. Caps are applied **before** the elite multiplier, so elite enemies CAN exceed these caps.
-
-| Enemy | Damage Cap |
-|-------|-----------|
-| Scurrier | 150 |
-| Spitter | 200 |
-| Swooper | 250 |
-| Shellback | 200 |
-| Burrower | 250 |
-| Splitter | 175 |
-| Splitling | 125 |
-| Healer | 100 |
-| Boss | 400 |
-| Flying Boss | 400 |
-
-Caps are only reached at extreme durations (~8-12 min depending on enemy type). For most of the run they serve as safety nets.
+- **Enemy HP** — `(1 + (t/15)^2) × stageMult` — quadratic base with stage multiplier (1x → 1.5x → 2.5x → 5x+)
+- **Enemy Damage** — `(1 + sqrt(t/15)) × stageMult` — square root base with stage multiplier (1x → 1.5x → 2x → 3x+)
+- **Enemy Speed** — capped at 1.3x max
+- **Damage is fully uncapped** — scales naturally with multipliers, no per-enemy limits
 
 ---
 
 ## Enemy Damage in Infinite Swarm
 
-Enemies spawn with `wave=20`, giving a wave-based damage multiplier of **1.9x**. The square root swarm damage multiplier then compounds on top.
+Enemies spawn with `wave=20`, giving a wave-based damage multiplier of **1.9x**. The swarm damage multiplier and stage multiplier compound on top.
 
 ### Damage Formula
 
 ```
-damage = min(damageCap, floor(baseDamage × 1.9 × dmgMultiplier))
+damage = floor(baseDamage × 1.9 × swarmDmgMult × stageDmgMult)
 ```
 
-For elites, the cap is applied first, then multiplied by 3.0x (elites exceed caps).
+For elites, damage is then multiplied by 3.0x.
 
-### Damage Per Enemy (every 30s up to 4:00)
+### Survivability Summary
 
-| Enemy | Base | 0:00 (1.0x) | 0:30 (2.4x) | 1:00 (3.0x) | 1:30 (3.4x) | 2:00 (3.8x) | 2:30 (4.2x) | 3:00 (4.5x) | 3:30 (4.7x) | 4:00 (5.0x) |
-|-------|------|-------------|-------------|-------------|------------|------------|------------|------------|------------|------------|
-| Scurrier | 10 | 19 | 45 | 57 | 65 | 72 | 79 | 84 | 90 | 95 |
-| Spitter | 15 | 28 | 68 | 85 | 97 | 109 | 119 | 127 | 135 | 142 |
-| Swooper | 20 | 38 | 91 | 114 | 130 | 145 | 159 | 169 | 180 | 190 |
-| Shellback | 15 | 28 | 68 | 85 | 97 | 109 | 119 | 127 | 135 | 142 |
-| Shellback (roll) | 20 | 38 | 91 | 114 | 130 | 145 | 159 | 169 | 180 | 190 |
-| Burrower | 20 | 38 | 91 | 114 | 130 | 145 | 159 | 169 | 180 | 190 |
-| Burrower (surface) | 20 | 38 | 91 | 114 | 130 | 145 | 159 | 169 | 180 | 190 |
-| Splitter | 12 | 22 | 54 | 68 | 78 | 87 | 95 | 101 | 108 | 114 |
-| Splitling | 8 | 15 | 36 | 45 | 52 | 58 | 63 | 67 | 72 | 76 |
-| Healer | 5 | 9 | 22 | 28 | 32 | 36 | 39 | 42 | 44 | 47 |
+With a typical player HP pool of 400-600 and 40% armor:
 
-### Elite Damage (x3 on top of above, caps do NOT apply)
+- **Stage 1 (0-3 min)** — Swooper deals 38-171 damage (23-103 after armor). 5-22 hits to kill.
+- **Stage 2 (3-6 min)** — Swooper deals 256-338 damage (154-203 after armor). 2-3 hits to kill.
+- **Stage 3 (6-9 min)** — Swooper deals 448-532 damage (269-319 after armor). 1-2 hits to kill.
+- **Stage 4 (9+ min)** — Swooper deals 798+ damage (479+ after armor). **One-shot territory**.
 
-| Enemy | 0:00 | 0:30 | 1:00 | 1:30 | 2:00 | 3:00 | 4:00 |
-|-------|------|------|------|------|------|------|------|
-| Scurrier | 57 | 135 | 171 | 195 | 216 | 252 | 285 |
-| Spitter | 84 | 204 | 255 | 291 | 327 | 381 | 426 |
-| Swooper | 114 | 273 | 342 | 390 | 435 | 507 | 570 |
-| Shellback | 84 | 204 | 255 | 291 | 327 | 381 | 426 |
-| Burrower | 114 | 273 | 342 | 390 | 435 | 507 | 570 |
-| Splitter | 66 | 162 | 204 | 234 | 261 | 303 | 342 |
+Elite enemies deal 3x damage on top of the above values. Elite Swoopers one-shot players from Stage 2 onwards.
 
-### Survivability vs Old System
-
-With a typical player HP pool of 250-500:
-
-- **At 0:00** — Swooper/Burrower deal 38 dmg. Very survivable.
-- **At 1:00** — Swooper/Burrower deal 114. Player can tank several hits.
-- **At 2:00** — Swooper/Burrower deal 145. Still 2-3 hits to kill a 250 HP player.
-- **At 3:00** — Swooper/Burrower deal 169. Still survivable with upgrades.
-- **At 4:00** — Swooper/Burrower deal 190. Getting dangerous but not instant death.
-- **Elite at 2:00** — Elite Swooper deals 435. One-shots a 250 HP player (intended).
-- **Elite at 4:00** — Elite Swooper deals 570. One-shots any player (intended).
-
-The challenge now comes from enemy **tankiness** and **spawn volume**, not instant-death damage.
+The challenge comes from **escalating damage across stages**, **enemy tankiness**, and **spawn volume**.
 
 ---
 

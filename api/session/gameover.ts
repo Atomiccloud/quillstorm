@@ -5,6 +5,7 @@ import {
   GameSession,
   KillCounts,
   StatMetrics,
+  DefenseStats,
   validateStatMetrics,
 } from '../_lib/session';
 
@@ -21,6 +22,7 @@ interface GameOverRequest {
   dangerLevel?: number;
   pm?: { d: number; t: number; b: number };
   sm?: StatMetrics;
+  ds?: DefenseStats;
 }
 
 interface GameOverResponse {
@@ -152,6 +154,9 @@ export default async function handler(req: Request): Promise<Response> {
       if (!statValidation.valid) {
         session.statsFlagged = true;
       }
+    }
+    if (body.ds && typeof body.ds === 'object') {
+      session.finalDs = body.ds;
     }
 
     // Update session in Redis (shorter TTL since game is over)

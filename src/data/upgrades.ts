@@ -1,4 +1,4 @@
-import { UPGRADE_CONFIG } from '../config';
+import { UPGRADE_CONFIG, SHIELD_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { ProgressionManager } from '../systems/ProgressionManager';
 
@@ -45,10 +45,10 @@ export interface UpgradeEffects {
   poisonStrength?: number;   // Strength points
   poisonSpread?: number;     // Boolean flag (1 = spreads on death)
   poisonCloud?: number;      // Radius in pixels (stacks additively)
-  // Defense
-  armor?: number;            // Flat percentage damage reduction (capped at 0.5)
-  evasion?: number;          // Flat dodge probability (capped at 0.4)
-  thorns?: number;           // Flat damage reflected to attacker
+  // Defense (logarithmic diminishing returns, no cap, infinitely stackable)
+  armor?: number;            // Raw armor value (effective = ln(1+raw) / (ln(1+raw)+1.5))
+  evasion?: number;          // Raw evasion value (effective = ln(1+raw) / (ln(1+raw)+2.0))
+  thorns?: number;           // Base damage reflected to attacker (scales with damage modifier)
   // Mythic
   rerollChance?: number;     // Probability to reroll failed procs (0.3 = 30%)
   apotheosis?: number;       // Flag (1 = every 5th volley auto-crits with all elements)
@@ -335,13 +335,7 @@ export const UPGRADES: Upgrade[] = [
     rarity: 'uncommon',
     effects: { explosionRadius: 40 },
   },
-  {
-    id: 'energy_shield',
-    name: 'Energy Shield',
-    description: 'Block one hit per wave.',
-    rarity: 'uncommon',
-    effects: { shieldCharges: 1 },
-  },
+  // energy_shield removed in v0.5.0 - shields now start at rare tier
   {
     id: 'seeker_quills',
     name: 'Seeker Quills',
@@ -361,9 +355,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'reinforced_shield',
     name: 'Reinforced Shield',
-    description: 'Block two hits and gain health.',
+    description: 'Block one hit per wave. Shield cap: 10.',
     rarity: 'rare',
-    effects: { shieldCharges: 2, maxHealth: 15 },
+    effects: { shieldCharges: 1 },
   },
   {
     id: 'baby_buddy',
@@ -393,9 +387,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'fortress',
     name: 'Fortress',
-    description: 'Strong shields and extra health.',
+    description: 'Block two hits per wave and +30 HP. Shield cap: 10.',
     rarity: 'epic',
-    effects: { shieldCharges: 3, maxHealth: 30 },
+    effects: { shieldCharges: 2, maxHealth: 30 },
   },
   {
     id: 'smart_missiles',
@@ -433,10 +427,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'immortal_fortress',
     name: 'Immortal Fortress',
-    description: 'Near-invincible defense with massive shields.',
+    description: 'Block four hits per wave and +100 HP. Shield cap: 10.',
     rarity: 'legendary',
-    effects: { shieldCharges: 5, maxHealth: 50 },
-    maxStacks: 1,
+    effects: { shieldCharges: 4, maxHealth: 100 },
   },
 
   // ===== PROSPERITY UPGRADES =====
@@ -652,71 +645,81 @@ export const UPGRADES: Upgrade[] = [
   },
 
   // === DEFENSE UPGRADES - ARMOR ===
+  // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + 1.5)
+  // Stack infinitely with decreasing returns per point
   {
     id: 'tough_skin',
     name: 'Tough Skin',
-    description: 'Thicker hide reduces all incoming damage.',
+    description: 'Thicker hide reduces incoming damage. +5 Armor.',
     rarity: 'common',
     effects: { armor: 0.05 },
-    maxStacks: 3,
   },
   {
     id: 'iron_quills',
     name: 'Iron Quills',
-    description: 'Hardened quills provide passive damage resistance.',
+    description: 'Hardened quills provide damage resistance. +10 Armor.',
     rarity: 'uncommon',
-    effects: { armor: 0.08 },
-    maxStacks: 2,
+    effects: { armor: 0.10 },
   },
   {
     id: 'porcupine_plate',
     name: 'Porcupine Plate',
-    description: 'Natural armor plating absorbs a portion of all damage.',
+    description: 'Natural armor plating with extra vitality. +15 Armor, +20 HP.',
     rarity: 'rare',
-    effects: { armor: 0.12, maxHealth: 10 },
-    maxStacks: 1,
+    effects: { armor: 0.15, maxHealth: 20 },
   },
   {
     id: 'diamond_hide',
     name: 'Diamond Hide',
-    description: 'Impenetrable hide that reflects damage to attackers.',
+    description: 'Impenetrable hide that reflects damage. +20 Armor, +10 Thorns.',
     rarity: 'epic',
-    effects: { armor: 0.15, thorns: 10 },
-    maxStacks: 1,
+    effects: { armor: 0.20, thorns: 10 },
+  },
+  {
+    id: 'living_bastion',
+    name: 'Living Bastion',
+    description: 'Become an unstoppable fortress. +40 Armor, +20 Thorns, +25 HP.',
+    rarity: 'legendary',
+    effects: { armor: 0.40, thorns: 20, maxHealth: 25 },
   },
 
   // === DEFENSE UPGRADES - EVASION ===
+  // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + 2.0)
+  // Stack infinitely with decreasing returns per point
   {
     id: 'quick_reflexes',
     name: 'Quick Reflexes',
-    description: 'Nimble footwork gives a small chance to dodge attacks.',
+    description: 'Nimble footwork to dodge attacks. +5 Evasion.',
     rarity: 'common',
-    effects: { evasion: 0.04 },
-    maxStacks: 3,
+    effects: { evasion: 0.05 },
   },
   {
     id: 'acrobat',
     name: 'Acrobat',
-    description: 'Agile movements make you harder to hit.',
+    description: 'Agile movements make you harder to hit. +10 Evasion.',
     rarity: 'uncommon',
-    effects: { evasion: 0.08, moveSpeed: 0.05 },
-    maxStacks: 1,
+    effects: { evasion: 0.10 },
   },
   {
     id: 'shadow_step',
     name: 'Shadow Step',
-    description: 'Phase through attacks with uncanny reflexes.',
+    description: 'Phase through attacks with uncanny reflexes. +15 Evasion, +5% Speed.',
     rarity: 'rare',
-    effects: { evasion: 0.12 },
-    maxStacks: 1,
+    effects: { evasion: 0.15, moveSpeed: 0.05 },
   },
   {
     id: 'phantom_porcupine',
     name: 'Phantom Porcupine',
-    description: 'A blur of quills and fury. Nearly untouchable.',
+    description: 'A blur of quills and fury. +20 Evasion, +10% Speed.',
     rarity: 'epic',
-    effects: { evasion: 0.15, moveSpeed: 0.15 },
-    maxStacks: 1,
+    effects: { evasion: 0.20, moveSpeed: 0.10 },
+  },
+  {
+    id: 'wraith_form',
+    name: 'Wraith Form',
+    description: 'Become intangible. +25 Evasion, +15% Speed.',
+    rarity: 'legendary',
+    effects: { evasion: 0.25, moveSpeed: 0.15 },
   },
 
   // === MYTHIC UPGRADES ===
@@ -759,6 +762,7 @@ export interface UpgradeSelectionOptions {
   customWeights?: Partial<RarityWeights>;
   guaranteeRareOrBetter?: boolean;  // For "rigged" early chests
   progressionManager?: ProgressionManager;  // For prosperity-based rarity shifts
+  source?: 'levelup' | 'wave' | 'chest';  // v0.5.0: Different rarity systems for different sources
 }
 
 export function getRandomUpgrades(
@@ -766,21 +770,29 @@ export function getRandomUpgrades(
   upgradeManager: UpgradeManager,
   options?: UpgradeSelectionOptions
 ): Upgrade[] {
-  // Merge custom weights with defaults
-  const baseWeights = UPGRADE_CONFIG.rarityWeights;
-  let weights: RarityWeights = {
-    common: options?.customWeights?.common ?? baseWeights.common,
-    uncommon: options?.customWeights?.uncommon ?? baseWeights.uncommon,
-    rare: options?.customWeights?.rare ?? baseWeights.rare,
-    epic: options?.customWeights?.epic ?? baseWeights.epic,
-    legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
-    mythic: options?.customWeights?.mythic ?? baseWeights.mythic,
-  };
+  // v0.5.0: Use different rarity systems based on source
+  let weights: RarityWeights;
 
-  // Apply prosperity-based rarity shift if progressionManager is provided
-  if (options?.progressionManager) {
-    const excludeCommon = options.customWeights?.common === 0;
-    weights = options.progressionManager.getModifiedRarityWeights(weights, excludeCommon);
+  if (options?.progressionManager && options.source === 'chest') {
+    // Chest upgrades use the linear chest rarity system
+    weights = options.progressionManager.getChestRarityWeights();
+  } else {
+    // Level-up and wave upgrades use the two-phase level-up rarity system
+    const baseWeights = UPGRADE_CONFIG.rarityWeights;
+    weights = {
+      common: options?.customWeights?.common ?? baseWeights.common,
+      uncommon: options?.customWeights?.uncommon ?? baseWeights.uncommon,
+      rare: options?.customWeights?.rare ?? baseWeights.rare,
+      epic: options?.customWeights?.epic ?? baseWeights.epic,
+      legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
+      mythic: options?.customWeights?.mythic ?? baseWeights.mythic,
+    };
+
+    // Apply prosperity-based rarity shift if progressionManager is provided
+    if (options?.progressionManager) {
+      const excludeCommon = options.customWeights?.common === 0;
+      weights = options.progressionManager.getLevelUpRarityWeights(weights, excludeCommon);
+    }
   }
 
   const totalWeight = weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary + weights.mythic;
@@ -791,6 +803,11 @@ export function getRandomUpgrades(
     if (upgrade.maxStacks !== undefined) {
       const currentCount = upgradeManager.getUpgradeCount(upgrade.id);
       if (currentCount >= upgrade.maxStacks) return false;
+    }
+    // Hide shield upgrades when at shield cap (v0.5.0)
+    if (upgrade.effects.shieldCharges && upgrade.effects.shieldCharges > 0) {
+      const currentShields = upgradeManager.getModifier('shieldCharges');
+      if (currentShields >= SHIELD_CONFIG.maxCharges) return false;
     }
     // If common weight is 0, exclude common upgrades
     if (weights.common === 0 && upgrade.rarity === 'common') return false;

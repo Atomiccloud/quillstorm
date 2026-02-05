@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -41,6 +41,7 @@ export class GameScene extends Phaser.Scene {
   private waveCompleteTimer: number = 0;
   private isChoosingUpgrade: boolean = false;
   private gameOver: boolean = false;
+  private lastSwarmStage: number = 0;  // Track stage changes for transition effects
   private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
   private effectsOpacity: number = 1;
 
@@ -398,6 +399,15 @@ export class GameScene extends Phaser.Scene {
     // Handle new enemy mechanics (burrower AOE, healer sounds, shellback roll sounds)
     this.handleNewEnemyMechanics();
 
+    // Check for infinite swarm stage changes
+    if (this.waveManager.isInfiniteSwarm()) {
+      const currentStage = this.progressionManager.getCurrentStage();
+      if (currentStage !== this.lastSwarmStage) {
+        this.onSwarmStageChange(currentStage);
+        this.lastSwarmStage = currentStage;
+      }
+    }
+
     // Check for wave completion (not in infinite swarm mode)
     if (!this.isChoosingUpgrade && !this.waveManager.isInfiniteSwarm() && this.waveManager.isWaveComplete()) {
       this.waveCompleteTimer += delta;
@@ -578,8 +588,9 @@ export class GameScene extends Phaser.Scene {
       this.player.heal(healAmount);
     }
 
-    // Explosion AOE - damage nearby enemies
-    const explosionRadius = this.upgradeManager.getModifier('explosionRadius');
+    // Explosion AOE - damage nearby enemies (capped at maxExplosionRadius)
+    const rawExplosionRadius = this.upgradeManager.getModifier('explosionRadius');
+    const explosionRadius = Math.min(rawExplosionRadius, QUILL_CONFIG.maxExplosionRadius);
     if (explosionRadius > 0) {
       this.spawnExplosionEffect(enemy.x, enemy.y, explosionRadius);
       // Damage all enemies within radius (except the one we just hit)
@@ -990,6 +1001,31 @@ export class GameScene extends Phaser.Scene {
     // Reset shields and enable time-based regen for infinite swarm
     this.player.resetShieldsForWave();
     this.player.enableInfiniteSwarmShieldRegen();
+
+    // Initialize stage tracking
+    this.lastSwarmStage = 0;
+  }
+
+  private onSwarmStageChange(newStage: number): void {
+    const stage = INFINITE_SWARM_CONFIG.stages[newStage];
+    if (!stage) return;
+
+    // Brief screen flash in stage color (subtle - 200ms)
+    if (stage.tint !== null) {
+      this.cameras.main.flash(
+        200,
+        (stage.tint >> 16) & 0xff,
+        (stage.tint >> 8) & 0xff,
+        stage.tint & 0xff,
+        true
+      );
+    }
+
+    // Play stage change sound
+    AudioManager.playStageChange();
+
+    // Show stage name briefly
+    this.hud.showStageTransition(stage.name, stage.tint);
   }
 
   private showChestUpgradeSelection(): void {
@@ -1048,6 +1084,10 @@ export class GameScene extends Phaser.Scene {
       this.player.maxHealth,
       this.quillManager.maxQuills,
       this.upgradeManager.getModifier('prosperity')
+    );
+    SessionManager.setDefenseStats(
+      this.upgradeManager.getModifier('armor'),
+      this.upgradeManager.getModifier('evasion')
     );
     SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
 
@@ -1208,6 +1248,10 @@ export class GameScene extends Phaser.Scene {
       this.player.maxHealth,
       this.quillManager.maxQuills,
       this.upgradeManager.getModifier('prosperity')
+    );
+    SessionManager.setDefenseStats(
+      this.upgradeManager.getModifier('armor'),
+      this.upgradeManager.getModifier('evasion')
     );
     SessionManager.reportGameOver(finalWave, finalScore);
 
@@ -1669,11 +1713,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Apply thorns damage reflection to an attacking enemy */
+  /** Apply thorns damage reflection to an attacking enemy (scales with damage modifier) */
   private applyThorns(enemy: Enemy): void {
-    const thorns = this.upgradeManager.getModifier('thorns');
-    if (thorns > 0 && !enemy.isDead()) {
-      enemy._uf(thorns);
+    const baseThorns = this.upgradeManager.getModifier('thorns');
+    if (baseThorns > 0 && !enemy.isDead()) {
+      const damageModifier = this.upgradeManager.getModifier('damage');
+      const thornsDamage = baseThorns * (1 + damageModifier);
+      enemy._uf(thornsDamage);
     }
   }
 

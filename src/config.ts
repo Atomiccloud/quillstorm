@@ -14,6 +14,7 @@ export const PLAYER_CONFIG = {
   airControl: 0.8, // Multiplier for air movement
   coyoteTime: 100, // ms after leaving a platform where jump is still allowed
   jumpCutMultiplier: 0.4, // Velocity multiplier when jump key released early (lower = shorter min jump)
+  maxSpeed: 600, // Maximum movement speed in px/sec (prevents uncontrollable gameplay)
 
   // Health
   maxHealth: 100,
@@ -45,6 +46,9 @@ export const QUILL_CONFIG = {
   // Quill size
   width: 20,
   height: 6,
+
+  // Caps
+  maxExplosionRadius: 400, // Maximum explosion radius in px (covers ~56% width, nearly full height)
 
   // States (percentage thresholds)
   // Note: speedMult and _ufm are the only active modifiers
@@ -277,25 +281,26 @@ export const STATUS_EFFECT_CONFIG = {
   },
 };
 
-// Armor configuration
+// Armor configuration - logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
 export const ARMOR_CONFIG = {
-  maxArmor: 0.5,                // Cap at 50% damage reduction
+  diminishingK: 1.5,            // k=1.5: 50 armor → 21% reduction, 100 armor → 32% reduction
 };
 
-// Evasion configuration
+// Evasion configuration - logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
 export const EVASION_CONFIG = {
-  maxEvasion: 0.4,              // Cap at 40% dodge chance
+  diminishingK: 2.0,            // k=2.0: 50 evasion → 17% dodge, 100 evasion → 26% dodge
 };
 
 export const UPGRADE_CONFIG = {
   choicesPerUpgrade: 3,
+  // Base weights for level-up upgrades (before prosperity modifies)
   rarityWeights: {
-    common: 60,
+    common: 65,
     uncommon: 25,
-    rare: 10,
-    epic: 4,
-    legendary: 1,
-    mythic: 0.05,
+    rare: 6,
+    epic: 3.5,
+    legendary: 0.49,
+    mythic: 0.01,
   },
 };
 
@@ -356,21 +361,34 @@ export const CHEST_CONFIG = {
   riggedChestCount: 3,       // First N chests guarantee rare+
   width: 32,
   height: 24,
+  // Base weights for chest upgrades (before prosperity modifies)
   rarityWeights: {
     common: 0,               // Never rolls common
-    uncommon: 45,            // 45% uncommon
-    rare: 35,                // 35% rare
-    epic: 15,                // 15% epic
-    legendary: 5,            // 5% legendary
+    uncommon: 60.99,         // ~61% uncommon
+    rare: 30,                // 30% rare
+    epic: 8,                 // 8% epic
+    legendary: 1,            // 1% legendary
+    mythic: 0.01,            // 0.01% mythic
+  },
+  // Caps at 500 prosperity
+  rarityCaps: {
+    uncommon: 9.5,           // Drops to 9.5% at 500 prosperity
+    rare: 60,                // Rises to 60% at 500 prosperity
+    epic: 20,                // Rises to 20% at 500 prosperity
+    legendary: 10,           // Rises to 10% at 500 prosperity
+    mythic: 0.5,             // Rises to 0.5% at 500 prosperity
   },
 };
 
 // Prosperity (luck) system
 export const PROSPERITY_CONFIG = {
-  chestDropBonusPerPoint: 0.002,  // +0.2% chest drop per point
-  rarityShiftPerPoint: 0.005,     // +0.5% rarity shift per point
-  critBonusPerPoint: 0.002,       // +0.2% crit per point
-  maxProsperity: 200,             // Soft cap for display (no hard limit)
+  // Chest drop curve: bonus = maxBonus × (1 - e^(-prosperity/decayConstant))
+  // At 100 prosperity: 7%, caps at 14%
+  chestDropMaxBonus: 0.13,        // 13% max bonus (base 1% + 13% = 14% cap)
+  chestDropDecayConstant: 161,    // Decay constant for logarithmic curve
+  // Rarity shift is now handled by dedicated methods in ProgressionManager
+  rarityProsperityCap: 500,       // Prosperity value where rarity caps are reached
+  maxProsperity: 500,             // Soft cap for display (no hard limit)
 };
 
 // Pinecone currency drops
@@ -389,30 +407,56 @@ export const PINECONE_CONFIG = {
 // Infinite swarm mode (activates at level 20)
 export const INFINITE_SWARM_CONFIG = {
   // Spawn interval: deterministic decay based on total elapsed time
-  // Formula: max(minInterval, baseInterval * decayRate^totalSeconds)
-  // 600 * 0.9943^720 ≈ 10 → floor hit at ~12 minutes
+  // Formula: max(stageFloor, baseInterval * decayRate^totalSeconds)
   baseSpawnInterval: 600,
   spawnIntervalDecayRate: 0.9943,
-  minSpawnInterval: 10,            // Floor: 100 enemies/sec maximum chaos
+  minSpawnInterval: 10,            // Absolute floor: 100 enemies/sec maximum chaos
 
   // Stat scaling — tiers every 15 seconds
   // HP: quadratic → 1 + (t/15)^2 — enemies become very tanky
-  // Damage: square root → 1 + sqrt(t/15) — slow growth, capped per type
+  // Damage: square root → 1 + sqrt(t/15) — scales naturally (no caps)
   statScaleInterval: 15,
 
-  // Per-enemy damage caps (applied BEFORE elite multiplier; elites CAN exceed)
-  damageCaps: {
-    scurrier: 150,
-    spitter: 200,
-    swooper: 250,
-    shellback: 200,
-    burrower: 250,
-    splitter: 175,
-    splitling: 125,
-    healer: 100,
-    boss: 400,
-    flyingBoss: 400,
-  } as Record<string, number>,
+  // 4-stage system with escalating difficulty
+  stages: [
+    {
+      name: 'Swarm',
+      startTime: 0,
+      hpMult: 1.0,
+      dmgMult: 1.0,
+      spawnFloor: 200,
+      eliteBonus: 0,       // +0% elite chance
+      tint: null as number | null,  // No tint, use base colors
+    },
+    {
+      name: 'Surge',
+      startTime: 180,      // 3 min
+      hpMult: 1.5,
+      dmgMult: 1.5,
+      spawnFloor: 100,
+      eliteBonus: 0.05,    // +5% elite chance
+      tint: 0xff8800 as number | null,  // Orange
+    },
+    {
+      name: 'Frenzy',
+      startTime: 360,      // 6 min
+      hpMult: 2.5,
+      dmgMult: 2.0,
+      spawnFloor: 50,
+      eliteBonus: 0.10,    // +10% elite chance
+      tint: 0xff4400 as number | null,  // Deep red
+    },
+    {
+      name: 'Apocalypse',
+      startTime: 540,      // 9 min
+      hpMult: 5.0,
+      dmgMult: 3.0,
+      spawnFloor: 10,
+      eliteBonus: 0.20,    // +20% elite chance
+      tint: 0xaa00ff as number | null,  // Purple
+      quadraticBoost: true,
+    },
+  ],
 
   // Boss spawning in infinite swarm (gated by danger level)
   bossMinDangerLevel: 5,           // Danger level required to unlock boss spawns
@@ -425,4 +469,13 @@ export const INFINITE_SWARM_CONFIG = {
   // Cooldown formula: max(5000, 15000 - (danger - 5) * 500)
 
   shieldRegenInterval: 30000,      // Regenerate 1 shield charge every 30 seconds
+};
+
+// Shield system configuration (v0.5.0 balance overhaul)
+export const SHIELD_CONFIG = {
+  maxCharges: 10,                    // Hard cap on shield charges
+  baseShieldIframe: 400,             // Base iframe duration in ms (first hit)
+  minShieldIframe: 100,              // Minimum iframe duration (floor)
+  iframeDiminishRate: 0.6,           // Each hit multiplies duration by this (400→240→144→100)
+  iframeDiminishResetTime: 2000,     // Reset to base iframe after this many ms without shield breaks
 };

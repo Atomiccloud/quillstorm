@@ -49,6 +49,12 @@ export interface StatMetrics {
   p: number;
 }
 
+// Defense stats (armor/evasion) - values are raw * 100 for integer transmission
+export interface DefenseStats {
+  a: number; // armor (e.g., 50 = 0.50 raw = 50 armor displayed)
+  e: number; // evasion (e.g., 40 = 0.40 raw = 40 evasion displayed)
+}
+
 // Wave data recorded during gameplay
 export interface WaveRecord {
   wave: number;
@@ -59,6 +65,7 @@ export interface WaveRecord {
   timestamp: number;
   pm?: PerfMetrics;
   sm?: StatMetrics;
+  ds?: DefenseStats;      // Defense stats at end of wave
 }
 
 // Full session data stored in Redis
@@ -76,6 +83,7 @@ export interface GameSession {
   finalPm?: PerfMetrics;
   finalSm?: StatMetrics;
   statsFlagged?: boolean;  // True if HP/quills/prosperity values were suspicious
+  finalDs?: DefenseStats;
 }
 
 // Session validation result
@@ -285,6 +293,49 @@ export function validateStatMetrics(
   // Check if any stat exceeds the generous maximum
   if (sm.m > maxHP || sm.c > maxQuills || sm.p > maxProsperity) {
     return { valid: false };
+  }
+
+  return { valid: true };
+}
+
+// Defense stat validation constants
+// Max armor = wave * 20 (generous: allows multiple legendaries per wave somehow)
+// Max evasion = wave * 15 (slightly stricter since evasion is stronger early)
+export const MAX_ARMOR_PER_WAVE = 20;   // Max 20 armor per wave
+export const MAX_EVASION_PER_WAVE = 15; // Max 15 evasion per wave
+
+// Validate defense stats for waves 1-19 (early game anti-cheat)
+// Returns invalid if armor/evasion values are impossibly high for the wave number
+export function validateDefenseStats(
+  session: GameSession,
+  wave: number
+): { valid: boolean; error?: string } {
+  // Only check waves 1-19 (early game where defense stats matter most)
+  if (wave > 19) {
+    return { valid: true };
+  }
+
+  // Get the most recent wave record with defense stats
+  const lastWaveWithDs = [...session.waves].reverse().find(w => w.ds);
+  if (!lastWaveWithDs || !lastWaveWithDs.ds) {
+    // No defense stats reported (old client) - pass
+    return { valid: true };
+  }
+
+  const { a: armor, e: evasion } = lastWaveWithDs.ds;
+  const waveNum = lastWaveWithDs.wave;
+
+  // Calculate max allowed based on wave number
+  // Adding a base buffer of 10 for wave 1 edge cases
+  const maxArmor = 10 + (waveNum * MAX_ARMOR_PER_WAVE);
+  const maxEvasion = 10 + (waveNum * MAX_EVASION_PER_WAVE);
+
+  if (armor > maxArmor) {
+    return { valid: false, error: 'Invalid session' };
+  }
+
+  if (evasion > maxEvasion) {
+    return { valid: false, error: 'Invalid session' };
   }
 
   return { valid: true };

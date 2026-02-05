@@ -61,6 +61,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   private _isStunned: boolean = false;   // shocked or frozen
   private _isFrozen: boolean = false;
   private _statusTintTimer: number = 0;  // for visual flash timing
+  private stageTint: number | null = null;  // Stage-based tint for infinite swarm
 
   constructor(
     scene: Phaser.Scene,
@@ -70,7 +71,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     wave: number = 1,
     difficultyMultiplier: number = 1.0,
     isElite: boolean = false,
-    overrides?: { hpMultiplier?: number; dmgMultiplier?: number; damageCap?: number }
+    overrides?: { hpMultiplier?: number; dmgMultiplier?: number; stageTint?: number | null }
   ) {
     super(scene, x, y);
 
@@ -110,17 +111,16 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.health = Math.floor(config.health * effectiveHealthMult * hpDiffMult);
     this.maxHealth = this.health;
 
-    // Calculate damage with optional cap (cap applied BEFORE elite multiplier)
-    let rawDamage = Math.floor(config.damage * damageMultiplier * dmgDiffMult);
-    if (overrides?.damageCap !== undefined) {
-      rawDamage = Math.min(rawDamage, overrides.damageCap);
-    }
-    this.damage = rawDamage;
+    // Calculate damage (fully uncapped - scales naturally with swarm multipliers)
+    this.damage = Math.floor(config.damage * damageMultiplier * dmgDiffMult);
+
+    // Store stage tint for infinite swarm visual feedback
+    this.stageTint = overrides?.stageTint ?? null;
 
     this.speed = Math.floor(config.speed * speedMultiplier * Math.min(hpDiffMult, 1.3));
     this.points = config.points;
 
-    // Apply elite stat boosts (damage cap already applied above, so elites CAN exceed it)
+    // Apply elite stat boosts
     this.isElite = isElite;
     if (isElite) {
       this.health = Math.floor(this.health * ELITE_CONFIG.healthMultiplier);
@@ -745,8 +745,20 @@ export class Enemy extends Phaser.GameObjects.Container {
       this.drawEliteOverlay(w, h);
     }
 
+    // Stage tint overlay (infinite swarm stages)
+    if (this.stageTint !== null) {
+      this.drawStageTintOverlay(w, h);
+    }
+
     // Status effect visual overlays
     this.drawStatusOverlays(w, h);
+  }
+
+  private drawStageTintOverlay(w: number, h: number): void {
+    if (this.stageTint === null) return;
+    // Draw a semi-transparent colored overlay
+    this.graphics.fillStyle(this.stageTint, 0.25);
+    this.graphics.fillEllipse(0, 0, w, h);
   }
 
   private drawScurrier(w: number, h: number, dir: number, color: number): void {
