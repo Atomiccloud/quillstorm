@@ -36,6 +36,7 @@ export class GameScene extends Phaser.Scene {
 
   // Track upgrade source for different flows
   private pendingUpgradeSource: 'wave' | 'chest' | 'levelup' | null = null;
+  private previousMaxShields: number = 0;  // For syncNewShieldCharges bug fix
 
   private waveCompleteTimer: number = 0;
   private isChoosingUpgrade: boolean = false;
@@ -982,6 +983,7 @@ export class GameScene extends Phaser.Scene {
   private showChestUpgradeSelection(): void {
     this.isChoosingUpgrade = true;
     this.pendingUpgradeSource = 'chest';
+    this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
 
     // Pause game and show upgrade scene with chest settings
     this.scene.pause();
@@ -1004,6 +1006,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isChoosingUpgrade = true;
     this.pendingUpgradeSource = 'levelup';
+    this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
 
     // Pause game and show upgrade scene
     this.scene.pause();
@@ -1022,6 +1025,7 @@ export class GameScene extends Phaser.Scene {
   private showUpgradeSelection(): void {
     this.isChoosingUpgrade = true;
     this.pendingUpgradeSource = 'wave';
+    this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
     this.hud.showWaveComplete();
 
     // Report wave completion for anti-cheat
@@ -1073,7 +1077,7 @@ export class GameScene extends Phaser.Scene {
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
 
     // Grant any new shield charges immediately (so mid-wave shield pickups work)
-    this.player.syncNewShieldCharges();
+    this.player.syncNewShieldCharges(this.previousMaxShields);
 
     // Update companions immediately if a companion upgrade was selected
     this.updateCompanions();
