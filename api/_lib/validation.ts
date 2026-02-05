@@ -1,7 +1,7 @@
 // Using Web Crypto API (Edge-compatible, no Node.js crypto)
 
 const SALT = process.env.VITE_CHECKSUM_SALT || process.env.CHECKSUM_SALT || '';
-const MAX_SCORE = 999999;
+const MAX_SCORE = 2999999;
 const MAX_WAVE = 20; // Waves cap at 20 (infinite swarm doesn't increment)
 const MAX_POINTS_PER_WAVE = 5000; // Generous estimate including infinite swarm scaling
 const TIMESTAMP_WINDOW_MS = 3000; // 3 second validity window for submissions

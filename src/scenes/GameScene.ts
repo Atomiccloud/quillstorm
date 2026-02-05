@@ -36,6 +36,7 @@ export class GameScene extends Phaser.Scene {
 
   // Track upgrade source for different flows
   private pendingUpgradeSource: 'wave' | 'chest' | 'levelup' | null = null;
+  private previousMaxShields: number = 0;  // For syncNewShieldCharges bug fix
 
   private waveCompleteTimer: number = 0;
   private isChoosingUpgrade: boolean = false;
@@ -994,6 +995,7 @@ export class GameScene extends Phaser.Scene {
   private showChestUpgradeSelection(): void {
     this.isChoosingUpgrade = true;
     this.pendingUpgradeSource = 'chest';
+    this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
 
     // Pause game and show upgrade scene with chest settings
     this.scene.pause();
@@ -1016,6 +1018,7 @@ export class GameScene extends Phaser.Scene {
 
     this.isChoosingUpgrade = true;
     this.pendingUpgradeSource = 'levelup';
+    this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
 
     // Pause game and show upgrade scene
     this.scene.pause();
@@ -1034,12 +1037,18 @@ export class GameScene extends Phaser.Scene {
   private showUpgradeSelection(): void {
     this.isChoosingUpgrade = true;
     this.pendingUpgradeSource = 'wave';
+    this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
     this.hud.showWaveComplete();
 
     // Report wave completion for anti-cheat
     const wavePerf = this.player.getPerf();
     SessionManager.setPerf(wavePerf);
     SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
+    SessionManager.setStatMetrics(
+      this.player.maxHealth,
+      this.quillManager.maxQuills,
+      this.upgradeManager.getModifier('prosperity')
+    );
     SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
 
     // Accumulate session damage stats
@@ -1085,7 +1094,7 @@ export class GameScene extends Phaser.Scene {
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
 
     // Grant any new shield charges immediately (so mid-wave shield pickups work)
-    this.player.syncNewShieldCharges();
+    this.player.syncNewShieldCharges(this.previousMaxShields);
 
     // Update companions immediately if a companion upgrade was selected
     this.updateCompanions();
@@ -1195,6 +1204,11 @@ export class GameScene extends Phaser.Scene {
     const deathPerf = this.player.getPerf();
     SessionManager.setPerf(deathPerf);
     SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
+    SessionManager.setStatMetrics(
+      this.player.maxHealth,
+      this.quillManager.maxQuills,
+      this.upgradeManager.getModifier('prosperity')
+    );
     SessionManager.reportGameOver(finalWave, finalScore);
 
     // Accumulate final wave's damage stats
