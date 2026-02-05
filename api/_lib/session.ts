@@ -221,21 +221,22 @@ export function validatePerf(
   score: number,
   wave: number
 ): { valid: boolean; error?: string } {
-  // Only check high scores at wave 20+
-  if (wave < 20 || score < 35000) {
+  // Only check high scores at wave 20+ with 40k+ points
+  if (wave < 20 || score < 40000) {
     return { valid: true };
   }
 
-  // Collect waves with pm data
-  const wavesWithPm = session.waves.filter(w => w.pm);
+  // Only check waves 18-20 for survivability (earlier waves don't matter)
+  const lateWavesWithPm = session.waves.filter(w => w.wave >= 18 && w.wave <= 20 && w.pm);
 
-  // No data (old client) — pass
-  if (wavesWithPm.length === 0) {
+  // No data for late waves (old client or didn't reach wave 18) — pass
+  if (lateWavesWithPm.length === 0) {
     return { valid: true };
   }
 
-  // Fail if every single wave shows zero engagement (no damage, no hits, no shield blocks)
-  const allZero = wavesWithPm.every(w => {
+  // Fail if waves 18-20 all show zero engagement (no damage, no hits, no shield blocks)
+  // Getting to 40k+ score without taking any damage in waves 18-20 is suspicious
+  const allZero = lateWavesWithPm.every(w => {
     const pm = w.pm!;
     return pm.d === 0 && pm.t === 0 && pm.b === 0;
   });
