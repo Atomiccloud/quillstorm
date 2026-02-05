@@ -71,6 +71,9 @@ export class UpgradeScene extends Phaser.Scene {
     if (data.progressionManager) {
       options.progressionManager = data.progressionManager;
     }
+    if (data.source) {
+      options.source = data.source;
+    }
 
     const extraChoices = Math.floor(this.upgradeManager.getModifier('upgradeChoices'));
     const totalChoices = UPGRADE_CONFIG.choicesPerUpgrade + extraChoices;
@@ -306,6 +309,57 @@ export class UpgradeScene extends Phaser.Scene {
     }
     if (upgrade.effects.upgradeChoices) {
       effects.push(`+${upgrade.effects.upgradeChoices} upgrade choice`);
+    }
+    // Defense stats
+    if (upgrade.effects.armor) {
+      effects.push(`Armor: +${Math.round(upgrade.effects.armor * 100)}`);
+    }
+    if (upgrade.effects.evasion) {
+      effects.push(`Evasion: +${Math.round(upgrade.effects.evasion * 100)}`);
+    }
+    if (upgrade.effects.thorns) {
+      effects.push(`Thorns: +${upgrade.effects.thorns}`);
+    }
+    // Elemental effects - Lightning
+    if (upgrade.effects.shockStrength) {
+      effects.push(`Shock: +${upgrade.effects.shockStrength} strength`);
+    }
+    if (upgrade.effects.chainLightning) {
+      effects.push(`Chain: +${upgrade.effects.chainLightning} targets`);
+    }
+    // Elemental effects - Ice
+    if (upgrade.effects.freezeStrength) {
+      effects.push(`Freeze: +${upgrade.effects.freezeStrength} strength`);
+    }
+    if (upgrade.effects.shatterDamage) {
+      effects.push(`Shatter: +${Math.round(upgrade.effects.shatterDamage * 100)}% HP`);
+    }
+    if (upgrade.effects.frostSlow) {
+      effects.push(`Frost slow: ${Math.round(upgrade.effects.frostSlow * 100)}%`);
+    }
+    // Elemental effects - Fire
+    if (upgrade.effects.burnStrength) {
+      effects.push(`Burn: +${upgrade.effects.burnStrength} strength`);
+    }
+    if (upgrade.effects.fireAura) {
+      effects.push(`Fire aura: +${upgrade.effects.fireAura}px`);
+    }
+    if (upgrade.effects.fireExplosion) {
+      effects.push(`Fire explosion: +${upgrade.effects.fireExplosion}px`);
+    }
+    // Elemental effects - Poison
+    if (upgrade.effects.poisonStrength) {
+      effects.push(`Poison: +${upgrade.effects.poisonStrength} strength`);
+    }
+    if (upgrade.effects.poisonCloud) {
+      effects.push(`Poison cloud: +${upgrade.effects.poisonCloud}px`);
+    }
+    // Mythic effects
+    if (upgrade.effects.rerollChance) {
+      effects.push(`Reroll chance: +${Math.round(upgrade.effects.rerollChance * 100)}%`);
+    }
+    if (upgrade.effects.apotheosis) {
+      effects.push(`Every 5th volley auto-crits`);
     }
 
     return effects.join('\n') || 'Special effect';

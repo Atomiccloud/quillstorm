@@ -267,6 +267,23 @@ export class HUD {
       this.waveText.setVisible(false);
       this.infiniteSwarmText.setVisible(true);
 
+      // Update text with stage name
+      const stageName = this.progressionManager.getStageName();
+      const stageTint = this.progressionManager.getStageTint();
+      if (stageName !== 'Swarm') {
+        this.infiniteSwarmText.setText(`INFINITE SWARM - ${stageName.toUpperCase()}`);
+        // Color based on stage tint
+        if (stageTint !== null) {
+          const r = (stageTint >> 16) & 0xff;
+          const g = (stageTint >> 8) & 0xff;
+          const b = stageTint & 0xff;
+          this.infiniteSwarmText.setColor(`rgb(${r}, ${g}, ${b})`);
+        }
+      } else {
+        this.infiniteSwarmText.setText('INFINITE SWARM');
+        this.infiniteSwarmText.setColor('#ff0000');
+      }
+
       // Pulsing effect
       const pulse = Math.sin(this.scene.time.now / 200) * 0.2 + 0.8;
       this.infiniteSwarmText.setAlpha(pulse);
@@ -513,6 +530,53 @@ export class HUD {
 
     // Heavy screen shake
     this.scene.cameras.main.shake(1000, 0.02);
+  }
+
+  showStageTransition(stageName: string, tint: number | null): void {
+    // Convert tint to CSS color
+    let color = '#ff0000';
+    if (tint !== null) {
+      const r = (tint >> 16) & 0xff;
+      const g = (tint >> 8) & 0xff;
+      const b = tint & 0xff;
+      color = `rgb(${r}, ${g}, ${b})`;
+    }
+
+    const text = this.scene.add.text(
+      GAME_CONFIG.width / 2,
+      GAME_CONFIG.height / 2 - 50,
+      stageName.toUpperCase(),
+      {
+        fontSize: '48px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: color,
+        stroke: '#000000',
+        strokeThickness: 6,
+        align: 'center',
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(200);
+
+    // Quick entrance and fade
+    text.setScale(0.5);
+    text.setAlpha(0);
+    this.scene.tweens.add({
+      targets: text,
+      scale: 1.2,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.scene.time.delayedCall(800, () => {
+          this.scene.tweens.add({
+            targets: text,
+            alpha: 0,
+            y: text.y - 30,
+            duration: 300,
+            onComplete: () => text.destroy(),
+          });
+        });
+      },
+    });
   }
 
   destroy(): void {

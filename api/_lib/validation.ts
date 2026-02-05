@@ -1,7 +1,7 @@
 // Using Web Crypto API (Edge-compatible, no Node.js crypto)
 
 const SALT = process.env.VITE_CHECKSUM_SALT || process.env.CHECKSUM_SALT || '';
-const MAX_SCORE = 2999999;
+// v0.5.0: Removed MAX_SCORE cap to allow legitimate high scores in infinite swarm
 const MAX_WAVE = 20; // Waves cap at 20 (infinite swarm doesn't increment)
 const MAX_POINTS_PER_WAVE = 5000; // Generous estimate including infinite swarm scaling
 const TIMESTAMP_WINDOW_MS = 3000; // 3 second validity window for submissions
@@ -44,8 +44,8 @@ export async function validateSubmission(data: SubmissionData): Promise<Validati
     return { valid: false, error: 'Name can only contain letters, numbers, and spaces' };
   }
 
-  // Score/wave validation
-  if (typeof data.score !== 'number' || data.score < 0 || data.score > MAX_SCORE) {
+  // Score/wave validation (v0.5.0: removed score cap for legitimate high scores)
+  if (typeof data.score !== 'number' || data.score < 0) {
     return { valid: false, error: 'Invalid score' };
   }
 

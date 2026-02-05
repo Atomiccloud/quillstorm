@@ -1,4 +1,4 @@
-import { UPGRADE_CONFIG } from '../config';
+import { UPGRADE_CONFIG, SHIELD_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { ProgressionManager } from '../systems/ProgressionManager';
 
@@ -30,6 +30,28 @@ export interface UpgradeEffects {
   dangerLevel?: number;      // Opt-in difficulty stacks (+enemy stats, +rewards)
   eliteDamageBonus?: number; // Bonus damage vs elite enemies (multiplier)
   upgradeChoices?: number;   // Extra upgrade cards shown per selection
+  // Elemental - Lightning (strength-based: proc chance = str*0.1 / (1 + str*0.1))
+  shockStrength?: number;    // Strength points (Uncommon +2, Rare +3, Epic +3, Legendary +5)
+  chainLightning?: number;   // Flat count (enemies to chain to, stacks additively)
+  // Elemental - Ice (strength-based)
+  freezeStrength?: number;   // Strength points
+  frostSlow?: number;        // Percentage slow (0.5 = 50%, stacks additively)
+  shatterDamage?: number;    // Multiplier (% of max HP as AOE, stacks additively)
+  // Elemental - Fire (strength-based: DPS = strength * 8 * damageMult)
+  burnStrength?: number;     // Strength points
+  fireAura?: number;         // Radius in pixels (stacks additively)
+  fireExplosion?: number;    // Radius in pixels (stacks additively)
+  // Elemental - Poison (strength-based: amp = strength * 5%)
+  poisonStrength?: number;   // Strength points
+  poisonSpread?: number;     // Boolean flag (1 = spreads on death)
+  poisonCloud?: number;      // Radius in pixels (stacks additively)
+  // Defense (logarithmic diminishing returns, no cap, infinitely stackable)
+  armor?: number;            // Raw armor value (effective = ln(1+raw) / (ln(1+raw)+1.5))
+  evasion?: number;          // Raw evasion value (effective = ln(1+raw) / (ln(1+raw)+2.0))
+  thorns?: number;           // Base damage reflected to attacker (scales with damage modifier)
+  // Mythic
+  rerollChance?: number;     // Probability to reroll failed procs (0.3 = 30%)
+  apotheosis?: number;       // Flag (1 = every 5th volley auto-crits with all elements)
 }
 
 export interface Upgrade {
@@ -313,13 +335,7 @@ export const UPGRADES: Upgrade[] = [
     rarity: 'uncommon',
     effects: { explosionRadius: 40 },
   },
-  {
-    id: 'energy_shield',
-    name: 'Energy Shield',
-    description: 'Block one hit per wave.',
-    rarity: 'uncommon',
-    effects: { shieldCharges: 1 },
-  },
+  // energy_shield removed in v0.5.0 - shields now start at rare tier
   {
     id: 'seeker_quills',
     name: 'Seeker Quills',
@@ -339,9 +355,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'reinforced_shield',
     name: 'Reinforced Shield',
-    description: 'Block two hits and gain health.',
+    description: 'Block one hit per wave. Shield cap: 10.',
     rarity: 'rare',
-    effects: { shieldCharges: 2, maxHealth: 15 },
+    effects: { shieldCharges: 1 },
   },
   {
     id: 'baby_buddy',
@@ -371,9 +387,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'fortress',
     name: 'Fortress',
-    description: 'Strong shields and extra health.',
+    description: 'Block two hits per wave and +30 HP. Shield cap: 10.',
     rarity: 'epic',
-    effects: { shieldCharges: 3, maxHealth: 30 },
+    effects: { shieldCharges: 2, maxHealth: 30 },
   },
   {
     id: 'smart_missiles',
@@ -411,10 +427,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'immortal_fortress',
     name: 'Immortal Fortress',
-    description: 'Near-invincible defense with massive shields.',
+    description: 'Block four hits per wave and +100 HP. Shield cap: 10.',
     rarity: 'legendary',
-    effects: { shieldCharges: 5, maxHealth: 50 },
-    maxStacks: 1,
+    effects: { shieldCharges: 4, maxHealth: 100 },
   },
 
   // ===== PROSPERITY UPGRADES =====
@@ -493,6 +508,220 @@ export const UPGRADES: Upgrade[] = [
     effects: { eliteDamageBonus: 0.50, damage: 0.05 },
   },
 
+  // === ELEMENTAL UPGRADES - LIGHTNING ===
+  {
+    id: 'static_quills',
+    name: 'Static Quills',
+    description: 'Quills crackle with static. Chance to stun enemies.',
+    rarity: 'uncommon',
+    effects: { shockStrength: 2 },
+    // Stackable: +2 strength each (17% → 29% → 38%...)
+  },
+  {
+    id: 'lightning_quills',
+    name: 'Lightning Quills',
+    description: 'Electrified quills stop enemies dead in their tracks.',
+    rarity: 'rare',
+    effects: { shockStrength: 3 },
+    // Stackable: +3 strength each (23% → 38% → 47%...)
+  },
+  {
+    id: 'thunder_strike',
+    name: 'Thunder Strike',
+    description: 'Lightning arcs to 3 nearby enemies on shock.',
+    rarity: 'epic',
+    effects: { shockStrength: 3, chainLightning: 3 },
+    // Stackable: +3 strength, +3 chain targets each
+  },
+  {
+    id: 'storm_caller',
+    name: 'Storm Caller',
+    description: 'Unleash a storm of chain lightning across the battlefield.',
+    rarity: 'legendary',
+    effects: { shockStrength: 5, chainLightning: 3 },
+    // Stackable: +5 strength (33%), +3 chain targets each
+  },
+
+  // === ELEMENTAL UPGRADES - ICE ===
+  {
+    id: 'frost_tips',
+    name: 'Frost Tips',
+    description: 'Chilled quills that can briefly freeze enemies solid.',
+    rarity: 'uncommon',
+    effects: { freezeStrength: 2 },
+    // Stackable: +2 strength each (17% → 29% → 38%...)
+  },
+  {
+    id: 'icicle_quills',
+    name: 'Icicle Quills',
+    description: 'Deep cold locks enemies in place.',
+    rarity: 'rare',
+    effects: { freezeStrength: 3 },
+    // Stackable: +3 strength each (23% → 38% → 47%...)
+  },
+  {
+    id: 'blizzard_quills',
+    name: 'Blizzard Quills',
+    description: 'Frozen enemies chill nearby foes, slowing them 50%.',
+    rarity: 'epic',
+    effects: { freezeStrength: 3, frostSlow: 0.5 },
+    // Stackable: +3 strength, +50% slow each (caps at 100%)
+  },
+  {
+    id: 'absolute_zero',
+    name: 'Absolute Zero',
+    description: 'Frozen enemies that die shatter, dealing 50% max HP to nearby foes.',
+    rarity: 'legendary',
+    effects: { freezeStrength: 5, shatterDamage: 0.5 },
+    // Stackable: +5 strength (33%), +50% shatter damage each
+  },
+
+  // === ELEMENTAL UPGRADES - FIRE ===
+  {
+    id: 'ember_quills',
+    name: 'Ember Quills',
+    description: 'Smoldering quills set enemies ablaze. Burns stack.',
+    rarity: 'uncommon',
+    effects: { burnStrength: 2 },
+    // Stackable: +2 strength each (17% chance, +16 DPS)
+  },
+  {
+    id: 'flame_quills',
+    name: 'Flame Quills',
+    description: 'Hotter flames burn brighter and fiercer.',
+    rarity: 'rare',
+    effects: { burnStrength: 3 },
+    // Stackable: +3 strength each (23% chance, +24 DPS)
+  },
+  {
+    id: 'inferno_quills',
+    name: 'Inferno Quills',
+    description: 'Burning enemies scorch nearby foes.',
+    rarity: 'epic',
+    effects: { burnStrength: 3, fireAura: 30 },
+    // Stackable: +3 strength, +30px aura each
+  },
+  {
+    id: 'hellfire',
+    name: 'Hellfire',
+    description: 'Burning enemies explode on death.',
+    rarity: 'legendary',
+    effects: { burnStrength: 5, fireExplosion: 80 },
+    // Stackable: +5 strength (33%, +40 DPS), +80px explosion each
+  },
+
+  // === ELEMENTAL UPGRADES - POISON ===
+  {
+    id: 'toxic_quills',
+    name: 'Toxic Quills',
+    description: 'Venomous quills weaken enemies. Amplifies damage taken.',
+    rarity: 'uncommon',
+    effects: { poisonStrength: 2 },
+    // Stackable: +2 strength each (17% chance, +10% amp)
+  },
+  {
+    id: 'noxious_spines',
+    name: 'Noxious Spines',
+    description: 'Deeper venom makes enemies crumble faster.',
+    rarity: 'rare',
+    effects: { poisonStrength: 3 },
+    // Stackable: +3 strength each (23% chance, +15% amp)
+  },
+  {
+    id: 'plague_bearer',
+    name: 'Plague Bearer',
+    description: 'Poison spreads to nearby enemies when a poisoned foe dies.',
+    rarity: 'epic',
+    effects: { poisonStrength: 3, poisonSpread: 1 },
+    // Stackable: +3 strength, spread flag
+  },
+  {
+    id: 'pandemic',
+    name: 'Pandemic',
+    description: 'Death releases a poison cloud that infects all nearby enemies.',
+    rarity: 'legendary',
+    effects: { poisonStrength: 5, poisonCloud: 50 },
+    // Stackable: +5 strength (33%, +25% amp), +50px cloud each
+  },
+
+  // === DEFENSE UPGRADES - ARMOR ===
+  // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + 1.5)
+  // Stack infinitely with decreasing returns per point
+  {
+    id: 'tough_skin',
+    name: 'Tough Skin',
+    description: 'Thicker hide reduces incoming damage. +5 Armor.',
+    rarity: 'common',
+    effects: { armor: 0.05 },
+  },
+  {
+    id: 'iron_quills',
+    name: 'Iron Quills',
+    description: 'Hardened quills provide damage resistance. +10 Armor.',
+    rarity: 'uncommon',
+    effects: { armor: 0.10 },
+  },
+  {
+    id: 'porcupine_plate',
+    name: 'Porcupine Plate',
+    description: 'Natural armor plating with extra vitality. +15 Armor, +20 HP.',
+    rarity: 'rare',
+    effects: { armor: 0.15, maxHealth: 20 },
+  },
+  {
+    id: 'diamond_hide',
+    name: 'Diamond Hide',
+    description: 'Impenetrable hide that reflects damage. +20 Armor, +10 Thorns.',
+    rarity: 'epic',
+    effects: { armor: 0.20, thorns: 10 },
+  },
+  {
+    id: 'living_bastion',
+    name: 'Living Bastion',
+    description: 'Become an unstoppable fortress. +40 Armor, +20 Thorns, +25 HP.',
+    rarity: 'legendary',
+    effects: { armor: 0.40, thorns: 20, maxHealth: 25 },
+  },
+
+  // === DEFENSE UPGRADES - EVASION ===
+  // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + 2.0)
+  // Stack infinitely with decreasing returns per point
+  {
+    id: 'quick_reflexes',
+    name: 'Quick Reflexes',
+    description: 'Nimble footwork to dodge attacks. +5 Evasion.',
+    rarity: 'common',
+    effects: { evasion: 0.05 },
+  },
+  {
+    id: 'acrobat',
+    name: 'Acrobat',
+    description: 'Agile movements make you harder to hit. +10 Evasion.',
+    rarity: 'uncommon',
+    effects: { evasion: 0.10 },
+  },
+  {
+    id: 'shadow_step',
+    name: 'Shadow Step',
+    description: 'Phase through attacks with uncanny reflexes. +15 Evasion, +5% Speed.',
+    rarity: 'rare',
+    effects: { evasion: 0.15, moveSpeed: 0.05 },
+  },
+  {
+    id: 'phantom_porcupine',
+    name: 'Phantom Porcupine',
+    description: 'A blur of quills and fury. +20 Evasion, +10% Speed.',
+    rarity: 'epic',
+    effects: { evasion: 0.20, moveSpeed: 0.10 },
+  },
+  {
+    id: 'wraith_form',
+    name: 'Wraith Form',
+    description: 'Become intangible. +25 Evasion, +15% Speed.',
+    rarity: 'legendary',
+    effects: { evasion: 0.25, moveSpeed: 0.15 },
+  },
+
   // === MYTHIC UPGRADES ===
   {
     id: 'expanded_options',
@@ -500,6 +729,22 @@ export const UPGRADES: Upgrade[] = [
     description: 'See an additional upgrade card when choosing upgrades.',
     rarity: 'mythic',
     effects: { upgradeChoices: 1 },
+    maxStacks: 1,
+  },
+  {
+    id: 'fates_favor',
+    name: "Fate's Favor",
+    description: 'When a proc effect fails, roll again. Fortune favors the bold.',
+    rarity: 'mythic',
+    effects: { rerollChance: 0.30 },
+    maxStacks: 1,
+  },
+  {
+    id: 'quill_apotheosis',
+    name: 'Quill Apotheosis',
+    description: 'Every 5th volley transcends. All quills auto-crit with every unlocked element.',
+    rarity: 'mythic',
+    effects: { apotheosis: 1 },
     maxStacks: 1,
   },
 ];
@@ -517,6 +762,7 @@ export interface UpgradeSelectionOptions {
   customWeights?: Partial<RarityWeights>;
   guaranteeRareOrBetter?: boolean;  // For "rigged" early chests
   progressionManager?: ProgressionManager;  // For prosperity-based rarity shifts
+  source?: 'levelup' | 'wave' | 'chest';  // v0.5.0: Different rarity systems for different sources
 }
 
 export function getRandomUpgrades(
@@ -524,21 +770,29 @@ export function getRandomUpgrades(
   upgradeManager: UpgradeManager,
   options?: UpgradeSelectionOptions
 ): Upgrade[] {
-  // Merge custom weights with defaults
-  const baseWeights = UPGRADE_CONFIG.rarityWeights;
-  let weights: RarityWeights = {
-    common: options?.customWeights?.common ?? baseWeights.common,
-    uncommon: options?.customWeights?.uncommon ?? baseWeights.uncommon,
-    rare: options?.customWeights?.rare ?? baseWeights.rare,
-    epic: options?.customWeights?.epic ?? baseWeights.epic,
-    legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
-    mythic: options?.customWeights?.mythic ?? baseWeights.mythic,
-  };
+  // v0.5.0: Use different rarity systems based on source
+  let weights: RarityWeights;
 
-  // Apply prosperity-based rarity shift if progressionManager is provided
-  if (options?.progressionManager) {
-    const excludeCommon = options.customWeights?.common === 0;
-    weights = options.progressionManager.getModifiedRarityWeights(weights, excludeCommon);
+  if (options?.progressionManager && options.source === 'chest') {
+    // Chest upgrades use the linear chest rarity system
+    weights = options.progressionManager.getChestRarityWeights();
+  } else {
+    // Level-up and wave upgrades use the two-phase level-up rarity system
+    const baseWeights = UPGRADE_CONFIG.rarityWeights;
+    weights = {
+      common: options?.customWeights?.common ?? baseWeights.common,
+      uncommon: options?.customWeights?.uncommon ?? baseWeights.uncommon,
+      rare: options?.customWeights?.rare ?? baseWeights.rare,
+      epic: options?.customWeights?.epic ?? baseWeights.epic,
+      legendary: options?.customWeights?.legendary ?? baseWeights.legendary,
+      mythic: options?.customWeights?.mythic ?? baseWeights.mythic,
+    };
+
+    // Apply prosperity-based rarity shift if progressionManager is provided
+    if (options?.progressionManager) {
+      const excludeCommon = options.customWeights?.common === 0;
+      weights = options.progressionManager.getLevelUpRarityWeights(weights, excludeCommon);
+    }
   }
 
   const totalWeight = weights.common + weights.uncommon + weights.rare + weights.epic + weights.legendary + weights.mythic;
@@ -549,6 +803,11 @@ export function getRandomUpgrades(
     if (upgrade.maxStacks !== undefined) {
       const currentCount = upgradeManager.getUpgradeCount(upgrade.id);
       if (currentCount >= upgrade.maxStacks) return false;
+    }
+    // Hide shield upgrades when at shield cap (v0.5.0)
+    if (upgrade.effects.shieldCharges && upgrade.effects.shieldCharges > 0) {
+      const currentShields = upgradeManager.getModifier('shieldCharges');
+      if (currentShields >= SHIELD_CONFIG.maxCharges) return false;
     }
     // If common weight is 0, exclude common upgrades
     if (weights.common === 0 && upgrade.rarity === 'common') return false;

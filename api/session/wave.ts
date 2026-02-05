@@ -7,8 +7,10 @@ import {
   KillCounts,
   WaveRecord,
   StatMetrics,
+  DefenseStats,
   validateWaveReport,
   validateStatMetrics,
+  validateDefenseStats,
 } from '../_lib/session';
 
 export const config = {
@@ -24,6 +26,7 @@ interface WaveRequest {
   score: number;
   pm?: { d: number; t: number; b: number };
   sm?: StatMetrics;
+  ds?: DefenseStats;
 }
 
 interface WaveResponse {
@@ -167,8 +170,21 @@ export default async function handler(req: Request): Promise<Response> {
       timestamp: Date.now(),
       ...(body.pm && typeof body.pm === 'object' ? { pm: body.pm } : {}),
       ...(body.sm && typeof body.sm === 'object' ? { sm: body.sm } : {}),
+      ...(body.ds && typeof body.ds === 'object' ? { ds: body.ds } : {}),
     };
     session.waves.push(waveRecord);
+
+    // Validate defense stats for early waves (anti-cheat)
+    const dsValidation = validateDefenseStats(session, body.wave);
+    if (!dsValidation.valid) {
+      return new Response(JSON.stringify({ success: false, error: dsValidation.error }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
 
     // Update session in Redis
     await kv.set(sessionKey, JSON.stringify(session), { ex: SESSION_TTL_SECONDS });

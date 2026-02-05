@@ -72,6 +72,7 @@ export class SessionManager {
   private static dangerLevel: number = 0;
   private static _wpm = { d: 0, t: 0, b: 0 };
   private static _sm = { m: 0, c: 0, p: 0 }; // stat metrics: m=maxHealth, c=maxQuills, p=prosperity
+  private static _ds = { a: 0, e: 0 };
 
   // Start a new game session
   static async startSession(): Promise<boolean> {
@@ -115,6 +116,10 @@ export class SessionManager {
     this._sm = { m: maxHealth, c: maxQuills, p: prosperity };
   }
 
+  static setDefenseStats(armor: number, evasion: number): void {
+    this._ds = { a: Math.round(armor * 100), e: Math.round(evasion * 100) };
+  }
+
   // Record an enemy kill (accumulates until wave ends)
   static recordKill(enemyType: string, isElite: boolean = false): void {
     const key = enemyType as keyof KillCounts;
@@ -144,6 +149,7 @@ export class SessionManager {
           score,
           pm: { ...this._wpm },
           sm: { ...this._sm },
+          ds: { ...this._ds },
         }),
       });
 
@@ -183,6 +189,7 @@ export class SessionManager {
           dangerLevel: this.dangerLevel,
           pm: { ...this._wpm },
           sm: { ...this._sm },
+          ds: { ...this._ds },
         }),
       });
 
@@ -214,9 +221,9 @@ export class SessionManager {
     this.currentToken = null;
     this.resetKills();
     this._sm = { m: 0, c: 0, p: 0 };
+    this._ds = { a: 0, e: 0 };
   }
 
-  // Reset kill counts for new wave
   private static resetKills(): void {
     this.waveKills = {};
     this.eliteWaveKills = {};

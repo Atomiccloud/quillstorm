@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { PLAYER_CONFIG, COLORS, QUILL_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
+import { PLAYER_CONFIG, COLORS, QUILL_CONFIG, INFINITE_SWARM_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, SHIELD_CONFIG } from '../config';
 import { QuillManager } from '../systems/QuillManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { AudioManager } from '../systems/AudioManager';
+import { SaveManager } from '../systems/SaveManager';
 import { getCosmeticManager } from '../systems/CosmeticManager';
 import { Cosmetic } from '../data/cosmetics';
 
@@ -30,6 +31,8 @@ export class Player extends Phaser.GameObjects.Container {
   private shieldPulsePhase: number = 0;
   private shieldRegenTimer: number = 0;
   private infiniteSwarmShieldRegen: boolean = false;
+  private lastShieldBreakTime: number = 0;
+  private currentShieldIframe: number = SHIELD_CONFIG.baseShieldIframe;
 
   // Cosmetic cache
   private equippedSkin: Cosmetic | undefined;
@@ -185,7 +188,8 @@ export class Player extends Phaser.GameObjects.Container {
     const state = this.getQuillState();
     const stateConfig = QUILL_CONFIG.states[state];
     const speedMult = stateConfig.speedMult * (1 + this.upgradeManager.getModifier('moveSpeed'));
-    const baseSpeed = PLAYER_CONFIG.moveSpeed * speedMult;
+    // Apply speed cap to prevent uncontrollable gameplay
+    const baseSpeed = Math.min(PLAYER_CONFIG.moveSpeed * speedMult, PLAYER_CONFIG.maxSpeed);
 
     // Check if in air for air control
     const onGround = this.body.blocked.down;
@@ -493,7 +497,8 @@ export class Player extends Phaser.GameObjects.Container {
   private drawShieldIndicator(): void {
     if (this.shieldCharges <= 0) return;
 
-    const maxCharges = this.upgradeManager.getModifier('shieldCharges');
+    // Use capped max charges (respects SHIELD_CONFIG.maxCharges)
+    const maxCharges = this.getMaxShieldCharges();
     const h = PLAYER_CONFIG.height;
 
     const indicatorY = -h * 1.0; // -50px, above all hats
@@ -560,23 +565,53 @@ export class Player extends Phaser.GameObjects.Container {
   _uf(amount: number): boolean {
     if (this._pf) return false;
 
+    // Evasion check - before shields so a dodge doesn't waste a charge
+    // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
+    const rawEvasion = this.upgradeManager.getModifier('evasion');
+    const evasion = rawEvasion > 0 ? Math.log(1 + rawEvasion) / (Math.log(1 + rawEvasion) + EVASION_CONFIG.diminishingK) : 0;
+    if (evasion > 0 && Math.random() < evasion) {
+      this.spawnDodgeText();
+      return false; // Dodged! No damage, no shield consumed
+    }
+
     // Check shields first
     if (this.shieldCharges > 0) {
       this.shieldCharges--;
       this._bs++;
       this.shieldRegenTimer = 0;
       this.spawnShieldBreakEffect();
-      // Brief invincibility after shield break
+
+      // Diminishing iframes: reset to base if enough time has passed
+      const now = this.scene.time.now;
+      if (now - this.lastShieldBreakTime > SHIELD_CONFIG.iframeDiminishResetTime) {
+        this.currentShieldIframe = SHIELD_CONFIG.baseShieldIframe;
+      }
+
+      // Apply current iframe duration
+      const iframeDuration = this.currentShieldIframe;
       this._pf = true;
-      this.scene.time.delayedCall(500, () => {
+      this.scene.time.delayedCall(iframeDuration, () => {
         this._pf = false;
       });
+
+      // Diminish for next hit (apply rate, but floor at minimum)
+      this.currentShieldIframe = Math.max(
+        SHIELD_CONFIG.minShieldIframe,
+        Math.floor(this.currentShieldIframe * SHIELD_CONFIG.iframeDiminishRate)
+      );
+      this.lastShieldBreakTime = now;
+
       return false; // No damage taken
     }
 
+    // Apply armor damage reduction (logarithmic diminishing returns)
+    const rawArmor = this.upgradeManager.getModifier('armor');
+    const armor = rawArmor > 0 ? Math.log(1 + rawArmor) / (Math.log(1 + rawArmor) + ARMOR_CONFIG.diminishingK) : 0;
+    const armorReduced = armor > 0 ? amount * (1 - armor) : amount;
+
     const state = this.getQuillState();
     const damageMult = QUILL_CONFIG.states[state]._ufm;
-    const actualDamage = amount * damageMult;
+    const actualDamage = armorReduced * damageMult;
 
     this.health -= actualDamage;
     this.health = Math.max(0, this.health);
@@ -609,19 +644,56 @@ export class Player extends Phaser.GameObjects.Container {
     });
   }
 
+  private spawnDodgeText(): void {
+    const opacity = SaveManager.getEffectsOpacity();
+    if (opacity <= 0) return;
+
+    // "DODGE" floating text when evasion triggers
+    const text = this.scene.add.text(this.x, this.y - 30, 'DODGE', {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setAlpha(opacity);
+    this.scene.tweens.add({
+      targets: text,
+      y: text.y - 40,
+      alpha: 0,
+      duration: 600,
+      onComplete: () => text.destroy(),
+    });
+  }
+
   resetShieldsForWave(): void {
-    this.shieldCharges = this.upgradeManager.getModifier('shieldCharges');
+    // Respect the hard cap from SHIELD_CONFIG
+    const upgradeCharges = this.upgradeManager.getModifier('shieldCharges');
+    this.shieldCharges = Math.min(upgradeCharges, SHIELD_CONFIG.maxCharges);
+    // Reset iframe diminishing state for new wave
+    this.currentShieldIframe = SHIELD_CONFIG.baseShieldIframe;
+    this.lastShieldBreakTime = 0;
   }
 
   syncNewShieldCharges(previousMax: number): void {
     // Grant ONLY new charges from shield upgrades picked mid-wave
     // previousMax = max charges BEFORE upgrade was applied
-    const maxCharges = this.upgradeManager.getModifier('shieldCharges');
-    const newCharges = maxCharges - previousMax;
+    const upgradeCharges = this.upgradeManager.getModifier('shieldCharges');
+    const maxCharges = Math.min(upgradeCharges, SHIELD_CONFIG.maxCharges);
+    const newCharges = upgradeCharges - previousMax;
     if (newCharges > 0) {
-      // Only add the difference (new charges from the upgrade)
+      // Only add the difference (new charges from the upgrade), capped at max
       this.shieldCharges = Math.min(this.shieldCharges + newCharges, maxCharges);
     }
+  }
+
+  getMaxShieldCharges(): number {
+    // Returns the effective maximum (upgrade value capped at system max)
+    return Math.min(this.upgradeManager.getModifier('shieldCharges'), SHIELD_CONFIG.maxCharges);
+  }
+
+  isAtShieldCap(): boolean {
+    // Returns true if player has reached the shield cap (for hiding upgrades)
+    return this.upgradeManager.getModifier('shieldCharges') >= SHIELD_CONFIG.maxCharges;
   }
 
   getShieldCharges(): number {
@@ -646,7 +718,8 @@ export class Player extends Phaser.GameObjects.Container {
   private updateShieldRegen(delta: number): void {
     if (!this.infiniteSwarmShieldRegen) return;
 
-    const maxCharges = this.upgradeManager.getModifier('shieldCharges');
+    // Use capped max charges
+    const maxCharges = this.getMaxShieldCharges();
     if (maxCharges <= 0 || this.shieldCharges >= maxCharges) {
       this.shieldRegenTimer = 0;
       return;

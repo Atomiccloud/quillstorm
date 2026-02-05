@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, PROSPERITY_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
@@ -285,11 +285,14 @@ export class PauseScene extends Phaser.Scene {
     if (damage !== 0) addStat('Damage', formatPercent(damage));
     const fireRate = this.upgradeManager.getModifier('fireRate');
     if (fireRate !== 0) addStat('Fire Rate', formatPercent(fireRate));
-    const baseCrit = this.upgradeManager.getModifier('critChance');
-    const prosperity = this.upgradeManager.getModifier('prosperity');
-    const prosperityCrit = Math.min(prosperity, PROSPERITY_CONFIG.maxProsperity) * PROSPERITY_CONFIG.critBonusPerPoint;
-    const totalCrit = baseCrit + prosperityCrit;
-    if (totalCrit !== 0) addStat('Crit Chance', formatPercent(totalCrit));
+    // v0.5.0: Crit uses diminishing returns: effective = raw / (raw + 1)
+    const rawCrit = this.upgradeManager.getModifier('critChance');
+    if (rawCrit > 0) {
+      const effectiveCrit = rawCrit / (rawCrit + 1);
+      const rawDisplay = Math.round(rawCrit * 100);
+      const effectiveDisplay = Math.round(effectiveCrit * 100);
+      addStat('Crit', `+${rawDisplay} (${effectiveDisplay}%)`);
+    }
     const critDamage = this.upgradeManager.getModifier('critDamage');
     if (critDamage !== 0) addStat('Crit Damage', `+${critDamage.toFixed(1)}x`);
     const piercing = this.upgradeManager.getModifier('piercing');
@@ -320,6 +323,7 @@ export class PauseScene extends Phaser.Scene {
 
     // Special stats
     addHeader('SPECIAL');
+    const prosperity = this.upgradeManager.getModifier('prosperity');
     if (prosperity !== 0) addStat('Prosperity', formatFlat(prosperity));
     const companionCount = this.upgradeManager.getModifier('companionCount');
     if (companionCount !== 0) addStat('Companions', formatFlat(companionCount));

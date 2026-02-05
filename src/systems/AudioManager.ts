@@ -230,6 +230,16 @@ export class AudioManager {
     this.playTone(250, 0.2, 'square', 0.5, 1.0);
   }
 
+  // Stage change in infinite swarm - subtle but noticeable escalation
+  static playStageChange(): void {
+    // Rising swoosh with tension
+    this.playTone(150, 0.15, 'sawtooth', 0.3);
+    this.playTone(200, 0.12, 'square', 0.35, 0.05);
+    this.playTone(300, 0.1, 'sine', 0.4, 0.1);
+    // Accent hit
+    this.playTone(400, 0.08, 'square', 0.5, 0.15);
+  }
+
   // ============ Volume Control ============
 
   static setVolume(volume: number): void {

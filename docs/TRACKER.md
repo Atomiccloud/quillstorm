@@ -65,7 +65,7 @@ Single source of truth for all completed and planned work.
 
 ---
 
-## In Progress (v0.4.0)
+## Completed (v0.4.0)
 
 - [x] Fingerprint collision fix (PR #26, merged)
 - [x] PlayerDataManager wiring
@@ -79,7 +79,67 @@ Single source of truth for all completed and planned work.
 - [x] Elite kill sound effect
 - [x] Game over kill screen: elite kills in breakdown panel
 - [x] Version bump to 0.4.0 + changelog entry
-- [ ] Achievements & challenges (see below)
+
+---
+
+## Completed (v0.5.0 - Elemental, Defense & Balance Overhaul)
+
+See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
+
+### Elemental Status Effects
+- [x] Enemy status effect system (shock, freeze, burn stacking, poison stacking) — `src/entities/Enemy.ts`
+- [x] Lightning (shock): stun, chain lightning arcs to nearby enemies
+- [x] Ice (freeze): immobilize, frost slow aura, shatter AOE on death
+- [x] Fire (burn): stacking DoT, fire aura, fire explosion on death
+- [x] Poison (venom): stacking damage amplification, poison spread/cloud on death
+- [x] Quill on-hit elemental proc rolls with Fate's Favor reroll — `src/scenes/GameScene.ts`
+- [x] On-death effects: fire explosion, poison cloud/spread, ice shatter, chain lightning — `src/scenes/GameScene.ts`
+- [x] 16 elemental upgrades (4 per element, uncommon through legendary) — `src/data/upgrades.ts`
+- [x] Status effect visual overlays on enemies (color tints, particles) — `src/entities/Enemy.ts`
+- [x] All elemental effects respect effects opacity slider
+
+### Defense System
+- [x] Armor stat: logarithmic diminishing returns — `src/entities/Player.ts`
+- [x] Evasion stat: logarithmic diminishing returns, "DODGE" floating text — `src/entities/Player.ts`
+- [x] Thorns: damage reflection to attacking enemies — `src/scenes/GameScene.ts`
+- [x] 8 defense upgrades (4 armor + 4 evasion) — `src/data/upgrades.ts`
+
+### New Mythic Upgrades
+- [x] Fate's Favor: 30% chance to reroll failed procs — `src/scenes/GameScene.ts`
+- [x] Quill Apotheosis: every 5th volley auto-crits with all unlocked elements — `src/systems/QuillManager.ts`, `src/entities/Quill.ts`
+
+### Shield System Overhaul
+- [x] Shield cap at 10 charges — `src/config.ts` SHIELD_CONFIG
+- [x] Diminishing iframes (400ms→240ms→144ms→100ms floor, 2s reset) — `src/entities/Player.ts`
+- [x] Remove `energy_shield` upgrade (uncommon) — `src/data/upgrades.ts`
+- [x] Restructure shield upgrades: Rare +1, Epic +2 +30HP, Legendary +4 +100HP
+- [x] Hide shield upgrades when at cap — `src/data/upgrades.ts`
+
+### Prosperity System Overhaul
+- [x] Remove crit bonus from prosperity — `src/systems/ProgressionManager.ts`
+- [x] Logarithmic chest drop curve (7% at 100, caps at 14%)
+- [x] Two-phase level-up rarity system (uncommon peaks at 60% at 100 prosperity)
+- [x] Linear chest rarity system (rare peaks at 60% at 500 prosperity)
+
+### Crit System
+- [x] Diminishing returns formula: effectiveCrit = raw/(raw+1) — `src/entities/Quill.ts`
+- [x] Display as flat number "+100 Crit (50%)" — `src/ui/StatsPanel.ts`
+
+### Gameplay Caps
+- [x] Movement speed cap at 600 px/sec — `src/config.ts`, `src/entities/Player.ts`
+- [x] Explosion radius cap at 400px — `src/config.ts`, `src/scenes/GameScene.ts`
+- [x] Remove score submission cap (was 2,999,999) — `api/_lib/validation.ts`
+
+### UI Updates
+- [x] Scrollable Stats Panel for large stat lists — `src/ui/StatsPanel.ts`
+
+### Config & Infrastructure
+- [x] `STATUS_EFFECT_CONFIG` — status effect durations, colors, ranges, max stacks
+- [x] `ARMOR_CONFIG` — armor logarithmic diminishing returns (k=1.5)
+- [x] `EVASION_CONFIG` — evasion logarithmic diminishing returns (k=2.0)
+- [x] `SHIELD_CONFIG` — shield cap and iframe diminishing settings
+- [x] 26 new upgrades total (82 total upgrades)
+- [x] Version bump to 0.5.0 + changelog entry
 
 ---
 
@@ -154,7 +214,7 @@ Track milestones during natural play, award exclusive cosmetics on completion.
 ## Backlog (Long Term)
 
 **New Content**
-- [ ] More upgrade varieties
+- [x] More upgrade varieties (v0.4.2 — elemental, defense, mythics)
 - [ ] Additional arena layouts
 - [ ] Multiple boss types with different attacks
 - [ ] Boss-specific arenas

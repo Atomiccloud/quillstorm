@@ -22,6 +22,7 @@ export class Quill extends Phaser.GameObjects.Container {
   private rainbowTimer: number = 0;
 
   public damage: number;
+  public isEmpowered: boolean = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -32,14 +33,17 @@ export class Quill extends Phaser.GameObjects.Container {
     enemiesGroup?: Phaser.GameObjects.Group,
     quillColor?: number,
     tipColor?: number,
-    rainbow?: boolean
+    rainbow?: boolean,
+    empowered?: boolean
   ) {
     super(scene, x, y);
 
     this.upgradeManager = upgradeManager;
+    this.isEmpowered = empowered ?? false;
     this.quillColor = quillColor ?? COLORS.quill;
     this.tipColor = tipColor ?? 0xcccccc;
-    this.rainbow = rainbow ?? false;
+    // Empowered quills get rainbow effect
+    this.rainbow = (rainbow ?? false) || this.isEmpowered;
     this.quillAngle = angle;
     this.lifetime = QUILL_CONFIG.lifetime;
 
@@ -219,9 +223,11 @@ export class Quill extends Phaser.GameObjects.Container {
   }
 
   onHitEnemy(): boolean {
-    // Check for crit
-    const critChance = this.upgradeManager.getModifier('critChance');
-    const isCrit = Math.random() < critChance;
+    // Check for crit (empowered quills from Apotheosis always crit)
+    // v0.5.0: Crit now has diminishing returns: effective = raw / (raw + 1)
+    const rawCrit = this.upgradeManager.getModifier('critChance');
+    const effectiveCrit = rawCrit > 0 ? rawCrit / (rawCrit + 1) : 0;
+    const isCrit = this.isEmpowered || Math.random() < effectiveCrit;
 
     if (isCrit) {
       const critMult = 2 + this.upgradeManager.getModifier('critDamage');

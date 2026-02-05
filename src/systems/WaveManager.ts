@@ -45,10 +45,11 @@ export class WaveManager {
     this.upgradeManager = upgradeManager;
   }
 
-  // Get elite spawn chance based on base rate + danger level bonus
+  // Get elite spawn chance based on base rate + danger level bonus + stage bonus
   private getEliteSpawnChance(): number {
     const dangerLevel = this.upgradeManager?.getModifier('dangerLevel') ?? 0;
-    return ELITE_CONFIG.baseSpawnChance + dangerLevel * DANGER_CONFIG.eliteChanceBonusPerStack;
+    const stageBonus = this.progressionManager?.getStageEliteBonus() ?? 0;
+    return ELITE_CONFIG.baseSpawnChance + dangerLevel * DANGER_CONFIG.eliteChanceBonusPerStack + stageBonus;
   }
 
   // Get danger difficulty multiplier for enemy stats (compounds with wave/swarm scaling)
@@ -264,7 +265,9 @@ export class WaveManager {
     // Get separate HP and damage multipliers (swarm × danger)
     const hpMult = (this.progressionManager?.getSwarmHPMultiplier() ?? 1.0) * this.getDangerDifficultyMultiplier();
     const dmgMult = (this.progressionManager?.getSwarmDamageMultiplier() ?? 1.0) * this.getDangerDamageMultiplier();
-    const damageCap = INFINITE_SWARM_CONFIG.damageCaps[type] ?? 999;
+
+    // Get stage tint for enemy coloring
+    const stageTint = this.progressionManager?.getStageTint() ?? null;
 
     // Roll for elite (non-boss only)
     const isBoss = type === 'boss' || type === 'flyingBoss';
@@ -293,7 +296,7 @@ export class WaveManager {
     const enemy = new Enemy(this.scene, x, y, type, 20, 1.0, isElite, {
       hpMultiplier: hpMult,
       dmgMultiplier: dmgMult,
-      damageCap: damageCap,
+      stageTint: stageTint,
     });
     if (this.target) {
       enemy.setTarget(this.target);

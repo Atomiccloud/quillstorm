@@ -25,7 +25,29 @@ export type ModifierType =
   | 'prosperity'
   | 'dangerLevel'
   | 'eliteDamageBonus'
-  | 'upgradeChoices';
+  | 'upgradeChoices'
+  // Elemental - Lightning (strength-based)
+  | 'shockStrength'
+  | 'chainLightning'
+  // Elemental - Ice (strength-based)
+  | 'freezeStrength'
+  | 'frostSlow'
+  | 'shatterDamage'
+  // Elemental - Fire (strength-based)
+  | 'burnStrength'
+  | 'fireAura'
+  | 'fireExplosion'
+  // Elemental - Poison (strength-based)
+  | 'poisonStrength'
+  | 'poisonSpread'
+  | 'poisonCloud'
+  // Defense
+  | 'armor'
+  | 'evasion'
+  | 'thorns'
+  // Mythic
+  | 'rerollChance'
+  | 'apotheosis';
 
 export class UpgradeManager {
   private upgrades: Upgrade[] = [];
@@ -61,6 +83,28 @@ export class UpgradeManager {
     this.modifiers.set('dangerLevel', 0);
     this.modifiers.set('eliteDamageBonus', 0);
     this.modifiers.set('upgradeChoices', 0);
+    // Elemental - Lightning (strength-based)
+    this.modifiers.set('shockStrength', 0);
+    this.modifiers.set('chainLightning', 0);
+    // Elemental - Ice (strength-based)
+    this.modifiers.set('freezeStrength', 0);
+    this.modifiers.set('frostSlow', 0);
+    this.modifiers.set('shatterDamage', 0);
+    // Elemental - Fire (strength-based)
+    this.modifiers.set('burnStrength', 0);
+    this.modifiers.set('fireAura', 0);
+    this.modifiers.set('fireExplosion', 0);
+    // Elemental - Poison (strength-based)
+    this.modifiers.set('poisonStrength', 0);
+    this.modifiers.set('poisonSpread', 0);
+    this.modifiers.set('poisonCloud', 0);
+    // Defense
+    this.modifiers.set('armor', 0);
+    this.modifiers.set('evasion', 0);
+    this.modifiers.set('thorns', 0);
+    // Mythic
+    this.modifiers.set('rerollChance', 0);
+    this.modifiers.set('apotheosis', 0);
   }
 
   addUpgrade(upgrade: Upgrade): void {
@@ -147,6 +191,60 @@ export class UpgradeManager {
       }
       if (effects.upgradeChoices !== undefined) {
         this.addModifier('upgradeChoices', effects.upgradeChoices);
+      }
+      // Elemental - Lightning (strength-based)
+      if (effects.shockStrength !== undefined) {
+        this.addModifier('shockStrength', effects.shockStrength);
+      }
+      if (effects.chainLightning !== undefined) {
+        this.addModifier('chainLightning', effects.chainLightning);
+      }
+      // Elemental - Ice (strength-based)
+      if (effects.freezeStrength !== undefined) {
+        this.addModifier('freezeStrength', effects.freezeStrength);
+      }
+      if (effects.frostSlow !== undefined) {
+        this.addModifier('frostSlow', effects.frostSlow);
+      }
+      if (effects.shatterDamage !== undefined) {
+        this.addModifier('shatterDamage', effects.shatterDamage);
+      }
+      // Elemental - Fire (strength-based)
+      if (effects.burnStrength !== undefined) {
+        this.addModifier('burnStrength', effects.burnStrength);
+      }
+      if (effects.fireAura !== undefined) {
+        this.addModifier('fireAura', effects.fireAura);
+      }
+      if (effects.fireExplosion !== undefined) {
+        this.addModifier('fireExplosion', effects.fireExplosion);
+      }
+      // Elemental - Poison (strength-based)
+      if (effects.poisonStrength !== undefined) {
+        this.addModifier('poisonStrength', effects.poisonStrength);
+      }
+      if (effects.poisonSpread !== undefined) {
+        this.addModifier('poisonSpread', effects.poisonSpread);
+      }
+      if (effects.poisonCloud !== undefined) {
+        this.addModifier('poisonCloud', effects.poisonCloud);
+      }
+      // Defense
+      if (effects.armor !== undefined) {
+        this.addModifier('armor', effects.armor);
+      }
+      if (effects.evasion !== undefined) {
+        this.addModifier('evasion', effects.evasion);
+      }
+      if (effects.thorns !== undefined) {
+        this.addModifier('thorns', effects.thorns);
+      }
+      // Mythic
+      if (effects.rerollChance !== undefined) {
+        this.addModifier('rerollChance', effects.rerollChance);
+      }
+      if (effects.apotheosis !== undefined) {
+        this.addModifier('apotheosis', effects.apotheosis);
       }
     }
   }
@@ -243,6 +341,50 @@ export class UpgradeManager {
     }
     if (this.modifiers.get('upgradeChoices')! !== 0) {
       summary.push({ name: 'Extra Choices', value: formatFlat(this.modifiers.get('upgradeChoices')!) });
+    }
+    // Elemental (strength-based with diminishing returns formula)
+    const getChance = (str: number) => str > 0 ? (str * 0.1) / (1 + str * 0.1) : 0;
+    const shockStr = this.modifiers.get('shockStrength')!;
+    if (shockStr !== 0) {
+      const chance = Math.round(getChance(shockStr) * 100);
+      summary.push({ name: 'Shock', value: `${chance}% (${shockStr} str)` });
+    }
+    const freezeStr = this.modifiers.get('freezeStrength')!;
+    if (freezeStr !== 0) {
+      const chance = Math.round(getChance(freezeStr) * 100);
+      summary.push({ name: 'Freeze', value: `${chance}% (${freezeStr} str)` });
+    }
+    const burnStr = this.modifiers.get('burnStrength')!;
+    if (burnStr !== 0) {
+      const chance = Math.round(getChance(burnStr) * 100);
+      summary.push({ name: 'Burn', value: `${chance}% (${burnStr} str)` });
+    }
+    const poisonStr = this.modifiers.get('poisonStrength')!;
+    if (poisonStr !== 0) {
+      const chance = Math.round(getChance(poisonStr) * 100);
+      summary.push({ name: 'Poison', value: `${chance}% (${poisonStr} str)` });
+    }
+    if (this.modifiers.get('chainLightning')! !== 0) {
+      summary.push({ name: 'Chain Lightning', value: `${this.modifiers.get('chainLightning')!} targets` });
+    }
+    // Defense (displayed as flat values - diminishing returns applied internally)
+    if (this.modifiers.get('armor')! !== 0) {
+      const armor = Math.round(this.modifiers.get('armor')! * 100);
+      summary.push({ name: 'Armor', value: armor.toString() });
+    }
+    if (this.modifiers.get('evasion')! !== 0) {
+      const evasion = Math.round(this.modifiers.get('evasion')! * 100);
+      summary.push({ name: 'Evasion', value: evasion.toString() });
+    }
+    if (this.modifiers.get('thorns')! !== 0) {
+      summary.push({ name: 'Thorns', value: formatFlat(this.modifiers.get('thorns')!) });
+    }
+    // Mythic
+    if (this.modifiers.get('rerollChance')! !== 0) {
+      summary.push({ name: 'Proc Reroll', value: formatPercent(this.modifiers.get('rerollChance')!) });
+    }
+    if (this.modifiers.get('apotheosis')! !== 0) {
+      summary.push({ name: 'Apotheosis', value: 'Every 5th volley' });
     }
 
     return summary;

@@ -36,7 +36,7 @@ src/
 │   ├── LeaderboardPanel.ts    # Scrollable leaderboard table
 │   └── NameInputModal.ts      # DOM-based name input for leaderboard
 └── data/
-    └── upgrades.ts            # 46 upgrade definitions
+    └── upgrades.ts            # 82 upgrade definitions
 
 api/
 ├── leaderboard/
@@ -80,16 +80,18 @@ All game entities extend `Phaser.GameObjects.Container`:
 - Damage and invincibility frames
 
 **Enemy** (`src/entities/Enemy.ts`)
-- 5 types: scurrier, spitter, swooper, shellback, boss
+- 8 types + 2 boss types: scurrier, spitter, swooper, shellback, burrower, splitter, healer, splitling, boss, flyingBoss
 - Individual AI update methods
 - Wave-based stat scaling
 - Shellback frontal blocking
+- Status effect system: shock (stun), freeze (immobilize), burn (stacking DoT), poison (stacking damage amp)
 
 **Quill** (`src/entities/Quill.ts`)
 - Projectile physics
 - Pierce and bounce mechanics
 - Critical hit system
 - Lifetime management
+- Apotheosis empowered flag (auto-crit + 100% elemental proc rate)
 
 ### Manager Systems
 
@@ -198,6 +200,9 @@ All balance values in `src/config.ts`:
 - `ENEMY_SCALING` - Per-wave stat increases
 - `WAVE_CONFIG` - Spawning parameters
 - `UPGRADE_CONFIG` - Rarity weights
+- `STATUS_EFFECT_CONFIG` - Elemental effect durations, colors, ranges, max stacks
+- `ARMOR_CONFIG` - Armor damage reduction cap
+- `EVASION_CONFIG` - Evasion dodge chance cap
 - `COLORS` - Visual color palette
 
 ## Rendering

@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.4.1';
+export const GAME_VERSION = '0.5.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,41 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.0',
+    date: '2026-02-05',
+    changes: [
+      // Elemental system
+      'Elemental quill effects: Lightning (stun), Ice (freeze), Fire (stacking burn), Poison (stacking damage amp)',
+      'Elemental strength system — diminishing returns formula for balanced stacking',
+      'All elemental upgrades now infinitely stackable (Legendary alone = 33% proc chance)',
+      'Chain lightning arcs to nearby enemies on shock proc (+3 targets per upgrade)',
+      'Frozen enemies shatter on death dealing AOE damage (+50% max HP per upgrade)',
+      'Burning enemies explode on death (+80px radius per upgrade), fire aura damages nearby',
+      'Poison cloud on death (+50px per upgrade), damage amp scales with strength',
+      'Fire DPS and Poison amp scale with your damage modifier',
+      // Defense system
+      'New defense stats: Armor (damage reduction) and Evasion (dodge chance)',
+      'Thorns damage reflection from Diamond Hide upgrade',
+      // Mythic upgrades
+      'Mythic upgrade: Fate\'s Favor (30% chance to reroll failed procs)',
+      'Mythic upgrade: Quill Apotheosis (every 5th volley auto-crits with all elements)',
+      '26 new upgrades across all rarity tiers',
+      // Balance overhaul
+      'Major balance overhaul — shield, prosperity, and crit systems rebalanced',
+      'Shield charges now cap at 10, iframes diminish with rapid hits (400ms→100ms)',
+      'Shield upgrades restructured: Rare (+1), Epic (+2, +30 HP), Legendary (+4, +100 HP)',
+      'Prosperity no longer grants crit bonus — focus on drops and rarity',
+      'Chest drop chance now uses logarithmic curve (7% at 100 prosperity, caps at 14%)',
+      'New two-phase level-up rarity system — uncommon peaks at 60% at 100 prosperity',
+      'Chest rarity now scales linearly (rare peaks at 60% at 500 prosperity)',
+      'Crit chance now has diminishing returns: raw/(raw+1) formula',
+      'Movement speed capped at 600 px/sec to prevent uncontrollable gameplay',
+      'Explosion radius capped at 400px maximum',
+      'Stats panel now scrollable to fit armor/evasion display',
+      'Score submission cap removed (was 2,999,999)',
+    ],
+  },
   {
     version: '0.4.1',
     date: '2026-02-04',
