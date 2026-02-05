@@ -42,6 +42,13 @@ export interface PerfMetrics {
   b: number;
 }
 
+// Stat metrics for anti-cheat (obfuscated: m=maxHealth, c=maxQuills, p=prosperity)
+export interface StatMetrics {
+  m: number;
+  c: number;
+  p: number;
+}
+
 // Wave data recorded during gameplay
 export interface WaveRecord {
   wave: number;
@@ -51,6 +58,7 @@ export interface WaveRecord {
   score: number;          // Total score at end of wave
   timestamp: number;
   pm?: PerfMetrics;
+  sm?: StatMetrics;
 }
 
 // Full session data stored in Redis
@@ -66,6 +74,8 @@ export interface GameSession {
   finalEliteKills?: KillCounts;
   finalDangerLevel?: number;
   finalPm?: PerfMetrics;
+  finalSm?: StatMetrics;
+  statsFlagged?: boolean;  // True if HP/quills/prosperity values were suspicious
 }
 
 // Session validation result
@@ -243,6 +253,38 @@ export function validatePerf(
 
   if (allZero) {
     return { valid: false, error: 'Invalid session' };
+  }
+
+  return { valid: true };
+}
+
+// Stat validation constants (generous bounds based on max possible upgrades per wave)
+// Base stats: HP=100, Quills=30, Prosperity=0
+// Formula allows for multiple legendary upgrades per wave (very generous)
+const BASE_HP = 100;
+const BASE_QUILLS = 30;
+const HP_PER_WAVE = 25;      // ~1 legendary HP upgrade worth per wave
+const QUILLS_PER_WAVE = 20;  // ~1 epic quills upgrade worth per wave
+const PROSPERITY_PER_WAVE = 25; // ~1 epic prosperity upgrade worth per wave
+
+// Validate stat metrics (HP, quills, prosperity) against wave
+export function validateStatMetrics(
+  wave: number,
+  sm?: StatMetrics
+): { valid: boolean } {
+  // No stats provided = old client, skip validation
+  if (!sm) {
+    return { valid: true };
+  }
+
+  // Calculate max allowed values (very generous)
+  const maxHP = BASE_HP + wave * HP_PER_WAVE;
+  const maxQuills = BASE_QUILLS + wave * QUILLS_PER_WAVE;
+  const maxProsperity = wave * PROSPERITY_PER_WAVE;
+
+  // Check if any stat exceeds the generous maximum
+  if (sm.m > maxHP || sm.c > maxQuills || sm.p > maxProsperity) {
+    return { valid: false };
   }
 
   return { valid: true };

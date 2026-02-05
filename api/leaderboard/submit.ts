@@ -179,7 +179,7 @@ export default async function handler(req: Request): Promise<Response> {
           const sessionValidation = validateSessionSubmission(session, wave, score);
           if (sessionValidation.valid) {
             const perfCheck = validatePerf(session, score, wave);
-            if (perfCheck.valid) {
+            if (perfCheck.valid && !session.statsFlagged) {
               isValidSession = true;
             }
           }

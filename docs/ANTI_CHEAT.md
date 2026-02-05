@@ -267,7 +267,7 @@ Basic server-side validation on all submissions:
 | Field | Validation |
 |-------|-----------|
 | `playerName` | 3-20 chars, alphanumeric + spaces only |
-| `score` | 0 to 999,999 |
+| `score` | 0 to 2,999,999 |
 | `wave` | 1 to 20 |
 | `timestamp` | Must be a number |
 | `fingerprint` | Must be a non-empty string |
@@ -367,6 +367,44 @@ Failed validation routes to the shadow leaderboard via the existing honeypot mec
 
 ---
 
+## Layer 8: Stat Metrics Validation
+
+Detects players who modify their HP, quill count, or prosperity values via console/memory hacking. The client reports these stats (obfuscated) with each wave and game-over report.
+
+### What's Tracked
+
+Each wave report includes an optional `sm` field with obfuscated sub-fields:
+- `m` - Max health
+- `c` - Max quills (capacity)
+- `p` - Prosperity
+
+### Validation Rules
+
+The server calculates maximum allowed values based on the wave number:
+- **Max HP** = `100 + (wave * 25)` (base 100 + ~1 legendary upgrade per wave)
+- **Max Quills** = `30 + (wave * 20)` (base 30 + ~1 epic upgrade per wave)
+- **Max Prosperity** = `wave * 25` (base 0 + ~1 epic upgrade per wave)
+
+These bounds are intentionally generous to avoid false positives.
+
+| Wave | Max HP | Max Quills | Max Prosperity |
+|------|--------|------------|----------------|
+| 1    | 125    | 50         | 25             |
+| 10   | 350    | 230        | 250            |
+| 20   | 600    | 430        | 500            |
+
+### Detection Logic
+
+If any reported stat exceeds its wave-based maximum, the session is flagged with `statsFlagged: true`. This flag persists through the session and causes the final score submission to route to the shadow leaderboard.
+
+### Integration
+
+- Flag is set silently (request still returns success)
+- Flag is checked at score submission time alongside other validations
+- Flagged sessions go to shadow leaderboard via existing honeypot
+
+---
+
 ## Known Limitations
 
 1. **Canvas fingerprint is weak** - Can be spoofed by matching browser/GPU. Provides basic deterrence, not strong identification.
@@ -375,6 +413,7 @@ Failed validation routes to the shadow leaderboard via the existing honeypot mec
 4. **Timestamp relies on client clock** - If client clock is >3s off from server, legitimate submissions fail.
 5. **Salt is in the client bundle** - Determined attackers can extract it from the JS bundle. The checksum is a speed bump, not a wall. The session validation is the stronger layer.
 6. **Survivability telemetry is self-reported** - A sophisticated cheater who discovers the `pm` field could spoof realistic values. However, they'd need to reverse-engineer both the obfuscated names and the server-side thresholds.
+7. **Stat metrics are self-reported** - Similar to survivability, the `sm` field could be spoofed by someone who reverse-engineers the obfuscated names and validation bounds.
 
 ---
 

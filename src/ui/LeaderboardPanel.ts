@@ -173,8 +173,8 @@ export class LeaderboardPanel extends Phaser.GameObjects.Container {
 
       // Name (truncate if too long)
       let displayName = entry.playerName;
-      if (displayName.length > 15) {
-        displayName = displayName.substring(0, 14) + '...';
+      if (displayName.length > 35) {
+        displayName = displayName.substring(0, 34) + '...';
       }
       const nameText = this.scene.add.text(50, rowY + 8, displayName, textStyle);
       this.rowsContainer.add(nameText);
