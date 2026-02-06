@@ -323,39 +323,18 @@ export class UpgradeScene extends Phaser.Scene {
     if (upgrade.effects.thorns) {
       effects.push(`Thorns: +${upgrade.effects.thorns}`);
     }
-    // Elemental effects - Lightning
+    // Elemental effects
     if (upgrade.effects.shockStrength) {
       effects.push(`Shock: +${upgrade.effects.shockStrength} strength`);
     }
-    if (upgrade.effects.chainLightning) {
-      effects.push(`Chain: +${upgrade.effects.chainLightning} targets`);
-    }
-    // Elemental effects - Ice
     if (upgrade.effects.freezeStrength) {
       effects.push(`Freeze: +${upgrade.effects.freezeStrength} strength`);
     }
-    if (upgrade.effects.shatterDamage) {
-      effects.push(`Shatter: +${Math.round(upgrade.effects.shatterDamage * 100)}% HP`);
-    }
-    if (upgrade.effects.frostSlow) {
-      effects.push(`Frost slow: ${Math.round(upgrade.effects.frostSlow * 100)}%`);
-    }
-    // Elemental effects - Fire
     if (upgrade.effects.burnStrength) {
       effects.push(`Burn: +${upgrade.effects.burnStrength} strength`);
     }
-    if (upgrade.effects.fireAura) {
-      effects.push(`Fire aura: +${upgrade.effects.fireAura}px`);
-    }
-    if (upgrade.effects.fireExplosion) {
-      effects.push(`Fire explosion: +${upgrade.effects.fireExplosion}px`);
-    }
-    // Elemental effects - Poison
     if (upgrade.effects.poisonStrength) {
       effects.push(`Poison: +${upgrade.effects.poisonStrength} strength`);
-    }
-    if (upgrade.effects.poisonCloud) {
-      effects.push(`Poison cloud: +${upgrade.effects.poisonCloud}px`);
     }
     // Mythic effects
     if (upgrade.effects.rerollChance) {

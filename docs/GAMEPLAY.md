@@ -524,7 +524,7 @@ Upgrades are offered after each wave. Rarity determines power level.
 ## Elemental Effects
 
 ### Overview
-Quills can proc elemental status effects on enemies. Each element has 4 upgrade tiers (uncommon → legendary). **All elemental upgrades are infinitely stackable** — players can become extremely powerful.
+Quills can proc elemental status effects on enemies. Each element has a unique identity and **evolves** as strength increases through 4 tiers (at strength 2, 5, 8, 12). Upgrades come as single-element uncommon/rare, dual-element epics, and a universal legendary.
 
 ### Strength System
 Elemental proc chances use a **diminishing returns formula** for balanced scaling:
@@ -533,54 +533,65 @@ Elemental proc chances use a **diminishing returns formula** for balanced scalin
 procChance = (strength × 0.1) / (1 + strength × 0.1)
 ```
 
-| Strength | Proc Chance |
-|----------|-------------|
-| 2 | 16.7% |
-| 3 | 23.1% |
-| 5 | 33.3% |
-| 8 | 44.4% |
-| 10 | 50% |
-| 15 | 60% |
-| 20 | 66.7% |
+| Strength | Proc Chance | Evolution Tier |
+|----------|-------------|----------------|
+| 2 | 16.7% | Tier I |
+| 3 | 23.1% | Tier I |
+| 5 | 33.3% | Tier II |
+| 8 | 44.4% | Tier III |
+| 10 | 50% | Tier III |
+| 12 | 54.5% | Tier IV |
+| 15 | 60% | Tier IV |
+| 20 | 66.7% | Tier IV |
 
-**Strength per tier**: Uncommon +2, Rare +3, Epic +3 (+ special effect), Legendary +5 (+ special effect)
+**Strength per upgrade**: Uncommon +2, Rare +3, Dual-Element Epic +2 each, Convergence Legendary +3 all
 
-### Lightning (Shock) — Crowd Control
-- **Behavior**: Stuns enemy, stopping all movement and attacks (including spitter projectiles)
-- **Duration**: Fixed 500ms (from `STATUS_EFFECT_CONFIG.shock.defaultDuration`)
-- **Stacking**: Single instance — new shock refreshes duration
-- **Visual**: Yellow flash + jagged spark particles
-- **Chain Lightning** (Thunder Strike, Storm Caller): Arcs to nearby enemies on shock proc, +3 targets per upgrade (stacks additively)
-- **Example**: 2× Storm Caller = 10 strength (50% shock chance), 6 chain targets
+### Lightning — Stun + Chain Arcs
+- **Identity**: Arcing strikes that chain across the battlefield
+- **Visual**: Yellow flash + jagged spark particles + arc lines to targets
+- **Tier I** (2+ str): 300ms stun + 1 arc to nearby enemy (30% of hit damage)
+- **Tier II** (5+ str): 400ms stun + 2 arcs (40% damage). Arcs have 20% chance to stun
+- **Tier III** (8+ str): 500ms stun + 4 arcs (50% damage). Arcs have 30% chance to stun
+- **Tier IV** (12+ str): 600ms stun + 6 arcs (60% damage). Arcs stun 50%
+- **Arc range**: 150px per jump
 
-### Ice (Freeze) — Immobilize
-- **Behavior**: Freezes enemy solid, stopping all movement and attacks
-- **Duration**: Fixed 600ms (from `STATUS_EFFECT_CONFIG.freeze.defaultDuration`)
-- **Stacking**: Single instance — new freeze refreshes duration
-- **Visual**: Blue tint + ice crystal outline
-- **Frost Slow** (Blizzard Quills): Frozen enemies chill nearby foes, +50% slow per upgrade (caps at 100%)
-- **Shatter** (Absolute Zero): Frozen enemies that die deal +50% of max HP as AOE damage per upgrade (100px range)
-- **Example**: 2× Absolute Zero = 10 strength (50% freeze chance), 100% max HP shatter damage
+### Ice — Slow → Freeze → Shatter
+- **Identity**: Locks down and shatters groups
+- **Visual**: Light blue tint (chill) or solid blue + crystals (freeze)
+- **Tier I** (2+ str): 70% slow (chill) for 1.5s
+- **Tier II** (5+ str): Proc directly freezes (0.8s immobilize) instead of chill
+- **Tier III** (8+ str): Freeze lasts 1.2s. Frozen enemies radiate frost aura (40% slow, 80px)
+- **Tier IV** (12+ str): Frozen enemies shatter on death (25% max HP AoE + chill nearby, 120px)
 
-### Fire (Burn) — Stacking DoT
-- **Behavior**: Each proc adds an independent burn stack. Each stack ticks DPS independently.
-- **DPS Formula**: `DPS = burnStrength × 8 × (1 + damageModifier)`
-- **Duration**: Fixed 2s per stack (from `STATUS_EFFECT_CONFIG.burn.defaultDuration`)
-- **Stacking**: Up to 10 independent burn stacks per enemy
-- **Visual**: Orange glow, intensity scales with stack count, flicker ring at 2+ stacks
-- **Fire Aura** (Inferno Quills): Burning enemies scorch nearby foes, +30px radius per upgrade
-- **Fire Explosion** (Hellfire): Burning enemies explode on death, +80px radius per upgrade (spreads burn)
-- **Example**: 2× Hellfire with +100% damage = 10 strength (50% burn, 160 DPS), 160px explosion
+### Fire — DoT + AoE Spread
+- **Identity**: Everything burns, then explodes
+- **DPS Formula**: `DPS = burnStrength × 8 × (1 + damageModifier)` (×1.5 at T2+)
+- **Duration**: 2s per stack, max 10 stacks
+- **Visual**: Orange glow, intensity scales with stack count
+- **Tier I** (2+ str): Burn DoT (stacking)
+- **Tier II** (5+ str): +50% burn DPS. Dying burning enemies ignite 1 nearby
+- **Tier III** (8+ str): Burns slow enemies 20%. Death ignites 3 nearby
+- **Tier IV** (12+ str): Burning enemies explode on death (80px base radius + 15% per stack, DPS × stacks × 2 damage)
 
-### Poison (Venom) — Stacking Damage Amplifier
-- **Behavior**: Each proc adds an independent poison stack. Damage amplification sums across all stacks.
-- **Amp Formula**: `amp = poisonStrength × 5%` per stack
-- **Duration**: Fixed 3s per stack (from `STATUS_EFFECT_CONFIG.poison.defaultDuration`)
-- **Stacking**: Up to 10 independent poison stacks per enemy
-- **Visual**: Green tint + drip particles, intensity scales with stack count
-- **Poison Spread** (Plague Bearer): Poison spreads to nearby enemies when a poisoned foe dies (100px range)
-- **Poison Cloud** (Pandemic): Death releases a lingering poison cloud, +50px radius per upgrade (3s duration, ticks every 500ms)
-- **Example**: 3× Pandemic = 15 strength (60% poison chance, 75% amp per stack), 150px poison cloud
+### Poison — Amplify + Execute
+- **Identity**: Weakens enemies, then finishes them off
+- **Amp Formula**: `amp = poisonStrength × 25%` per stack (at str 4: 100% amp = crit-equivalent)
+- **Duration**: 5s per stack, max 10 stacks
+- **Visual**: Green tint + drip particles
+- **Tier I** (2+ str): Poison stacks amplify all damage taken
+- **Tier II** (5+ str): Stacks grow over time (+1 stack every 2s, up to 2× initial)
+- **Tier III** (8+ str): Poisoned enemies that die spread all stacks to 2 nearby (120px)
+- **Tier IV** (12+ str): Execute — poisoned enemies below 15% HP die instantly (non-boss). Death creates poison cloud
+
+### Dual-Element Combos (Epic Upgrades)
+- **Tempest** (Lightning + Ice): Shocked enemies that get chilled are instantly frozen
+- **Wildfire** (Fire + Poison): Burning poisoned enemies gain poison stacks 2× faster
+- **Frostfire** (Fire + Ice): Frozen burning enemies release steam AoE on thaw
+- **Venomshock** (Lightning + Poison): Chain lightning arcs spread poison stacks to targets
+
+### Elemental Convergence (Legendary)
+- +3 to ALL elemental strengths
+- Procs have 20% chance to trigger a random second element
 
 ---
 
@@ -682,14 +693,20 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 ### Companions (Baby Porcupines)
 - Obtained through upgrades (Baby Buddy, Porcupine Pack, Porcupine Army)
 - Follow the player in formation
-- Auto-shoot at nearest enemy every 2 seconds
-- Deal base 10 damage (scales with 50% of damage upgrades)
-- Range: 400px targeting range
+- Range: 600px targeting range
+- Companion quills are real Quill objects — they inherit most player abilities at reduced efficiency
+- **Efficiency scaling**: 40% base + 3% per companion owned, capped at 70% (e.g. 1=43%, 4=52%, 10+=70%)
+- **Inherited abilities** (at efficiency): damage, fire rate, crit, bouncing, homing, projectile speed/size, elemental procs, explosion AOE, elite damage bonus
+- **NOT inherited**: knockback, distance damage, piercing, vampirism, Apotheosis empowered volleys
+- **Projectile count**: 20% of player's total projectiles per shot (min 1)
+- Companion quills are cyan-colored to distinguish from player quills
+- Config: `COMPANION_CONFIG` in `src/config.ts`
 
 ### Explosion AOE
 - Obtained through upgrades (Explosive Tips, Cluster Bombs, Devastation, Nuclear Quills)
 - Damages all enemies within radius when quill hits
 - AOE damage = 50% of direct hit damage
+- AOE kills properly award score, XP, and drops
 - Visual feedback: expanding ring effect
 
 ### Homing Quills
@@ -703,13 +720,13 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 - Proc chance: `stacks / (stacks + 20)` — diminishing returns (1 str = 4.8%, 5 = 20%, 10 = 33%)
 - Heal amount: `8 + (stacks × 3)` — linear scaling (1 str = 11 HP, 5 = 23 HP, 10 = 38 HP)
 - Healing is NOT damage-dependent — flat amount per proc
-- Works on all hits including companion quills
+- Works on player quill hits (companions do NOT proc vampirism)
 
 ### Elemental Procs
 - Each quill hit rolls independently for each unlocked element
 - Proc chances use diminishing returns formula: `chance = (str × 0.1) / (1 + str × 0.1)`
 - All elemental upgrades stack infinitely — no caps, just diminishing returns
-- Companion quills also trigger elemental procs
+- Companion quills trigger elemental procs at efficiency-scaled strength
 - Fate's Favor mythic gives a 30% reroll chance on failed procs (applies to vampirism too)
 - Apotheosis (mythic) makes every 5th volley auto-proc all unlocked elements
 

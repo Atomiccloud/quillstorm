@@ -30,8 +30,8 @@ export class Player extends Phaser.GameObjects.Container {
   private facingRight: boolean = true;
   private shieldCharges: number = 0;
   private shieldPulsePhase: number = 0;
-  private shieldRegenTimer: number = 0;
-  private infiniteSwarmShieldRegen: boolean = false;
+  private _rt: number = 0;
+  private _sr: boolean = false;
   private lastShieldBreakTime: number = 0;
   private currentShieldIframe: number = SHIELD_CONFIG.baseShieldIframe;
 
@@ -114,7 +114,7 @@ export class Player extends Phaser.GameObjects.Container {
   update(time: number, delta: number): void {
     this.handleMovement(delta);
     this.updateLowHealthEffect();
-    this.updateShieldRegen(delta);
+    this._ur(delta);
     if (this.shieldCharges > 0) {
       this.shieldPulsePhase += delta * 0.003;
     }
@@ -580,7 +580,7 @@ export class Player extends Phaser.GameObjects.Container {
     if (this.shieldCharges > 0) {
       this.shieldCharges--;
       this._bs++;
-      this.shieldRegenTimer = 0;
+      this._rt = 0;
       this.spawnShieldBreakEffect();
 
       // Diminishing iframes: reset to base if enough time has passed
@@ -712,31 +712,30 @@ export class Player extends Phaser.GameObjects.Container {
     this._bs = 0;
   }
 
-  enableInfiniteSwarmShieldRegen(): void {
-    this.infiniteSwarmShieldRegen = true;
-    this.shieldRegenTimer = 0;
+  _es(): void {
+    this._sr = true;
+    this._rt = 0;
   }
 
-  private updateShieldRegen(delta: number): void {
-    if (!this.infiniteSwarmShieldRegen) return;
+  private _ur(delta: number): void {
+    if (!this._sr) return;
 
-    // Use capped max charges
     const maxCharges = this.getMaxShieldCharges();
     if (maxCharges <= 0 || this.shieldCharges >= maxCharges) {
-      this.shieldRegenTimer = 0;
+      this._rt = 0;
       return;
     }
 
-    this.shieldRegenTimer += delta;
+    this._rt += delta;
 
-    if (this.shieldRegenTimer >= INFINITE_SWARM_CONFIG.shieldRegenInterval) {
-      this.shieldRegenTimer -= INFINITE_SWARM_CONFIG.shieldRegenInterval;
+    if (this._rt >= INFINITE_SWARM_CONFIG._sri) {
+      this._rt -= INFINITE_SWARM_CONFIG._sri;
       this.shieldCharges = Math.min(this.shieldCharges + 1, maxCharges);
-      this.spawnShieldRegenEffect();
+      this._re();
     }
   }
 
-  private spawnShieldRegenEffect(): void {
+  private _re(): void {
     const sparkle = this.scene.add.circle(this.x, this.y - 30, 15, 0x00aaff, 0.0);
     this.scene.tweens.add({
       targets: sparkle,

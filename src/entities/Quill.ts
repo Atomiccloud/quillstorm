@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
 import { QUILL_CONFIG, COLORS, DISTANCE_DAMAGE_CONFIG } from '../config';
-import { UpgradeManager } from '../systems/UpgradeManager';
+import { ModifierSource } from '../systems/UpgradeManager';
 
 export class Quill extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
   private graphics!: Phaser.GameObjects.Graphics;
-  private upgradeManager: UpgradeManager;
+  private upgradeManager: ModifierSource;
 
   private lifetime: number;
   private dead: boolean = false;
@@ -26,12 +26,14 @@ export class Quill extends Phaser.GameObjects.Container {
   public damage: number;
   public isEmpowered: boolean = false;
 
+  get modifiers(): ModifierSource { return this.upgradeManager; }
+
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
     angle: number,
-    upgradeManager: UpgradeManager,
+    upgradeManager: ModifierSource,
     enemiesGroup?: Phaser.GameObjects.Group,
     quillColor?: number,
     tipColor?: number,
@@ -232,7 +234,7 @@ export class Quill extends Phaser.GameObjects.Container {
     if (distDamageMod > 0) {
       const dist = Phaser.Math.Distance.Between(this.spawnX, this.spawnY, this.x, this.y);
       const distRatio = Math.min(dist / DISTANCE_DAMAGE_CONFIG.maxDistance, 1.0);
-      this.damage *= (1 + distDamageMod * distRatio);
+      this.damage *= (1 + distDamageMod * distRatio * distRatio);
     }
 
     // Check for crit (empowered quills from Apotheosis always crit)

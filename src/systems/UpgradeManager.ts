@@ -1,5 +1,5 @@
 import { Upgrade, Rarity } from '../data/upgrades';
-import { LEVEL_SCALING_CONFIG } from '../config';
+import { LEVEL_SCALING_CONFIG, ELEMENTAL_EVOLUTION_CONFIG } from '../config';
 
 export type ModifierType =
   | 'damage'
@@ -27,21 +27,11 @@ export type ModifierType =
   | 'dangerLevel'
   | 'eliteDamageBonus'
   | 'upgradeChoices'
-  // Elemental - Lightning (strength-based)
+  // Elemental - strength-based (evolution tiers at 2/5/8/12)
   | 'shockStrength'
-  | 'chainLightning'
-  // Elemental - Ice (strength-based)
   | 'freezeStrength'
-  | 'frostSlow'
-  | 'shatterDamage'
-  // Elemental - Fire (strength-based)
   | 'burnStrength'
-  | 'fireAura'
-  | 'fireExplosion'
-  // Elemental - Poison (strength-based)
   | 'poisonStrength'
-  | 'poisonSpread'
-  | 'poisonCloud'
   // Defense
   | 'armor'
   | 'evasion'
@@ -53,7 +43,11 @@ export type ModifierType =
   | 'rerollChance'
   | 'apotheosis';
 
-export class UpgradeManager {
+export interface ModifierSource {
+  getModifier(type: ModifierType): number;
+}
+
+export class UpgradeManager implements ModifierSource {
   private upgrades: Upgrade[] = [];
   private modifiers: Map<ModifierType, number> = new Map();
   private playerLevel: number = 1;
@@ -88,21 +82,11 @@ export class UpgradeManager {
     this.modifiers.set('dangerLevel', 0);
     this.modifiers.set('eliteDamageBonus', 0);
     this.modifiers.set('upgradeChoices', 0);
-    // Elemental - Lightning (strength-based)
+    // Elemental - strength-based (evolution tiers at 2/5/8/12)
     this.modifiers.set('shockStrength', 0);
-    this.modifiers.set('chainLightning', 0);
-    // Elemental - Ice (strength-based)
     this.modifiers.set('freezeStrength', 0);
-    this.modifiers.set('frostSlow', 0);
-    this.modifiers.set('shatterDamage', 0);
-    // Elemental - Fire (strength-based)
     this.modifiers.set('burnStrength', 0);
-    this.modifiers.set('fireAura', 0);
-    this.modifiers.set('fireExplosion', 0);
-    // Elemental - Poison (strength-based)
     this.modifiers.set('poisonStrength', 0);
-    this.modifiers.set('poisonSpread', 0);
-    this.modifiers.set('poisonCloud', 0);
     // Defense
     this.modifiers.set('armor', 0);
     this.modifiers.set('evasion', 0);
@@ -200,42 +184,18 @@ export class UpgradeManager {
       if (effects.upgradeChoices !== undefined) {
         this.addModifier('upgradeChoices', effects.upgradeChoices);
       }
-      // Elemental - Lightning (strength-based)
+      // Elemental - strength-based (evolution tiers at 2/5/8/12)
       if (effects.shockStrength !== undefined) {
         this.addModifier('shockStrength', effects.shockStrength);
       }
-      if (effects.chainLightning !== undefined) {
-        this.addModifier('chainLightning', effects.chainLightning);
-      }
-      // Elemental - Ice (strength-based)
       if (effects.freezeStrength !== undefined) {
         this.addModifier('freezeStrength', effects.freezeStrength);
       }
-      if (effects.frostSlow !== undefined) {
-        this.addModifier('frostSlow', effects.frostSlow);
-      }
-      if (effects.shatterDamage !== undefined) {
-        this.addModifier('shatterDamage', effects.shatterDamage);
-      }
-      // Elemental - Fire (strength-based)
       if (effects.burnStrength !== undefined) {
         this.addModifier('burnStrength', effects.burnStrength);
       }
-      if (effects.fireAura !== undefined) {
-        this.addModifier('fireAura', effects.fireAura);
-      }
-      if (effects.fireExplosion !== undefined) {
-        this.addModifier('fireExplosion', effects.fireExplosion);
-      }
-      // Elemental - Poison (strength-based)
       if (effects.poisonStrength !== undefined) {
         this.addModifier('poisonStrength', effects.poisonStrength);
-      }
-      if (effects.poisonSpread !== undefined) {
-        this.addModifier('poisonSpread', effects.poisonSpread);
-      }
-      if (effects.poisonCloud !== undefined) {
-        this.addModifier('poisonCloud', effects.poisonCloud);
       }
       // Defense
       if (effects.armor !== undefined) {
@@ -383,30 +343,32 @@ export class UpgradeManager {
     if (this.modifiers.get('upgradeChoices')! !== 0) {
       summary.push({ name: 'Extra Choices', value: formatFlat(this.modifiers.get('upgradeChoices')!) });
     }
-    // Elemental (strength-based with diminishing returns formula)
+    // Elemental (strength-based with evolution tiers)
     const getChance = (str: number) => str > 0 ? (str * 0.1) / (1 + str * 0.1) : 0;
+    const tierNames = ['', 'I', 'II', 'III', 'IV'];
     const shockStr = this.modifiers.get('shockStrength')!;
     if (shockStr !== 0) {
       const chance = Math.round(getChance(shockStr) * 100);
-      summary.push({ name: 'Shock', value: `${chance}% (${shockStr} str)` });
+      const tier = UpgradeManager.getElementalTierFromStrength(shockStr);
+      summary.push({ name: 'Lightning', value: `T${tierNames[tier]} ${chance}% (${shockStr} str)` });
     }
     const freezeStr = this.modifiers.get('freezeStrength')!;
     if (freezeStr !== 0) {
       const chance = Math.round(getChance(freezeStr) * 100);
-      summary.push({ name: 'Freeze', value: `${chance}% (${freezeStr} str)` });
+      const tier = UpgradeManager.getElementalTierFromStrength(freezeStr);
+      summary.push({ name: 'Ice', value: `T${tierNames[tier]} ${chance}% (${freezeStr} str)` });
     }
     const burnStr = this.modifiers.get('burnStrength')!;
     if (burnStr !== 0) {
       const chance = Math.round(getChance(burnStr) * 100);
-      summary.push({ name: 'Burn', value: `${chance}% (${burnStr} str)` });
+      const tier = UpgradeManager.getElementalTierFromStrength(burnStr);
+      summary.push({ name: 'Fire', value: `T${tierNames[tier]} ${chance}% (${burnStr} str)` });
     }
     const poisonStr = this.modifiers.get('poisonStrength')!;
     if (poisonStr !== 0) {
       const chance = Math.round(getChance(poisonStr) * 100);
-      summary.push({ name: 'Poison', value: `${chance}% (${poisonStr} str)` });
-    }
-    if (this.modifiers.get('chainLightning')! !== 0) {
-      summary.push({ name: 'Chain Lightning', value: `${this.modifiers.get('chainLightning')!} targets` });
+      const tier = UpgradeManager.getElementalTierFromStrength(poisonStr);
+      summary.push({ name: 'Poison', value: `T${tierNames[tier]} ${chance}% (${poisonStr} str)` });
     }
     // Defense (displayed as flat values - diminishing returns applied internally)
     if (this.modifiers.get('armor')! !== 0) {
@@ -436,6 +398,20 @@ export class UpgradeManager {
     }
 
     return summary;
+  }
+
+  /** Get evolution tier (0-4) from a strength value using ELEMENTAL_EVOLUTION_CONFIG thresholds */
+  static getElementalTierFromStrength(strength: number): number {
+    const thresholds = ELEMENTAL_EVOLUTION_CONFIG.tierThresholds;
+    for (let i = thresholds.length - 1; i >= 1; i--) {
+      if (strength >= thresholds[i]) return i;
+    }
+    return 0;
+  }
+
+  /** Get evolution tier for a specific element on this manager */
+  getElementalTier(type: 'shockStrength' | 'freezeStrength' | 'burnStrength' | 'poisonStrength'): number {
+    return UpgradeManager.getElementalTierFromStrength(this.getModifier(type));
   }
 
   getHighestEvasionTier(): Rarity | null {

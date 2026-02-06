@@ -199,7 +199,7 @@
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 0.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
   }
   .rarity-cell {
     background: var(--bg-card);
@@ -238,6 +238,82 @@
   .rarity-cell[data-r="legendary"] .rarity-bar { background: var(--legendary); }
   .rarity-cell[data-r="mythic"] .rarity-name, .rarity-cell[data-r="mythic"] .rarity-chance { color: var(--mythic); }
   .rarity-cell[data-r="mythic"] .rarity-bar { background: var(--mythic); }
+
+  /* Drop rate tabs */
+  .rate-tabs {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .rate-tab {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .rate-tab:hover { background: var(--bg-hover); color: var(--text); }
+  .rate-tab.active { color: var(--text); border-color: var(--text-dim); background: var(--bg-hover); }
+
+  /* Prosperity slider */
+  .prosperity-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .prosperity-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .prosperity-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fbbf24;
+    min-width: 28px;
+    text-align: right;
+  }
+  .prosperity-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  .prosperity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fbbf24;
+    border: 2px solid var(--bg);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(251,191,36,0.4);
+  }
+  .prosperity-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fbbf24;
+    border: 2px solid var(--bg);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(251,191,36,0.4);
+  }
 
   /* Upgrade grid */
   .upgrade-grid {
@@ -461,6 +537,27 @@
     display: none;
   }
 
+  /* Elemental detail grid — 2 columns for wider panels */
+  .elemental-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .elemental-grid .info-panel {
+    border-top: 3px solid var(--border);
+  }
+  .elemental-grid .info-panel[data-el="lightning"] { border-top-color: var(--lightning); }
+  .elemental-grid .info-panel[data-el="ice"] { border-top-color: var(--ice); }
+  .elemental-grid .info-panel[data-el="fire"] { border-top-color: var(--fire); }
+  .elemental-grid .info-panel[data-el="poison"] { border-top-color: var(--poison); }
+
+  .el-sub { font-size:0.8rem; color:var(--text-dim); margin-top:0.75rem; font-weight:600; }
+
+  @media (max-width: 768px) {
+    .elemental-grid { grid-template-columns: 1fr; }
+  }
+
   /* Collapsible sections */
   .collapse-toggle {
     cursor: pointer;
@@ -496,7 +593,7 @@
   <h1>Quillstorm Upgrade Reference</h1>
   <p>Complete guide to all upgrades, rarities, and mechanics</p>
   <div class="stats-row">
-    <div class="stat-badge"><strong>75</strong> upgrades total</div>
+    <div class="stat-badge"><strong>73</strong> upgrades total</div>
     <div class="stat-badge"><strong>6</strong> rarity tiers</div>
     <div class="stat-badge"><strong>4</strong> elements</div>
     <div class="stat-badge"><strong>3</strong> mythics</div>
@@ -531,41 +628,50 @@
 
 <div class="container">
 
-  <!-- Rarity Drop Rates -->
+  <!-- Rarity Drop Rates (Tabbed) -->
   <div class="section">
     <div class="section-header">
-      <h2>Base Drop Rates (Level-Up)</h2>
+      <h2>Drop Rates</h2>
+      <div class="rate-tabs">
+        <button class="rate-tab active" onclick="setRateTab('levelup')">Level-Up</button>
+        <button class="rate-tab" onclick="setRateTab('chest')">Chest</button>
+      </div>
     </div>
-    <div class="rarity-table">
+    <div class="prosperity-row">
+      <span class="prosperity-label">Prosperity</span>
+      <span class="prosperity-value" id="prosperity-val">0</span>
+      <input type="range" class="prosperity-slider" id="prosperity-slider" min="0" max="500" value="0" oninput="updateDropRates()">
+    </div>
+    <div class="rarity-table" id="drop-rate-table">
       <div class="rarity-cell" data-r="common">
         <div class="rarity-name">Common</div>
-        <div class="rarity-chance">65%</div>
-        <div class="rarity-bar" style="width:100%"></div>
+        <div class="rarity-chance" id="rate-common">65%</div>
+        <div class="rarity-bar" id="bar-common" style="width:100%"></div>
       </div>
       <div class="rarity-cell" data-r="uncommon">
         <div class="rarity-name">Uncommon</div>
-        <div class="rarity-chance">25%</div>
-        <div class="rarity-bar" style="width:38%"></div>
+        <div class="rarity-chance" id="rate-uncommon">25%</div>
+        <div class="rarity-bar" id="bar-uncommon" style="width:38%"></div>
       </div>
       <div class="rarity-cell" data-r="rare">
         <div class="rarity-name">Rare</div>
-        <div class="rarity-chance">6%</div>
-        <div class="rarity-bar" style="width:9%"></div>
+        <div class="rarity-chance" id="rate-rare">6%</div>
+        <div class="rarity-bar" id="bar-rare" style="width:9%"></div>
       </div>
       <div class="rarity-cell" data-r="epic">
         <div class="rarity-name">Epic</div>
-        <div class="rarity-chance">3.5%</div>
-        <div class="rarity-bar" style="width:5%"></div>
+        <div class="rarity-chance" id="rate-epic">3.5%</div>
+        <div class="rarity-bar" id="bar-epic" style="width:5%"></div>
       </div>
       <div class="rarity-cell" data-r="legendary">
         <div class="rarity-name">Legendary</div>
-        <div class="rarity-chance">0.49%</div>
-        <div class="rarity-bar" style="width:2%"></div>
+        <div class="rarity-chance" id="rate-legendary">0.49%</div>
+        <div class="rarity-bar" id="bar-legendary" style="width:2%"></div>
       </div>
       <div class="rarity-cell" data-r="mythic">
         <div class="rarity-name">Mythic</div>
-        <div class="rarity-chance">0.01%</div>
-        <div class="rarity-bar" style="width:1%"></div>
+        <div class="rarity-chance" id="rate-mythic">0.01%</div>
+        <div class="rarity-bar" id="bar-mythic" style="width:1%"></div>
       </div>
     </div>
   </div>
@@ -675,7 +781,7 @@
           <tr><td>3rd</td><td>144ms (&times;0.6)</td></tr>
           <tr><td>4th+</td><td>100ms (floor)</td></tr>
         </table>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Resets to 400ms after 2s without breaks. Infinite swarm: regen 1 charge/30s.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Resets to 400ms after 2s without breaks.</p>
       </div>
 
       <!-- Prosperity -->
@@ -728,15 +834,18 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:#38bdf8"></span>Distance Damage</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">dmg &times;= (1 + mod &times; min(dist/400, 1))</code>
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">dmg &times;= (1 + mod &times; ratio&sup2;)</code> &nbsp;
+          where ratio = min(dist/600, 1)
         </p>
         <table class="info-table">
-          <tr><th>Distance</th><th>Bonus (+0.25 mod)</th></tr>
-          <tr><td>100px</td><td>+6.25%</td></tr>
-          <tr><td>200px</td><td>+12.5%</td></tr>
-          <tr><td>400px+</td><td>+25% (max)</td></tr>
+          <tr><th>Distance</th><th>Bonus (+0.40 mod)</th></tr>
+          <tr><td>100px</td><td>+1.1%</td></tr>
+          <tr><td>200px</td><td>+4.4%</td></tr>
+          <tr><td>300px</td><td>+10%</td></tr>
+          <tr><td>400px</td><td>+17.8%</td></tr>
+          <tr><td>600px+</td><td>+40% (max)</td></tr>
         </table>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Applied before crit &mdash; crit multiplies the distance bonus.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Quadratic scaling &mdash; minimal at short range, ramps up past 300px. Applied before crit.</p>
       </div>
 
       <!-- Dodge Counter -->
@@ -758,11 +867,88 @@
     </div>
   </div>
 
+  <!-- Elemental Effects -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="collapse-toggle" onclick="toggleSection(this, 'elemental-content')">Elemental Effects</h2>
+    </div>
+    <div id="elemental-content" class="elemental-grid">
+
+      <!-- Lightning -->
+      <div class="info-panel" data-el="lightning">
+        <h3><span class="dot" style="background:var(--lightning)"></span>Lightning &mdash; Stun + Chain Arcs</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          <strong style="color:var(--text)">Stun</strong> enemies and chain arc damage to nearby foes. Higher strength unlocks longer stuns, more arcs, and arc stun chance.
+        </p>
+        <table class="info-table">
+          <tr><th>Tier</th><th>Strength</th><th>Stun</th><th>Arcs</th><th>Arc Dmg</th><th>Arc Stun</th></tr>
+          <tr><td>I</td><td>2+</td><td>300ms</td><td>1</td><td>30%</td><td>&mdash;</td></tr>
+          <tr><td>II</td><td>5+</td><td>400ms</td><td>2</td><td>40%</td><td>20%</td></tr>
+          <tr><td>III</td><td>8+</td><td>500ms</td><td>4</td><td>50%</td><td>30%</td></tr>
+          <tr><td>IV</td><td>12+</td><td>600ms</td><td>6</td><td>60%</td><td>50%</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Arc range: 150px. Arcs deal % of the original hit damage.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);">Upgrades: Static (+2) &rarr; Lightning (+3) &rarr; Tempest (+2, dual ice) / Venomshock (+2, dual poison) &rarr; Convergence (+3 all)</p>
+      </div>
+
+      <!-- Ice -->
+      <div class="info-panel" data-el="ice">
+        <h3><span class="dot" style="background:var(--ice)"></span>Ice &mdash; Slow &rarr; Freeze &rarr; Shatter</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          <strong style="color:var(--text)">Crowd control</strong> pipeline. Starts as a powerful slow, evolves into instant freeze, frost aura, and death shatter.
+        </p>
+        <table class="info-table">
+          <tr><th>Tier</th><th>Strength</th><th>Effect</th></tr>
+          <tr><td>I</td><td>2+</td><td>70% slow (chill) for 1.5s</td></tr>
+          <tr><td>II</td><td>5+</td><td>Proc directly <strong>freezes</strong> (0.8s immobilize)</td></tr>
+          <tr><td>III</td><td>8+</td><td>Freeze lasts 1.2s. Frozen enemies radiate frost aura (40% slow nearby, 80px)</td></tr>
+          <tr><td>IV</td><td>12+</td><td>Frozen enemies <strong>shatter on death</strong> (25% max HP AoE + chill nearby, 120px)</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Upgrades: Frost Tips (+2) &rarr; Icicle (+3) &rarr; Tempest (+2, dual shock) / Frostfire (+2, dual burn) &rarr; Convergence (+3 all)</p>
+      </div>
+
+      <!-- Fire -->
+      <div class="info-panel" data-el="fire">
+        <h3><span class="dot" style="background:var(--fire)"></span>Fire &mdash; DoT + AoE Spread</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          <strong style="color:var(--text)">Stacking burn DoT</strong>. DPS formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">str &times; 8 &times; (1 + dmg mod)</code>. Max 10 stacks, 2s per stack.
+        </p>
+        <table class="info-table">
+          <tr><th>Tier</th><th>Strength</th><th>Effect</th></tr>
+          <tr><td>I</td><td>2+</td><td>Burn DoT (stacking)</td></tr>
+          <tr><td>II</td><td>5+</td><td>+50% burn DPS. Dying enemies ignite 1 nearby enemy</td></tr>
+          <tr><td>III</td><td>8+</td><td>Burns slow enemies 20%. Death ignites 3 nearby</td></tr>
+          <tr><td>IV</td><td>12+</td><td>Burning enemies <strong>explode on death</strong> (AoE scales with burn stacks)</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">T4 explosion: radius = 80 + 15% per stack. Damage = DPS &times; stacks &times; 2.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);">Upgrades: Ember (+2) &rarr; Flame (+3) &rarr; Wildfire (+2, dual poison) / Frostfire (+2, dual ice) &rarr; Convergence (+3 all)</p>
+      </div>
+
+      <!-- Poison -->
+      <div class="info-panel" data-el="poison">
+        <h3><span class="dot" style="background:var(--poison)"></span>Poison &mdash; Amplify + Execute</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          <strong style="color:var(--text)">Damage amplification</strong>. Amp per stack: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">str &times; 25%</code>. Duration 5s. Max 10 stacks.
+        </p>
+        <table class="info-table">
+          <tr><th>Tier</th><th>Strength</th><th>Effect</th></tr>
+          <tr><td>I</td><td>2+</td><td>Poison stacks amplify all damage taken (50%/stack at str 2)</td></tr>
+          <tr><td>II</td><td>5+</td><td>Stacks grow over time (+1 stack every 2s, up to 2&times; initial)</td></tr>
+          <tr><td>III</td><td>8+</td><td>Poisoned enemies that die spread all stacks to 2 nearby</td></tr>
+          <tr><td>IV</td><td>12+</td><td><strong>Execute</strong>: poisoned enemies below 15% HP die instantly (not bosses). Death creates poison cloud</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">At str 4: 100% amp/stack (crit-equivalent). Bosses are immune to execute.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);">Upgrades: Toxic (+2) &rarr; Noxious (+3) &rarr; Wildfire (+2, dual burn) / Venomshock (+2, dual shock) &rarr; Convergence (+3 all)</p>
+      </div>
+
+    </div>
+  </div>
+
   <!-- All Upgrades -->
   <div class="section">
     <div class="section-header">
       <h2>All Upgrades</h2>
-      <span class="section-count" id="visible-count">75 shown</span>
+      <span class="section-count" id="visible-count">73 shown</span>
     </div>
     <div class="no-results" id="no-results">No upgrades match your filters.</div>
     <div class="upgrade-grid" id="upgrade-grid">
@@ -776,7 +962,7 @@
 const UPGRADES = [
   // COMMON
   { id:'damage_1', name:'Sharp Quills', desc:'Your quills deal more damage.', rarity:'common', cat:'offense', effects:{damage:0.1}, stacks:null },
-  { id:'fire_rate_1', name:'Swift Quills', desc:'Faster attacks with quills that hit harder at range.', rarity:'common', cat:'offense', effects:{fireRate:0.10, projectileSpeed:0.15, distanceDamage:0.25}, stacks:null },
+  { id:'fire_rate_1', name:'Swift Quills', desc:'Faster attacks with quills that hit harder at range.', rarity:'common', cat:'offense', effects:{fireRate:0.10, projectileSpeed:0.15, distanceDamage:0.40}, stacks:null },
   { id:'max_quills_1', name:'Extra Quills', desc:'Grow more quills on your back.', rarity:'common', cat:'offense', effects:{maxQuills:5}, stacks:null },
   { id:'regen_1', name:'Quick Recovery', desc:'Regenerate quills faster.', rarity:'common', cat:'utility', effects:{regenRate:0.2}, stacks:null },
   { id:'speed_1', name:'Light Feet', desc:'Move faster.', rarity:'common', cat:'utility', effects:{moveSpeed:0.1}, stacks:null },
@@ -800,10 +986,10 @@ const UPGRADES = [
   { id:'fortune_seeker', name:'Fortune Seeker', desc:'Better luck with drops and upgrade quality.', rarity:'uncommon', cat:'utility', effects:{prosperity:10}, stacks:null },
   { id:'danger_1', name:'Reckless', desc:'+12% mob strength, +3% elite spawn chance, +10% XP.', rarity:'uncommon', cat:'special', effects:{dangerLevel:1}, stacks:null },
   { id:'elite_hunter', name:'Elite Hunter', desc:'Deal bonus damage to elite enemies.', rarity:'uncommon', cat:'offense', effects:{eliteDamageBonus:0.25}, stacks:null },
-  { id:'static_quills', name:'Static Quills', desc:'Quills crackle with static. Chance to stun enemies.', rarity:'uncommon', cat:'elemental', effects:{shockStrength:2}, stacks:null, element:'lightning' },
-  { id:'frost_tips', name:'Frost Tips', desc:'Chilled quills that can briefly freeze enemies solid.', rarity:'uncommon', cat:'elemental', effects:{freezeStrength:2}, stacks:null, element:'ice' },
-  { id:'ember_quills', name:'Ember Quills', desc:'Smoldering quills set enemies ablaze. Burns stack.', rarity:'uncommon', cat:'elemental', effects:{burnStrength:2}, stacks:null, element:'fire' },
-  { id:'toxic_quills', name:'Toxic Quills', desc:'Venomous quills weaken enemies. Amplifies damage taken.', rarity:'uncommon', cat:'elemental', effects:{poisonStrength:2}, stacks:null, element:'poison' },
+  { id:'static_quills', name:'Static Quills', desc:'Quills crackle with electricity. Stuns and arcs chain lightning to nearby enemies.', rarity:'uncommon', cat:'elemental', effects:{shockStrength:2}, stacks:null, element:'lightning' },
+  { id:'frost_tips', name:'Frost Tips', desc:'Chilled quills slow enemies. Higher strength evolves into freeze and shatter.', rarity:'uncommon', cat:'elemental', effects:{freezeStrength:2}, stacks:null, element:'ice' },
+  { id:'ember_quills', name:'Ember Quills', desc:'Smoldering quills ignite enemies. Burns stack and evolve into explosions.', rarity:'uncommon', cat:'elemental', effects:{burnStrength:2}, stacks:null, element:'fire' },
+  { id:'toxic_quills', name:'Toxic Quills', desc:'Venomous quills amplify damage. Higher strength unlocks growth and execute.', rarity:'uncommon', cat:'elemental', effects:{poisonStrength:2}, stacks:null, element:'poison' },
   { id:'iron_quills', name:'Iron Quills', desc:'Hardened quills resist and reflect damage. +12 Armor, +4 Thorns.', rarity:'uncommon', cat:'defense', effects:{armor:0.12, thorns:4}, stacks:null },
   { id:'acrobat', name:'Acrobat', desc:'Agile movements make you harder to hit. +12 Evasion.', rarity:'uncommon', cat:'defense', effects:{evasion:0.12}, stacks:null },
 
@@ -821,10 +1007,10 @@ const UPGRADES = [
   { id:'treasure_hunter', name:'Treasure Hunter', desc:'Significantly better drops, plus bonus damage.', rarity:'rare', cat:'utility', effects:{prosperity:15, damage:0.05}, stacks:null },
   { id:'danger_2', name:'Daredevil', desc:'+24% mob strength, +6% elite spawn chance, +20% XP.', rarity:'rare', cat:'special', effects:{dangerLevel:2}, stacks:null },
   { id:'elite_slayer', name:'Elite Slayer', desc:'Massive bonus damage to elite enemies, with a small damage boost.', rarity:'rare', cat:'offense', effects:{eliteDamageBonus:0.50, damage:0.05}, stacks:null },
-  { id:'lightning_quills', name:'Lightning Quills', desc:'Electrified quills stop enemies dead in their tracks.', rarity:'rare', cat:'elemental', effects:{shockStrength:3}, stacks:null, element:'lightning' },
-  { id:'icicle_quills', name:'Icicle Quills', desc:'Deep cold locks enemies in place.', rarity:'rare', cat:'elemental', effects:{freezeStrength:3}, stacks:null, element:'ice' },
-  { id:'flame_quills', name:'Flame Quills', desc:'Hotter flames burn brighter and fiercer.', rarity:'rare', cat:'elemental', effects:{burnStrength:3}, stacks:null, element:'fire' },
-  { id:'noxious_spines', name:'Noxious Spines', desc:'Deeper venom makes enemies crumble faster.', rarity:'rare', cat:'elemental', effects:{poisonStrength:3}, stacks:null, element:'poison' },
+  { id:'lightning_quills', name:'Lightning Quills', desc:'Powerful shocks with stronger stuns and more chain arcs.', rarity:'rare', cat:'elemental', effects:{shockStrength:3}, stacks:null, element:'lightning' },
+  { id:'icicle_quills', name:'Icicle Quills', desc:'Deep cold that evolves from chill to freeze. Reach tier II to freeze on proc.', rarity:'rare', cat:'elemental', effects:{freezeStrength:3}, stacks:null, element:'ice' },
+  { id:'flame_quills', name:'Flame Quills', desc:'Fiercer burns with death spread. Reach tier II for enhanced DPS and ignite on kill.', rarity:'rare', cat:'elemental', effects:{burnStrength:3}, stacks:null, element:'fire' },
+  { id:'noxious_spines', name:'Noxious Spines', desc:'Stronger venom with higher amp. Reach tier II for poison stack growth over time.', rarity:'rare', cat:'elemental', effects:{poisonStrength:3}, stacks:null, element:'poison' },
   { id:'porcupine_plate', name:'Porcupine Plate', desc:'Natural armor plating with spiny defense. +18 Armor, +6 Thorns, +20 HP.', rarity:'rare', cat:'defense', effects:{armor:0.18, thorns:6, maxHealth:20}, stacks:null },
   { id:'shadow_step', name:'Shadow Step', desc:'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed.', rarity:'rare', cat:'defense', effects:{evasion:0.18, moveSpeed:0.05}, stacks:null },
 
@@ -840,10 +1026,10 @@ const UPGRADES = [
   { id:'fortress', name:'Fortress', desc:'Block two hits per wave and +30 HP. Shield cap: 10.', rarity:'epic', cat:'defense', effects:{shieldCharges:2, maxHealth:30}, stacks:null },
   { id:'smart_missiles', name:'Smart Missiles', desc:'Homing quills that pierce enemies.', rarity:'epic', cat:'offense', effects:{homingStrength:0.7, piercing:1}, stacks:null },
   { id:'danger_3', name:'Death Wish', desc:'+36% mob strength, +9% elite spawn chance, +30% XP.', rarity:'epic', cat:'special', effects:{dangerLevel:3}, stacks:null },
-  { id:'thunder_strike', name:'Thunder Strike', desc:'Lightning arcs to 3 nearby enemies on shock.', rarity:'epic', cat:'elemental', effects:{shockStrength:3, chainLightning:3}, stacks:null, element:'lightning' },
-  { id:'blizzard_quills', name:'Blizzard Quills', desc:'Frozen enemies chill nearby foes, slowing them 50%.', rarity:'epic', cat:'elemental', effects:{freezeStrength:3, frostSlow:0.5}, stacks:null, element:'ice' },
-  { id:'inferno_quills', name:'Inferno Quills', desc:'Burning enemies scorch nearby foes.', rarity:'epic', cat:'elemental', effects:{burnStrength:3, fireAura:30}, stacks:null, element:'fire' },
-  { id:'plague_bearer', name:'Plague Bearer', desc:'Poison spreads to nearby enemies when a poisoned foe dies.', rarity:'epic', cat:'elemental', effects:{poisonStrength:3, poisonSpread:1}, stacks:null, element:'poison' },
+  { id:'tempest', name:'Tempest', desc:'Storm and frost combine. Shocked enemies that get chilled are instantly frozen.', rarity:'epic', cat:'elemental', effects:{shockStrength:2, freezeStrength:2}, stacks:null, element:'lightning' },
+  { id:'wildfire', name:'Wildfire', desc:'Flame and venom fuel each other. Burning poisoned enemies gain stacks 2x faster.', rarity:'epic', cat:'elemental', effects:{burnStrength:2, poisonStrength:2}, stacks:null, element:'fire' },
+  { id:'frostfire', name:'Frostfire', desc:'Fire and ice clash. Frozen burning enemies release steam AoE on thaw.', rarity:'epic', cat:'elemental', effects:{burnStrength:2, freezeStrength:2}, stacks:null, element:'ice' },
+  { id:'venomshock', name:'Venomshock', desc:'Lightning spreads toxins. Chain arcs carry poison stacks to targets.', rarity:'epic', cat:'elemental', effects:{shockStrength:2, poisonStrength:2}, stacks:null, element:'poison' },
   { id:'golden_touch', name:'Golden Touch', desc:'Major luck boost with extra health.', rarity:'epic', cat:'utility', effects:{prosperity:25, maxHealth:10}, stacks:null },
   { id:'diamond_hide', name:'Diamond Hide', desc:'Impenetrable hide that reflects damage. +22 Armor, +12 Thorns.', rarity:'epic', cat:'defense', effects:{armor:0.22, thorns:12}, stacks:null },
   { id:'phantom_porcupine', name:'Phantom Porcupine', desc:'A blur of quills and fury. +22 Evasion, +10% Speed.', rarity:'epic', cat:'defense', effects:{evasion:0.22, moveSpeed:0.10}, stacks:null },
@@ -861,10 +1047,7 @@ const UPGRADES = [
   { id:'midas', name:'Midas', desc:'Everything you touch turns to gold! Maximum prosperity.', rarity:'legendary', cat:'utility', effects:{prosperity:40, damage:0.15}, stacks:null },
   { id:'living_bastion', name:'Living Bastion', desc:'Become an unstoppable fortress. +45 Armor, +24 Thorns, +25 HP.', rarity:'legendary', cat:'defense', effects:{armor:0.45, thorns:24, maxHealth:25}, stacks:null },
   { id:'wraith_form', name:'Wraith Form', desc:'Become intangible. +28 Evasion, +15% Speed.', rarity:'legendary', cat:'defense', effects:{evasion:0.28, moveSpeed:0.15}, stacks:null },
-  { id:'storm_caller', name:'Storm Caller', desc:'Unleash a storm of chain lightning across the battlefield.', rarity:'legendary', cat:'elemental', effects:{shockStrength:5, chainLightning:3}, stacks:null, element:'lightning' },
-  { id:'absolute_zero', name:'Absolute Zero', desc:'Frozen enemies that die shatter, dealing 50% max HP to nearby foes.', rarity:'legendary', cat:'elemental', effects:{freezeStrength:5, shatterDamage:0.5}, stacks:null, element:'ice' },
-  { id:'hellfire', name:'Hellfire', desc:'Burning enemies explode on death.', rarity:'legendary', cat:'elemental', effects:{burnStrength:5, fireExplosion:80}, stacks:null, element:'fire' },
-  { id:'pandemic', name:'Pandemic', desc:'Death releases a poison cloud that infects all nearby enemies.', rarity:'legendary', cat:'elemental', effects:{poisonStrength:5, poisonCloud:50}, stacks:null, element:'poison' },
+  { id:'elemental_convergence', name:'Elemental Convergence', desc:'All elements converge. +3 to every element. Procs have 20% chance to trigger a second random element.', rarity:'legendary', cat:'elemental', effects:{shockStrength:3, freezeStrength:3, burnStrength:3, poisonStrength:3}, stacks:1 },
 
   // MYTHIC
   { id:'expanded_options', name:'Expanded Options', desc:'See an additional upgrade card when choosing upgrades.', rarity:'mythic', cat:'special', effects:{upgradeChoices:1}, stacks:1 },
@@ -897,16 +1080,9 @@ const EFFECT_LABELS = {
   eliteDamageBonus: { label: 'Elite Damage', fmt: 'pct' },
   upgradeChoices: { label: 'Extra Choices', fmt: 'flat' },
   shockStrength: { label: 'Shock Str', fmt: 'flat', element: 'lightning' },
-  chainLightning: { label: 'Chain Targets', fmt: 'flat', element: 'lightning' },
   freezeStrength: { label: 'Freeze Str', fmt: 'flat', element: 'ice' },
-  frostSlow: { label: 'Frost Slow', fmt: 'pct', element: 'ice' },
-  shatterDamage: { label: 'Shatter', fmt: 'pct', element: 'ice' },
   burnStrength: { label: 'Burn Str', fmt: 'flat', element: 'fire' },
-  fireAura: { label: 'Fire Aura', fmt: 'px', element: 'fire' },
-  fireExplosion: { label: 'Fire Explosion', fmt: 'px', element: 'fire' },
   poisonStrength: { label: 'Poison Str', fmt: 'flat', element: 'poison' },
-  poisonSpread: { label: 'Spread on Death', fmt: 'bool', element: 'poison' },
-  poisonCloud: { label: 'Poison Cloud', fmt: 'px', element: 'poison' },
   armor: { label: 'Armor', fmt: 'armor' },
   evasion: { label: 'Evasion', fmt: 'evasion' },
   thorns: { label: 'Thorns', fmt: 'flat' },
@@ -1025,6 +1201,71 @@ function toggleSection(el, id) {
   content.style.display = el.classList.contains('collapsed') ? 'none' : '';
 }
 
+/* Drop rate tab + prosperity slider */
+let activeRateTab = 'levelup';
+
+function setRateTab(tab) {
+  activeRateTab = tab;
+  document.querySelectorAll('.rate-tab').forEach(b => {
+    const isLevelUp = b.textContent === 'Level-Up';
+    b.classList.toggle('active', (tab === 'levelup') === isLevelUp);
+  });
+  updateDropRates();
+}
+
+function getLevelUpRates(prosperity) {
+  const base = { common: 65, uncommon: 25, rare: 6, epic: 3.5, legendary: 0.49, mythic: 0.01 };
+  const cap = 500;
+  const phase1 = Math.min(prosperity / 100, 1);
+  const commonToUncommon = (base.common - 25) * phase1;
+  const phase2 = Math.max(0, (prosperity - 100) / (cap - 100));
+  const phase2CommonDrop = 24 * phase2;
+  const phase2UncommonDrop = 21.2 * phase2;
+  const progress = Math.min(prosperity / cap, 1);
+  return {
+    common: Math.max(1, base.common - commonToUncommon - phase2CommonDrop),
+    uncommon: base.uncommon + commonToUncommon - phase2UncommonDrop,
+    rare: base.rare + (48 - base.rare) * progress,
+    epic: base.epic + (10.5 - base.epic) * progress,
+    legendary: base.legendary + (1.47 - base.legendary) * progress,
+    mythic: base.mythic + (0.05 - base.mythic) * progress,
+  };
+}
+
+function getChestRates(prosperity) {
+  const base = { common: 0, uncommon: 60.99, rare: 30, epic: 8, legendary: 1, mythic: 0.01 };
+  const caps = { uncommon: 9.5, rare: 60, epic: 20, legendary: 10, mythic: 0.5 };
+  const progress = Math.min(prosperity / 500, 1);
+  return {
+    common: 0,
+    uncommon: base.uncommon + (caps.uncommon - base.uncommon) * progress,
+    rare: base.rare + (caps.rare - base.rare) * progress,
+    epic: base.epic + (caps.epic - base.epic) * progress,
+    legendary: base.legendary + (caps.legendary - base.legendary) * progress,
+    mythic: base.mythic + (caps.mythic - base.mythic) * progress,
+  };
+}
+
+function formatRate(v) {
+  if (v >= 10) return Math.round(v) + '%';
+  if (v >= 1) return v.toFixed(1).replace(/\.0$/, '') + '%';
+  return v.toFixed(2).replace(/0$/, '') + '%';
+}
+
+function updateDropRates() {
+  const prosperity = parseInt(document.getElementById('prosperity-slider').value);
+  document.getElementById('prosperity-val').textContent = prosperity;
+  const rates = activeRateTab === 'levelup' ? getLevelUpRates(prosperity) : getChestRates(prosperity);
+  const maxRate = Math.max(...Object.values(rates));
+  const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+  for (const r of rarities) {
+    document.getElementById('rate-' + r).textContent = formatRate(rates[r]);
+    const barPct = maxRate > 0 ? Math.max(1, (rates[r] / maxRate) * 100) : 0;
+    document.getElementById('bar-' + r).style.width = (rates[r] < 0.001 ? 0 : barPct) + '%';
+  }
+}
+
+updateDropRates();
 renderCards();
 </script>
 </body>

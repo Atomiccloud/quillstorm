@@ -311,13 +311,13 @@ Since there are no wave transitions in infinite swarm, shields cannot reset betw
 
 | Parameter | Value |
 |-----------|-------|
-| Regen interval | 30,000ms (30 seconds per charge) |
-| Config key | `INFINITE_SWARM_CONFIG.shieldRegenInterval` |
+| Regen interval | 5,000ms (5 seconds per charge) |
+| Config key | `INFINITE_SWARM_CONFIG._sri` (obfuscated) |
 
 ### Behavior
 
 - **Full reset on activation** — shields reset to max when infinite swarm begins
-- **Time-based regen** — one shield charge regenerates every 30 seconds
+- **Time-based regen** — one shield charge regenerates every 5 seconds
 - **Reset on hit** — taking a hit (shield absorb) resets the regen timer to 0
 - **Capped at max** — charges never exceed the upgrade total
 
@@ -326,12 +326,12 @@ Since there are no wave transitions in infinite swarm, shields cannot reset betw
 | Event | Charges | Timer |
 |-------|---------|-------|
 | Swarm starts | 3/3 | 0s |
-| Hit at 10s | 2/3 | reset → 0s |
-| Hit at 15s | 1/3 | reset → 0s |
-| 30s passes | 2/3 | reset → 0s |
-| Hit at 5s | 1/3 | reset → 0s |
-| 30s passes | 2/3 | reset → 0s |
-| 30s passes | 3/3 | paused (full) |
+| Hit at 2s | 2/3 | reset → 0s |
+| Hit at 3s | 1/3 | reset → 0s |
+| 5s passes | 2/3 | reset → 0s |
+| Hit at 2s | 1/3 | reset → 0s |
+| 5s passes | 2/3 | reset → 0s |
+| 5s passes | 3/3 | paused (full) |
 
 ### Visual Indicator
 

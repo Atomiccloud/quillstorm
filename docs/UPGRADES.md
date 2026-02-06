@@ -1,13 +1,13 @@
 # Upgrade Reference
 
-Complete reference for all 75 upgrades, how they work mechanically, and balance assessment.
+Complete reference for all 73 upgrades, how they work mechanically, and balance assessment.
 
 ## Quick Reference Table
 
 | Name | Rarity | Effects | Max Stacks | Tier |
 |------|--------|---------|------------|------|
 | **Sharp Quills** | Common | damage +10% | -- | A |
-| **Swift Quills** | Common | fireRate +10%, projSpeed +15%, distDmg +25% | -- | A |
+| **Swift Quills** | Common | fireRate +10%, projSpeed +15%, distDmg +40% | -- | A |
 | **Extra Quills** | Common | maxQuills +5 | -- | B |
 | **Quick Recovery** | Common | regenRate +20% | -- | B |
 | **Light Feet** | Common | moveSpeed +10% | -- | B |
@@ -199,25 +199,25 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
   - 2 strength = **17%**, 3 = **23%**, 5 = **33%**, 10 = **50%**
 - Fate's Favor: failed procs get a 30% chance to reroll
 
-### Elemental Details
+### Elemental Evolution Tiers
+Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 
-**Shock (Lightning):**
-- Stuns enemy (immobilizes, skips AI). Chain Lightning arcs to N nearby enemies.
+**Lightning** — Stun + Chain Arcs:
+- T1: 300ms stun + 1 arc (30% hit damage). T2: 400ms, 2 arcs (40%), 20% arc stun. T3: 500ms, 4 arcs (50%), 30% stun. T4: 600ms, 6 arcs (60%), 50% stun.
 
-**Freeze (Ice):**
-- Freezes enemy solid (longer immobilize than shock).
-- Frost Slow: nearby enemies slowed.
-- Shatter: frozen enemies that die deal % of their max HP as AoE.
+**Ice** — Slow → Freeze → Shatter:
+- T1: 70% slow (chill) 1.5s. T2: Direct freeze 0.8s. T3: Freeze 1.2s + frost aura (40% slow nearby). T4: Shatter on death (25% max HP AoE + chill).
 
-**Burn (Fire):**
-- Stacking DoT: `strength * 8 * (1 + damageModifier)` DPS per stack.
-- Fire Aura: burning enemies damage nearby foes.
-- Fire Explosion: burning enemies explode on death (radius scales with stacks).
+**Fire** — DoT + AoE Spread:
+- DPS: `str × 8 × (1 + dmgMod)`, ×1.5 at T2+. Duration 2s, max 10 stacks.
+- T2: Death ignites 1 nearby. T3: Burns slow 20%, death ignites 3. T4: Death explosion (radius scales with stacks).
 
-**Poison:**
-- Amplifies ALL damage to target: `strength * 5%` per stack.
-- Spread: on death, poison jumps to nearby enemies.
-- Cloud: death leaves a lingering poison zone.
+**Poison** — Amplify + Execute:
+- Amp: `str × 25%` per stack. Duration 5s, max 10 stacks.
+- T2: Stacks grow (+1/2s). T3: Death spreads stacks to 2 nearby. T4: Execute <15% HP (non-boss) + poison cloud.
+
+**Dual-Element Combos** (Epic): Tempest (shock+ice), Wildfire (burn+poison), Frostfire (burn+ice), Venomshock (shock+poison).
+**Elemental Convergence** (Legendary): +3 all elements, 20% chance for secondary proc.
 
 ### Prosperity
 - Affects chest drop chance (logarithmic curve, caps at ~14%)
@@ -241,9 +241,10 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 
 ### Distance Damage
 - Quills deal bonus damage based on travel distance from spawn point
-- Formula: `damage *= (1 + modifier * min(distance / 400, 1.0))`
+- Formula: `damage *= (1 + modifier * ratio²)` where `ratio = min(distance / 600, 1.0)`
+- Quadratic scaling: minimal bonus at short range, ramps up at 300-400px, peaks at 600px
 - Applied BEFORE crit (so crit multiplies the distance bonus)
-- At max distance (400px) with 0.25 modifier: +25% bonus damage
+- At max distance (600px) with 0.40 modifier: +40% bonus damage
 
 ### Dodge Counter
 - On successful evasion, chance to instantly kill the attacker
@@ -253,8 +254,11 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 - Elites/Bosses: 25% max HP chunk (scales with damage modifier)
 
 ### Companions
-- Baby porcupines that fight alongside you
-- Each companion fires independently
+- Baby porcupines that fight alongside you using real Quill objects
+- Inherit player abilities at efficiency-scaled values (40% base + 3% per companion, max 70%)
+- Inherited: damage, fire rate, crit, bouncing, homing, speed, size, elemental, explosion, elite damage
+- Excluded: knockback, distance damage, piercing, vampirism
+- Fire 20% of player's projectile count per shot (min 1)
 
 ### Apotheosis
 - Every 5th volley is "empowered" (deterministic, not random)
@@ -270,7 +274,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | ID | Name | Effects | Tier | Notes |
 |----|------|---------|------|-------|
 | `damage_1` | Sharp Quills | damage +0.10 | A | Always solid. Multiplicative with everything. |
-| `fire_rate_1` | Swift Quills | fireRate +0.10, projSpeed +0.15, distanceDamage +0.25 | A | Fire rate + projectile speed + distance damage bonus. Great early pick. |
+| `fire_rate_1` | Swift Quills | fireRate +0.10, projSpeed +0.15, distanceDamage +0.40 | A | Fire rate + projectile speed + quadratic distance damage. Great early pick. |
 | `max_quills_1` | Extra Quills | maxQuills +5 | B | Sustain. More important with multi-shot builds. |
 | `regen_1` | Quick Recovery | regenRate +0.20 | B | Sustain. Also reduces regen delay. |
 | `speed_1` | Light Feet | moveSpeed +0.10 | B | Kiting, platform navigation. |
@@ -344,14 +348,14 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | `smart_missiles` | Smart Missiles | homing 0.7, piercing +1 | A | Strong homing + pierce combo. |
 | `golden_touch` | Golden Touch | prosperity +25, HP +10 | B | Late-game luck investment. |
 | `danger_3` | Death Wish | danger +3 | B | Max risk/reward. |
-| `thunder_strike` | Thunder Strike | shock +3, chain +3 | A | AoE stun. |
-| `blizzard_quills` | Blizzard Quills | freeze +3, frostSlow 0.50 | A | CC + area slow. |
-| `inferno_quills` | Inferno Quills | burn +3, fireAura 30px | A | DoT + area spread. |
-| `plague_bearer` | Plague Bearer | poison +3, spread on death | A | Poison chains through groups. |
+| `tempest` | Tempest | shock +2, freeze +2 | A | Dual-element. Shocked+chilled = instant freeze. |
+| `wildfire` | Wildfire | burn +2, poison +2 | A | Dual-element. Burning+poisoned = 2× stack growth. |
+| `frostfire` | Frostfire | burn +2, freeze +2 | A | Dual-element. Frozen burning = steam AoE on thaw. |
+| `venomshock` | Venomshock | shock +2, poison +2 | A | Dual-element. Chain arcs spread poison. |
 | `diamond_hide` | Diamond Hide | armor +0.22, thorns +12 | B | Serious defense + thorns reflection. |
 | `phantom_porcupine` | Phantom Porcupine | evasion +0.22, speed +0.10 | B | Good evasion + speed. Dodge counter at 80%. |
 
-### Legendary (16)
+### Legendary (13)
 
 | ID | Name | Effects | Tier | Notes |
 |----|------|---------|------|-------|
@@ -365,10 +369,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | `vampire_lord` | Vampire Lord | vampirism +3, damage +0.30 | A | Strong sustain + damage. |
 | `immortal_fortress` | Immortal Fortress | shield +4, HP +100 | A | Nearly unkillable. |
 | `midas` | Midas | prosperity +40, damage +0.15 | A | Max luck. |
-| `storm_caller` | Storm Caller | shock +5, chain +3 | A | Battlefield stun. |
-| `absolute_zero` | Absolute Zero | freeze +5, shatter 50% maxHP | S | Frozen enemies nuke on death. |
-| `hellfire` | Hellfire | burn +5, fireExplosion 80px | S | Burning enemies explode. Chain reaction potential. |
-| `pandemic` | Pandemic | poison +5, cloud 50px | A | Lingering poison zones. |
+| `elemental_convergence` | Elemental Convergence | all elements +3 | S | Universal elemental. 20% secondary proc. |
 | `living_bastion` | Living Bastion | armor +0.45, thorns +24, HP +25 | A | Ultimate tank. |
 | `wraith_form` | Wraith Form | evasion +0.28, speed +0.15 | A | Ultimate dodge build. 90% dodge counter chance. |
 
