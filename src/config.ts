@@ -291,6 +291,11 @@ export const EVASION_CONFIG = {
   diminishingK: 2.0,            // k=2.0: 50 evasion → 17% dodge, 100 evasion → 26% dodge
 };
 
+// Level scaling - passive bonuses per level
+export const LEVEL_SCALING_CONFIG = {
+  damagePerLevel: 0.05,           // +5% damage per level (applied from level 2+)
+};
+
 export const UPGRADE_CONFIG = {
   choicesPerUpgrade: 3,
   // Base weights for level-up upgrades (before prosperity modifies)
@@ -469,6 +474,22 @@ export const INFINITE_SWARM_CONFIG = {
   // Cooldown formula: max(5000, 15000 - (danger - 5) * 500)
 
   shieldRegenInterval: 30000,      // Regenerate 1 shield charge every 30 seconds
+};
+
+// Boss reward configuration (v0.5.1)
+export const BOSS_REWARD_CONFIG = {
+  balanceMinPercent: 0.30,  // Minimum for "Balance" restoration option
+  balanceMaxPercent: 0.60,  // Maximum for "Balance" restoration option
+  waveQuillBonus: 5,        // Quills restored on normal wave clear
+};
+
+// Vampirism configuration (v0.5.1 rework - stack-based)
+export const VAMPIRISM_CONFIG = {
+  // Proc chance: stacks / (stacks + k)  — diminishing returns
+  procDivisor: 20,          // k value: 1 stack = 4.8%, 5 = 20%, 10 = 33%, 20 = 50%
+  // Heal amount: base + (stacks * perStack)  — linear scaling
+  healBase: 8,              // Base heal amount
+  healPerStack: 3,          // Additional heal per stack (1 stack = 11 HP, 10 = 38 HP)
 };
 
 // Shield system configuration (v0.5.0 balance overhaul)

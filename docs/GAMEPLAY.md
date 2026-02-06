@@ -346,6 +346,32 @@ Flying Boss has 1,000 base HP (vs 300 for Ground Boss).
 
 ---
 
+## Boss Rewards (v0.5.1)
+
+After defeating a boss (waves 5, 10, 15, 20), players make a **blind choice** between two paths:
+
+### Phase 1: The Fork
+| Choice | What Happens |
+|--------|-------------|
+| **Restoration** | Choose from 3 resource recovery options |
+| **Power** | Choose from 3 upgrade cards (normal upgrade flow) |
+
+The choice is blind — you commit before seeing what's available.
+
+### Phase 2: Restoration Options
+| Option | Effect |
+|--------|--------|
+| **Full Health** | Restore to 100% max HP |
+| **Full Quills** | Restore to 100% max quills |
+| **Balance** | Restore 30-60% of both HP and quills (random roll) |
+
+### Wave Clear Bonuses
+- Normal waves: +5 quills restored on completion
+- Boss waves: No quill bonus (players choose Restoration or Power instead)
+- All waves: +20 HP healed between waves (unchanged)
+
+---
+
 ## Upgrades
 
 ### Rarity System
@@ -384,7 +410,7 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Aerodynamic Quills | +20% projectile speed | Quills fly faster |
 | Thick Hide | +20 max health | More survivability |
 | Thick Quills | +30% projectile size | Larger quills, easier to hit |
-| Life Leech | +5% vampirism | Heal when dealing damage |
+| Life Leech | +1 vampirism strength | Chance to heal on hit |
 | Tough Skin | +5 Armor | Reduces incoming damage |
 | Quick Reflexes | +5 Evasion | Chance to dodge attacks |
 
@@ -470,7 +496,7 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Glass God | +150% damage, +30% crit, +1.0x crit damage, -50 health | 1 | Ultimate glass cannon |
 | Nuclear Quills | 150px explosion, +80% damage, -30% fire rate | 1 | Nuke build |
 | Porcupine Army | +4 companions | 1 | Army of helpers |
-| Vampire Lord | +15% vampirism, +30% damage | 1 | Lifesteal build |
+| Vampire Lord | +3 vampirism str, +30% damage | 1 | Lifesteal build |
 | Immortal Fortress | +5 shields, +50 health | 1 | Unkillable defense |
 | Living Bastion | +40 Armor, +20 Thorns, +25 HP | ∞ | Unstoppable fortress |
 | Wraith Form | +25 Evasion, +15% speed | ∞ | Become intangible |
@@ -658,9 +684,12 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 - Higher strength = tighter tracking
 
 ### Vampirism (Lifesteal)
-- Obtained through upgrades (Life Leech, Vampire Lord)
-- Heal percentage of damage dealt
-- Works on all damage including AOE
+- Obtained through upgrades (Life Leech +1 str, Vampire Lord +3 str)
+- Stack-based system similar to elemental effects
+- Proc chance: `stacks / (stacks + 20)` — diminishing returns (1 str = 4.8%, 5 = 20%, 10 = 33%)
+- Heal amount: `8 + (stacks × 3)` — linear scaling (1 str = 11 HP, 5 = 23 HP, 10 = 38 HP)
+- Healing is NOT damage-dependent — flat amount per proc
+- Works on all hits including companion quills
 
 ### Elemental Procs
 - Each quill hit rolls independently for each unlocked element
@@ -751,7 +780,9 @@ Enemies drop XP orbs on death. Collect them to level up and gain bonus upgrades.
 | 15 | 813 |
 | 20 | 1,878 |
 
-**Level Up Rewards:** Each level up triggers an upgrade selection (separate from wave-end upgrades).
+**Level Up Rewards:**
+- Each level up triggers an upgrade selection (separate from wave-end upgrades)
+- **+5% damage per level** (passive, stacks additively with upgrade damage)
 
 ### Treasure Chests
 

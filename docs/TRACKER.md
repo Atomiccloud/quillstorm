@@ -143,6 +143,15 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 
 ---
 
+## In Progress (v0.5.1 - Boss Rewards, Vampirism Rework & QoL)
+
+- [x] Boss reward choice: Restoration vs Power after boss waves — `src/scenes/BossRewardScene.ts`
+- [x] Vampirism rework: stack-based proc chance and healing — `src/config.ts`, `src/scenes/GameScene.ts`
+- [x] +5 quills restored on normal wave completion — `src/scenes/GameScene.ts`
+- [x] +5% damage per level (passive scaling) — `src/config.ts`, `src/systems/UpgradeManager.ts`
+
+---
+
 ## Planned: Achievements & Challenges
 
 ### Achievement System

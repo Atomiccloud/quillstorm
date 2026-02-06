@@ -309,8 +309,12 @@ export class PauseScene extends Phaser.Scene {
     if (maxHealth !== 0) addStat('Max Health', formatFlat(maxHealth));
     const shieldCharges = this.upgradeManager.getModifier('shieldCharges');
     if (shieldCharges !== 0) addStat('Shields', `${shieldCharges} charges`);
-    const vampirism = this.upgradeManager.getModifier('vampirism');
-    if (vampirism !== 0) addStat('Lifesteal', formatPercent(vampirism));
+    const vampStr = this.upgradeManager.getModifier('vampirismStrength');
+    if (vampStr > 0) {
+      const vampChance = Math.round((vampStr / (vampStr + 20)) * 100);
+      const vampHeal = 8 + vampStr * 3;
+      addStat('Vampirism', `${vampChance}% / ${vampHeal} HP`);
+    }
     y += 8;
 
     // Movement stats

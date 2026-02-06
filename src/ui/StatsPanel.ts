@@ -245,8 +245,11 @@ export class StatsPanel {
     const special: { name: string; value: string }[] = [];
 
     // Combat stats
-    const damage = this.upgradeManager.getModifier('damage');
-    if (damage !== 0) combat.push({ name: 'Damage', value: formatPercent(damage) });
+    const levelBonus = this.upgradeManager.getLevelDamageBonus();
+    if (levelBonus > 0) combat.push({ name: 'Level Bonus', value: formatPercent(levelBonus) });
+
+    const upgradeDamage = this.upgradeManager.getModifier('damage') - levelBonus;
+    if (upgradeDamage !== 0) combat.push({ name: 'Damage', value: formatPercent(upgradeDamage) });
 
     const fireRate = this.upgradeManager.getModifier('fireRate');
     if (fireRate !== 0) combat.push({ name: 'Fire Rate', value: formatPercent(fireRate) });
@@ -310,8 +313,12 @@ export class StatsPanel {
     const thorns = this.upgradeManager.getModifier('thorns');
     if (thorns > 0) defense.push({ name: 'Thorns', value: formatFlat(thorns) });
 
-    const vampirism = this.upgradeManager.getModifier('vampirism');
-    if (vampirism !== 0) defense.push({ name: 'Heal Chance', value: formatPercent(vampirism) });
+    const vampStr = this.upgradeManager.getModifier('vampirismStrength');
+    if (vampStr > 0) {
+      const vampChance = Math.round((vampStr / (vampStr + 20)) * 100);
+      const vampHeal = 8 + vampStr * 3;
+      defense.push({ name: 'Vampirism', value: `${vampChance}% / ${vampHeal} HP` });
+    }
 
     // Movement stats
     const moveSpeed = this.upgradeManager.getModifier('moveSpeed');

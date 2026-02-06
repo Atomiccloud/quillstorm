@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.0';
+export const GAME_VERSION = '0.5.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,25 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.1',
+    date: '2026-02-06',
+    changes: [
+      // Boss Respite Choice
+      'Boss waves now offer a choice: Restoration or Power (upgrades)',
+      'Restoration options: Full HP, Full Quills, or Balance (30-60% of both)',
+      'Choice is blind — commit before seeing what\'s available',
+      // Vampirism rework
+      'Vampirism reworked: stack-based proc chance and healing (no longer damage-dependent)',
+      'Life Leech now gives +1 vampirism strength (4.8% proc, 11 HP per heal)',
+      'Vampire Lord now gives +3 vampirism strength plus bonus damage',
+      'Vampirism stacks scale with diminishing returns on proc, linear on healing',
+      // Wave quill bonus
+      '+5 quills restored on normal wave completion',
+      // Level scaling
+      '+5% damage per level to smooth early-game power curve',
+    ],
+  },
   {
     version: '0.5.0',
     date: '2026-02-05',
