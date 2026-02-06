@@ -115,7 +115,7 @@ export const ENEMY_CONFIG = {
   },
   // Burrower - underground ambush enemy
   burrower: {
-    health: 50,
+    health: 38,
     damage: 20,
     speed: 90,
     points: 35,
@@ -162,6 +162,21 @@ export const ENEMY_CONFIG = {
     fleeRange: 300, // flees when player is within this range
     preferredDist: 350, // tries to stay this far from player
   },
+  // Bomber - flying crow that drops AoE ground danger zones
+  bomber: {
+    health: 40,
+    damage: 8,                  // Low contact damage (ranged area denial)
+    speed: 80,
+    points: 45,
+    color: 0x1a1a2e,            // Dark navy/black
+    width: 40,
+    height: 30,
+    bombDamage: 20,             // AoE zone damage
+    bombRadius: 70,             // Danger zone radius
+    bombCooldown: 3000,         // ms between drops
+    bombWarningDuration: 800,   // Warning circle before detonation
+    bombActiveDuration: 1000,   // Danger zone linger time
+  },
   // Boss - big, mean, 3-phase fight
   boss: {
     health: 300, // Base HP for wave 5 boss (scales with tier)
@@ -205,9 +220,9 @@ export const WAVE_CONFIG = {
   maxEnemiesPerWave: 60, // Cap to prevent marathon waves (was 100)
   // Spawn pacing - ramps from slow start to fast finish within each wave
   spawnIntervalStart: 1200, // ms between spawns at wave start (was 2000)
-  spawnIntervalEnd: 300, // ms between spawns at wave end (was 500)
+  spawnIntervalEnd: 375, // ms between spawns at wave end (was 300)
   spawnIntervalDecayPerWave: 100, // start interval decreases by this per scaling step (was 50)
-  spawnIntervalMinStart: 400, // floor for starting interval (was 800)
+  spawnIntervalMinStart: 500, // floor for starting interval (was 400)
   scalingInterval: 2, // Stats and spawn pacing scale every N waves
   waveDelay: 2000, // ms between waves (was 3000)
   bossWaveInterval: 5, // Boss every N waves

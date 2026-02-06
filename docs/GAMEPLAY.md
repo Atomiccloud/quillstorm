@@ -69,7 +69,7 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Backs away if player gets within 150px
   - Strafes side-to-side when at good range
   - Does NOT jump (ground-based ranged unit)
-- **Unlocked**: Wave 2
+- **Unlocked**: Wave 4
 
 ### Swooper (Purple)
 - **Health**: 15
@@ -83,7 +83,7 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Ignores platform collision when hovering (phases through)
   - Only collides with platforms when diving
   - Recovers upward immediately if hitting a platform during dive
-- **Unlocked**: Wave 3
+- **Unlocked**: Wave 2
 
 ### Shellback (Gray)
 - **Health**: 80
@@ -100,10 +100,10 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Lasts 2 seconds, 6 second cooldown
   - Triggers at 100-400px range
   - Visual: spinning ball with yellow invincibility glow
-- **Unlocked**: Wave 5
+- **Unlocked**: Wave 6
 
 ### Burrower (Dark Brown)
-- **Health**: 50
+- **Health**: 38
 - **Damage**: 20
 - **Speed**: 90
 - **Points**: 35
@@ -112,11 +112,11 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Above ground: chases player like a scurrier (4 seconds)
   - Burrows underground: nearly invisible (alpha 0.15), immune to damage
   - Moves toward player at 1.5x speed while burrowed (3 seconds)
-  - **Warning Phase**: Dirt particles and ground rumble appear 600ms before surfacing
+  - **Warning Phase**: Red exclamation mark + repeating dirt particles appear 900ms before surfacing
   - Surfaces on the player's platform level, offset 50-90px to the left or right
   - Surfaces with AOE damage (60px radius, 20 damage)
   - Visual: dark brown mole with claws, dirt burst on surfacing
-- **Unlocked**: Wave 8
+- **Unlocked**: Wave 9
 
 ### Splitter (Purple)
 - **Health**: 60
@@ -132,9 +132,9 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Faster and more aggressive than parent
   - Do NOT split again
   - Wave doesn't complete until all splitlings are dead
-- **Unlocked**: Wave 12
+- **Unlocked**: Wave 11
 
-### Healer (Green)
+### Healer (Green) — *Removed from spawns in v0.5.2*
 - **Health**: 35
 - **Damage**: 5
 - **Speed**: 70
@@ -146,7 +146,21 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Heals lowest-HP ally within 200px for 12% of their max HP every 3 seconds
   - Does NOT heal bosses
   - Visual: green orb with white cross, pulsing aura, heal beam to target
-  - Priority target due to healing ability (high points)
+- **Note**: Replaced by Bomber in v0.5.2. Code remains but no longer spawns.
+
+### Bomber (Dark Navy)
+- **Health**: 40
+- **Damage**: 8 (contact), 20 (bomb zone)
+- **Speed**: 80
+- **Points**: 45
+- **Behavior**:
+  - Floats high above player (~200px above), no gravity
+  - Drifts horizontally following player with gentle sine patrol
+  - Every 3 seconds, drops a bomb zone at its current position
+  - **Warning Phase** (800ms): Pulsing red circle outline on ground below
+  - **Active Phase** (1000ms): Filled orange-red danger zone, deals 20 damage once on detonation
+  - Forces player to stay mobile and avoid camping platforms
+  - Visual: dark crow/raven with orange belly pouch, orange eyes
 - **Unlocked**: Wave 15
 
 ### Boss (Dark Red)
@@ -286,20 +300,20 @@ Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
 
 | Phase | Interval | Notes |
 |-------|----------|-------|
-| Wave Start | 2000ms between spawns | Slow trickle, time to breathe |
-| Wave End | 500ms between spawns | Intense finale |
+| Wave Start | 1200ms between spawns | Slow trickle, time to breathe |
+| Wave End | 375ms between spawns | Intense finale |
 
-- Starting interval decreases by 50ms every 2 waves (floor: 800ms)
-- Example: Wave 1-2 spawns 2000ms→500ms, Wave 9-10 starts at 1800ms→500ms
+- Starting interval decreases by 100ms every 2 waves (floor: 500ms)
+- Example: Wave 1-2 spawns 1200ms→375ms, Wave 9-10 starts at 800ms→375ms
 
-### Enemy Unlocking
+### Enemy Unlocking (v0.5.2)
 - **Wave 1**: Scurrier only
-- **Wave 2+**: Spitter added
-- **Wave 3+**: Swooper added
-- **Wave 5+**: Shellback added (with roll attack)
-- **Wave 8+**: Burrower added
-- **Wave 12+**: Splitter added
-- **Wave 15+**: Healer added
+- **Wave 2+**: Swooper added
+- **Wave 4+**: Spitter added
+- **Wave 6+**: Shellback added (with roll attack)
+- **Wave 9+**: Burrower added
+- **Wave 11+**: Splitter added
+- **Wave 15+**: Bomber added
 - **Every 5 waves**: Boss fight
 
 ### Spawn Weights
@@ -307,12 +321,12 @@ Enemies spawn slowly at the start of each wave and ramp up to a fast pace:
 | Type | Weight | Unlock |
 |------|--------|--------|
 | Scurrier | 30 | Wave 1 |
-| Spitter | 20 | Wave 2 |
-| Swooper | 15 | Wave 3 |
-| Shellback | 12 | Wave 5 |
-| Burrower | 10 | Wave 8 |
-| Splitter | 8 | Wave 12 |
-| Healer | 5 | Wave 15 |
+| Swooper | 12 | Wave 2 |
+| Spitter | 18 | Wave 4 |
+| Shellback | 12 | Wave 6 |
+| Burrower | 10 | Wave 9 |
+| Splitter | 8 | Wave 11 |
+| Bomber | 7 | Wave 15 |
 
 ### Stat Scaling Per Wave
 Enemies get stronger every 2 waves (capped at multiplier):
