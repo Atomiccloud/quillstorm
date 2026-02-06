@@ -1,4 +1,4 @@
-import { Upgrade } from '../data/upgrades';
+import { Upgrade, Rarity } from '../data/upgrades';
 import { LEVEL_SCALING_CONFIG } from '../config';
 
 export type ModifierType =
@@ -46,6 +46,9 @@ export type ModifierType =
   | 'armor'
   | 'evasion'
   | 'thorns'
+  // Knockback & Distance
+  | 'knockback'
+  | 'distanceDamage'
   // Mythic
   | 'rerollChance'
   | 'apotheosis';
@@ -104,6 +107,9 @@ export class UpgradeManager {
     this.modifiers.set('armor', 0);
     this.modifiers.set('evasion', 0);
     this.modifiers.set('thorns', 0);
+    // Knockback & Distance
+    this.modifiers.set('knockback', 0);
+    this.modifiers.set('distanceDamage', 0);
     // Mythic
     this.modifiers.set('rerollChance', 0);
     this.modifiers.set('apotheosis', 0);
@@ -240,6 +246,13 @@ export class UpgradeManager {
       }
       if (effects.thorns !== undefined) {
         this.addModifier('thorns', effects.thorns);
+      }
+      // Knockback & Distance
+      if (effects.knockback !== undefined) {
+        this.addModifier('knockback', effects.knockback);
+      }
+      if (effects.distanceDamage !== undefined) {
+        this.addModifier('distanceDamage', effects.distanceDamage);
       }
       // Mythic
       if (effects.rerollChance !== undefined) {
@@ -407,6 +420,13 @@ export class UpgradeManager {
     if (this.modifiers.get('thorns')! !== 0) {
       summary.push({ name: 'Thorns', value: formatFlat(this.modifiers.get('thorns')!) });
     }
+    // Knockback & Distance
+    if (this.modifiers.get('knockback')! !== 0) {
+      summary.push({ name: 'Knockback', value: formatFlat(this.modifiers.get('knockback')!) });
+    }
+    if (this.modifiers.get('distanceDamage')! !== 0) {
+      summary.push({ name: 'Distance Dmg', value: formatPercent(this.modifiers.get('distanceDamage')!) });
+    }
     // Mythic
     if (this.modifiers.get('rerollChance')! !== 0) {
       summary.push({ name: 'Proc Reroll', value: formatPercent(this.modifiers.get('rerollChance')!) });
@@ -416,5 +436,23 @@ export class UpgradeManager {
     }
 
     return summary;
+  }
+
+  getHighestEvasionTier(): Rarity | null {
+    const rarityOrder: Rarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+    let highest: Rarity | null = null;
+    let highestIndex = -1;
+
+    for (const upgrade of this.upgrades) {
+      if (upgrade.effects.evasion !== undefined && upgrade.effects.evasion > 0) {
+        const idx = rarityOrder.indexOf(upgrade.rarity);
+        if (idx > highestIndex) {
+          highestIndex = idx;
+          highest = upgrade.rarity;
+        }
+      }
+    }
+
+    return highest;
   }
 }

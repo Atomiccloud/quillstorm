@@ -74,6 +74,8 @@ export interface ModifierSnapshot {
   sc: number;  // shieldCharges
   pi: number;  // piercing
   bo: number;  // bouncing
+  kb: number;  // knockback
+  dd: number;  // distanceDamage
 }
 
 // Upgrade ledger entry
@@ -381,6 +383,7 @@ const MODIFIER_KEY_MAP: Record<string, string> = {
   pc: 'projectileCount', mh: 'maxHealth', mq: 'maxQuills', pr: 'prosperity',
   dl: 'dangerLevel', cc: 'critChance', ar: 'armor', ev: 'evasion',
   vs: 'vampirismStrength', sc: 'shieldCharges', pi: 'piercing', bo: 'bouncing',
+  kb: 'knockback', dd: 'distanceDamage',
 };
 
 // Validate modifier snapshot against upgrade ledger

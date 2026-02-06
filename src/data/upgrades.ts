@@ -49,6 +49,9 @@ export interface UpgradeEffects {
   armor?: number;            // Raw armor value (effective = ln(1+raw) / (ln(1+raw)+1.5))
   evasion?: number;          // Raw evasion value (effective = ln(1+raw) / (ln(1+raw)+2.0))
   thorns?: number;           // Base damage reflected to attacker (scales with damage modifier)
+  // Knockback & Distance
+  knockback?: number;        // Knockback force multiplier (force = value * 200 px/s)
+  distanceDamage?: number;   // Distance damage bonus (max at 400px travel)
   // Mythic
   rerollChance?: number;     // Probability to reroll failed procs (0.3 = 30%)
   apotheosis?: number;       // Flag (1 = every 5th volley auto-crits with all elements)
@@ -74,10 +77,10 @@ export const UPGRADES: Upgrade[] = [
   },
   {
     id: 'fire_rate_1',
-    name: 'Quick Draw',
-    description: 'Shoot quills faster.',
+    name: 'Swift Quills',
+    description: 'Faster attacks with quills that hit harder at range.',
     rarity: 'common',
-    effects: { fireRate: 0.15 },
+    effects: { fireRate: 0.10, projectileSpeed: 0.15, distanceDamage: 0.25 },
   },
   {
     id: 'max_quills_1',
@@ -99,13 +102,6 @@ export const UPGRADES: Upgrade[] = [
     description: 'Move faster.',
     rarity: 'common',
     effects: { moveSpeed: 0.1 },
-  },
-  {
-    id: 'projectile_speed_1',
-    name: 'Aerodynamic Quills',
-    description: 'Quills fly faster.',
-    rarity: 'common',
-    effects: { projectileSpeed: 0.2 },
   },
   {
     id: 'health_1',
@@ -315,9 +311,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'thick_quills',
     name: 'Thick Quills',
-    description: 'Larger quills are easier to hit enemies with.',
+    description: 'Heavy quills slam enemies back on impact.',
     rarity: 'common',
-    effects: { projectileSize: 0.3 },
+    effects: { projectileSize: 0.5, knockback: 1, damage: 0.05 },
   },
   {
     id: 'life_leech_1',
@@ -650,37 +646,37 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'tough_skin',
     name: 'Tough Skin',
-    description: 'Thicker hide reduces incoming damage. +5 Armor.',
+    description: 'Thicker hide reduces and reflects damage. +8 Armor, +2 Thorns.',
     rarity: 'common',
-    effects: { armor: 0.05 },
+    effects: { armor: 0.08, thorns: 2 },
   },
   {
     id: 'iron_quills',
     name: 'Iron Quills',
-    description: 'Hardened quills provide damage resistance. +10 Armor.',
+    description: 'Hardened quills resist and reflect damage. +12 Armor, +4 Thorns.',
     rarity: 'uncommon',
-    effects: { armor: 0.10 },
+    effects: { armor: 0.12, thorns: 4 },
   },
   {
     id: 'porcupine_plate',
     name: 'Porcupine Plate',
-    description: 'Natural armor plating with extra vitality. +15 Armor, +20 HP.',
+    description: 'Natural armor plating with spiny defense. +18 Armor, +6 Thorns, +20 HP.',
     rarity: 'rare',
-    effects: { armor: 0.15, maxHealth: 20 },
+    effects: { armor: 0.18, thorns: 6, maxHealth: 20 },
   },
   {
     id: 'diamond_hide',
     name: 'Diamond Hide',
-    description: 'Impenetrable hide that reflects damage. +20 Armor, +10 Thorns.',
+    description: 'Impenetrable hide that reflects damage. +22 Armor, +12 Thorns.',
     rarity: 'epic',
-    effects: { armor: 0.20, thorns: 10 },
+    effects: { armor: 0.22, thorns: 12 },
   },
   {
     id: 'living_bastion',
     name: 'Living Bastion',
-    description: 'Become an unstoppable fortress. +40 Armor, +20 Thorns, +25 HP.',
+    description: 'Become an unstoppable fortress. +45 Armor, +24 Thorns, +25 HP.',
     rarity: 'legendary',
-    effects: { armor: 0.40, thorns: 20, maxHealth: 25 },
+    effects: { armor: 0.45, thorns: 24, maxHealth: 25 },
   },
 
   // === DEFENSE UPGRADES - EVASION ===
@@ -689,37 +685,37 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'quick_reflexes',
     name: 'Quick Reflexes',
-    description: 'Nimble footwork to dodge attacks. +5 Evasion.',
+    description: 'Nimble footwork to dodge and counter attacks. +8 Evasion.',
     rarity: 'common',
-    effects: { evasion: 0.05 },
+    effects: { evasion: 0.08 },
   },
   {
     id: 'acrobat',
     name: 'Acrobat',
-    description: 'Agile movements make you harder to hit. +10 Evasion.',
+    description: 'Agile movements make you harder to hit. +12 Evasion.',
     rarity: 'uncommon',
-    effects: { evasion: 0.10 },
+    effects: { evasion: 0.12 },
   },
   {
     id: 'shadow_step',
     name: 'Shadow Step',
-    description: 'Phase through attacks with uncanny reflexes. +15 Evasion, +5% Speed.',
+    description: 'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed.',
     rarity: 'rare',
-    effects: { evasion: 0.15, moveSpeed: 0.05 },
+    effects: { evasion: 0.18, moveSpeed: 0.05 },
   },
   {
     id: 'phantom_porcupine',
     name: 'Phantom Porcupine',
-    description: 'A blur of quills and fury. +20 Evasion, +10% Speed.',
+    description: 'A blur of quills and fury. +22 Evasion, +10% Speed.',
     rarity: 'epic',
-    effects: { evasion: 0.20, moveSpeed: 0.10 },
+    effects: { evasion: 0.22, moveSpeed: 0.10 },
   },
   {
     id: 'wraith_form',
     name: 'Wraith Form',
-    description: 'Become intangible. +25 Evasion, +15% Speed.',
+    description: 'Become intangible. +28 Evasion, +15% Speed.',
     rarity: 'legendary',
-    effects: { evasion: 0.25, moveSpeed: 0.15 },
+    effects: { evasion: 0.28, moveSpeed: 0.15 },
   },
 
   // === MYTHIC UPGRADES ===

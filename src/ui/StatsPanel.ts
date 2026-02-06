@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ARMOR_CONFIG, EVASION_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class StatsPanel {
@@ -279,6 +279,12 @@ export class StatsPanel {
     const homingStrength = this.upgradeManager.getModifier('homingStrength');
     if (homingStrength !== 0) combat.push({ name: 'Homing', value: formatPercent(homingStrength) });
 
+    const knockback = this.upgradeManager.getModifier('knockback');
+    if (knockback !== 0) combat.push({ name: 'Knockback', value: formatFlat(knockback) });
+
+    const distDamage = this.upgradeManager.getModifier('distanceDamage');
+    if (distDamage !== 0) combat.push({ name: 'Distance Dmg', value: formatPercent(distDamage) });
+
     const projectileCount = this.upgradeManager.getModifier('projectileCount');
     if (projectileCount !== 0) combat.push({ name: 'Multi-shot', value: formatFlat(projectileCount) });
 
@@ -308,6 +314,13 @@ export class StatsPanel {
       const effectiveEvasion = lnTerm / (lnTerm + EVASION_CONFIG.diminishingK);
       const effectiveDisplay = Math.round(effectiveEvasion * 100);
       defense.push({ name: 'Evasion', value: `${rawDisplay} (${effectiveDisplay}%)` });
+    }
+
+    // Dodge counter chance based on highest evasion tier
+    const evasionTier = this.upgradeManager.getHighestEvasionTier();
+    if (evasionTier) {
+      const counterChance = Math.round((DODGE_COUNTER_CONFIG.executeChances[evasionTier] ?? 0) * 100);
+      defense.push({ name: 'Dodge Counter', value: `${counterChance}%` });
     }
 
     const thorns = this.upgradeManager.getModifier('thorns');

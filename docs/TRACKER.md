@@ -187,6 +187,21 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 - [x] Warning phase (800ms red pulsing circle) → Active phase (1000ms, 20 damage)
 - [x] Area denial mechanic forces player movement
 
+### Upgrade Balance Pass
+- [x] **Thick Quills** buffed: projSize 0.3→0.5, added knockback +1, damage +5%
+- [x] **Quick Draw → Swift Quills**: merged with Aerodynamic Quills, now fireRate +10%, projSpeed +15%, distanceDamage +25%
+- [x] **Aerodynamic Quills** removed (merged into Swift Quills) — total upgrades: 76→75
+- [x] **Armor chain**: all 5 tiers now include thorns (2/4/6/12/24), armor values bumped
+- [x] **Evasion chain**: all 5 tiers bumped, now unlocks dodge counter mechanic
+
+### New Mechanics
+- [x] **Knockback**: quills push enemies on hit (force = modifier × 200 px/s, 150ms). Also applies in explosions. Immune: bosses, stunned, frozen, burrowed, rolling
+- [x] **Distance Damage**: quills deal bonus damage based on travel distance (up to +25% at 400px). Applied before crit for multiplicative scaling
+- [x] **Dodge Counter**: on successful evasion, chance to execute attacker based on highest evasion tier picked (30%/40%/60%/80%/90%). Normal enemies: instant kill. Elites/bosses: 25% max HP chunk (scales with damage modifier)
+- [x] Extracted `handleEnemyKill()` in GameScene for reuse by dodge counter
+- [x] Anti-cheat: added kb/dd to modifier snapshots and server-side validation
+- [x] Updated all documentation (UPGRADES.md, upgrade-reference.html, CLAUDE.md)
+
 ---
 
 ## Planned: Achievements & Challenges
