@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { COLORS } from '../config';
+import { COLORS, COMPANION_CONFIG } from '../config';
 
 export class Companion extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
@@ -8,13 +8,17 @@ export class Companion extends Phaser.GameObjects.Container {
   private offsetIndex: number;
 
   private shootCooldown: number = 0;
-  private readonly SHOOT_INTERVAL = 2000; // 2 seconds between shots
+  private shootInterval: number = COMPANION_CONFIG.baseShootInterval;
   private readonly FOLLOW_DISTANCE = 50;
   private readonly FOLLOW_SPEED = 180;
   private facingRight: boolean = true;
 
   // Callback for when companion wants to shoot
   public onShoot?: (x: number, y: number, targetX: number, targetY: number) => void;
+
+  setShootInterval(ms: number): void {
+    this.shootInterval = ms;
+  }
 
   constructor(
     scene: Phaser.Scene,
@@ -94,7 +98,7 @@ export class Companion extends Phaser.GameObjects.Container {
       enemies.getChildren().forEach((enemy) => {
         const e = enemy as Phaser.GameObjects.Container;
         const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
-        if (dist < nearestDist && dist < 400) { // Only target enemies within range
+        if (dist < nearestDist && dist < COMPANION_CONFIG.range) {
           nearestDist = dist;
           nearestEnemy = enemy;
         }
@@ -103,7 +107,7 @@ export class Companion extends Phaser.GameObjects.Container {
       if (nearestEnemy && this.onShoot) {
         const e = nearestEnemy as Phaser.GameObjects.Container;
         this.onShoot(this.x, this.y, e.x, e.y);
-        this.shootCooldown = this.SHOOT_INTERVAL;
+        this.shootCooldown = this.shootInterval;
 
         // Face the enemy when shooting
         this.facingRight = e.x > this.x;

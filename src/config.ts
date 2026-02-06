@@ -261,38 +261,88 @@ export const DANGER_CONFIG = {
   xpMultiplierPerStack: 0.10,        // +10% XP multiplier per stack
 };
 
+// Elemental evolution tiers — unlock new behaviors at strength thresholds
+export const ELEMENTAL_EVOLUTION_CONFIG = {
+  tierThresholds: [0, 2, 5, 8, 12] as const,  // Tier 0/1/2/3/4
+
+  lightning: {
+    // Stun duration per tier (ms)
+    stunDuration: [0, 300, 400, 500, 600],
+    // Chain arc count per tier
+    arcCount: [0, 1, 2, 4, 6],
+    // Arc damage as fraction of hit damage
+    arcDamagePercent: [0, 0.30, 0.40, 0.50, 0.60],
+    // Chance for arcs to stun their targets
+    arcStunChance: [0, 0, 0.20, 0.30, 0.50],
+    arcRange: 150,              // Range for chain arcs (px)
+  },
+
+  ice: {
+    // Tier 1: chill (slow), Tier 2+: freeze (immobilize)
+    chillSlowAmount: 0.70,      // 70% slow at Tier 1
+    chillDuration: 1500,        // Chill lasts 1.5s
+    freezeDuration: [0, 0, 800, 1200, 1200],  // Freeze duration per tier (ms)
+    frostAuraRange: 80,         // Tier 3+: frozen enemies slow nearby (px)
+    frostAuraSlowAmount: 0.40,  // 40% slow from frost aura
+    shatterRange: 120,          // Tier 4: shatter AoE range (px)
+    shatterDamagePercent: 0.25, // 25% of max HP as shatter damage
+  },
+
+  fire: {
+    // DPS = burnStrength * 8 * (1 + damageMult) at T1, ×1.5 at T2+
+    burnDuration: 2000,         // Base burn duration (ms)
+    tier2DpsMultiplier: 1.5,    // +50% DPS at Tier 2+
+    // Death spread: ignite N nearby enemies on death
+    deathSpreadCount: [0, 0, 1, 3, 3],
+    deathSpreadRange: 120,      // Range for death spread (px)
+    // Tier 3: burns slow enemy
+    burnSlowAmount: 0.20,       // 20% slow from burning at Tier 3+
+    // Tier 4: explosion on death
+    explosionBaseRadius: 80,    // Base explosion radius (px)
+    explosionStackScale: 0.15,  // +15% radius per burn stack
+    explosionDamageMultiplier: 2, // Burst damage = scaledDPS × stacks × this
+  },
+
+  poison: {
+    // Amp per stack = poisonStrength * ampPerStrength
+    ampPerStrength: 0.25,       // 25% per strength per stack
+    duration: 5000,             // 5s poison duration
+    // Tier 2: stacks grow over time
+    growthInterval: 2000,       // Add 1 stack every 2s
+    // Tier 3: death spreads stacks
+    deathSpreadCount: 2,        // Spread to 2 nearby enemies
+    deathSpreadRange: 120,      // Range for spread (px)
+    // Tier 4: execute threshold (regular+elite only, NOT bosses)
+    executeThreshold: 0.15,     // Kill at ≤15% HP
+    // Tier 4: poison cloud on death
+    cloudRadius: 60,            // Cloud radius (px)
+    cloudDuration: 3000,        // Cloud lasts 3s
+    cloudTickRate: 500,         // Cloud ticks every 500ms
+  },
+};
+
 // Status effect configuration
 export const STATUS_EFFECT_CONFIG = {
-  // Lightning (shock) - single instance, refreshes
+  // Lightning (shock) - stun + chain arcs (tier-based from ELEMENTAL_EVOLUTION_CONFIG)
   shock: {
-    defaultDuration: 500,       // Base stun duration in ms
     color: 0xffff00,            // Yellow flash
-    chainRange: 150,            // Range for chain lightning arcs
   },
-  // Ice (freeze) - single instance, refreshes
+  // Ice - chill (slow) at T1, freeze (immobilize) at T2+
+  chill: {
+    color: 0x66bbee,            // Light blue tint (lighter than freeze)
+  },
   freeze: {
-    defaultDuration: 600,       // Base freeze duration in ms
-    color: 0x88ccff,            // Light blue tint
-    slowAmount: 0.5,            // 50% slow for frost aura
-    slowAuraRange: 60,          // Range for frost slow aura
-    shatterRange: 100,          // Range for shatter AOE on death
+    color: 0x88ccff,            // Solid blue tint
   },
   // Fire (burn) - STACKS, each proc adds new stack
   burn: {
-    defaultDPS: 5,              // Base damage per second per stack
-    defaultDuration: 2000,      // Base burn duration in ms
     color: 0xff6600,            // Orange tint
     maxStacks: 10,              // Safety cap on burn stacks per enemy
   },
-  // Poison (venom) - STACKS, each proc adds new stack
+  // Poison (venom) - STACKS, damage amp + execute
   poison: {
-    defaultAmp: 0.15,           // Base damage amplification per stack (15%)
-    defaultDuration: 3000,      // Base poison duration in ms
     color: 0x88ff88,            // Green tint
     maxStacks: 10,              // Safety cap on poison stacks per enemy
-    spreadRange: 100,           // Range for poison spread on death
-    cloudDuration: 3000,        // How long poison cloud lingers (ms)
-    cloudTickRate: 500,         // How often cloud applies poison (ms)
   },
 };
 
@@ -323,7 +373,20 @@ export const DODGE_COUNTER_CONFIG = {
 };
 
 export const DISTANCE_DAMAGE_CONFIG = {
-  maxDistance: 400,              // px for full distance bonus
+  maxDistance: 600,              // px for full distance bonus (quadratic scaling)
+};
+
+export const COMPANION_CONFIG = {
+  range: 600,                    // Detection/targeting range in px
+  baseShootInterval: 2000,       // Base ms between shots (before fire rate scaling)
+  baseEfficiency: 0.40,          // 40% of player's modifier values
+  efficiencyPerCompanion: 0.03,  // +3% per companion owned
+  maxEfficiency: 0.70,           // Cap at 70%
+  projectileCountRatio: 0.20,    // 20% of player's projectile count
+  spreadAngle: 0.15,             // Radians between multi-shot projectiles
+  quillColor: 0x00ffff,          // Cyan tint for companion quills
+  tipColor: 0x88ffff,            // Lighter cyan tip
+  excludedModifiers: ['knockback', 'distanceDamage', 'piercing', 'vampirismStrength'] as string[],
 };
 
 // Level scaling - passive bonuses per level
@@ -508,7 +571,7 @@ export const INFINITE_SWARM_CONFIG = {
   bossCooldownDangerRange: 20,     // Scales linearly over 20 danger levels (5→25)
   // Cooldown formula: max(5000, 15000 - (danger - 5) * 500)
 
-  shieldRegenInterval: 30000,      // Regenerate 1 shield charge every 30 seconds
+  _sri: 5000,
 };
 
 // Boss reward configuration (v0.5.1)

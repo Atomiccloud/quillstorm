@@ -6,7 +6,7 @@ Quick reference for AI assistants working on this codebase.
 
 **All planned and completed work is tracked in [docs/TRACKER.md](docs/TRACKER.md).** This is the single source of truth for features, bugs, and roadmap items. Check it before starting new work.
 
-When completing features, check off items in TRACKER.md and update this file if new configs or systems are added.
+When completing features, check off items in TRACKER.md, update the in-game changelog in `src/data/version.ts`, and update this file if new configs or systems are added.
 
 ## Quick Links by Topic
 
@@ -17,7 +17,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 
 ### Adding Features
 - **New upgrades** → See [docs/GAMEPLAY.md#upgrades](docs/GAMEPLAY.md#upgrades), add to `src/data/upgrades.ts`
-- **Upgrade reference & balance** → See [docs/UPGRADES.md](docs/UPGRADES.md) for all 76 upgrades, mechanics, formulas, and tier ratings
+- **Upgrade reference & balance** → See [docs/UPGRADES.md](docs/UPGRADES.md) for all 73 upgrades, mechanics, formulas, and tier ratings
 - **New enemy types** → Add to `src/config.ts` ENEMY_CONFIG, implement in `src/entities/Enemy.ts`
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`
@@ -26,7 +26,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Progression/XP changes** → `src/systems/ProgressionManager.ts`, `src/config.ts` XP_CONFIG
 - **Elite enemies** → `src/config.ts` ELITE_CONFIG, applied in `src/entities/Enemy.ts`
 - **Danger system** → `src/config.ts` DANGER_CONFIG, upgrades in `src/data/upgrades.ts`
-- **Elemental effects** → See [docs/GAMEPLAY.md#elemental-effects](docs/GAMEPLAY.md#elemental-effects), status system in `src/entities/Enemy.ts`, proc logic in `src/scenes/GameScene.ts`
+- **Elemental effects** → See [docs/GAMEPLAY.md#elemental-effects](docs/GAMEPLAY.md#elemental-effects), evolution tiers in `src/config.ts` ELEMENTAL_EVOLUTION_CONFIG, status system in `src/entities/Enemy.ts`, proc logic in `src/scenes/GameScene.ts`
 - **Defense stats (armor/evasion)** → See [docs/GAMEPLAY.md#defense-stats](docs/GAMEPLAY.md#defense-stats), applied in `src/entities/Player.ts`
 - **Knockback system** → `src/config.ts` KNOCKBACK_CONFIG, applied in `src/entities/Enemy.ts` applyKnockback(), triggered in `src/scenes/GameScene.ts`
 - **Distance damage** → `src/config.ts` DISTANCE_DAMAGE_CONFIG, calculated in `src/entities/Quill.ts` onHitEnemy()
@@ -35,6 +35,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Boss rewards** → See [docs/GAMEPLAY.md#boss-rewards](docs/GAMEPLAY.md#boss-rewards), `src/scenes/BossRewardScene.ts`
 - **Vampirism balance** → See [docs/GAMEPLAY.md#vampirism](docs/GAMEPLAY.md#vampirism), config in `src/config.ts` VAMPIRISM_CONFIG
 - **Level scaling (per-level bonuses)** → `src/config.ts` LEVEL_SCALING_CONFIG, applied in `src/systems/UpgradeManager.ts`
+- **Companion system** → `src/config.ts` COMPANION_CONFIG, entity in `src/entities/Companion.ts`, proxy in `src/systems/CompanionUpgradeProxy.ts`, shooting in `src/scenes/GameScene.ts` companionShoot()
 - **Bomber enemy / bomb zones** → `src/config.ts` ENEMY_CONFIG.bomber, AI in `src/entities/Enemy.ts`, zone rendering in `src/scenes/GameScene.ts`
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 - **Anti-cheat system** → See [docs/ANTI_CHEAT.md](docs/ANTI_CHEAT.md) for full architecture. Server: `api/_lib/session.ts`, Client: `src/systems/SessionManager.ts`, Upgrade lookup: `api/_lib/upgrades.ts`
@@ -71,6 +72,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 | Stats panel (Tab) | `src/ui/StatsPanel.ts` |
 | Pinecone collectible | `src/entities/Pinecone.ts` |
 | Companion helper | `src/entities/Companion.ts` |
+| Companion modifier proxy | `src/systems/CompanionUpgradeProxy.ts` |
 | Cosmetic definitions | `src/data/cosmetics.ts` |
 | Cosmetic state | `src/systems/CosmeticManager.ts` |
 | Player data sync | `src/systems/PlayerDataManager.ts` |

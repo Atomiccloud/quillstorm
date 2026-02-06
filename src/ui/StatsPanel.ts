@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class StatsPanel {
@@ -363,51 +363,60 @@ export class StatsPanel {
     const eliteDamageBonus = this.upgradeManager.getModifier('eliteDamageBonus');
     if (eliteDamageBonus !== 0) combat.push({ name: 'Elite Damage', value: formatPercent(eliteDamageBonus) });
 
-    // Elemental stats (strength-based with diminishing returns formula)
+    // Elemental stats (strength-based with evolution tiers)
     const elemental: { name: string; value: string }[] = [];
     const getChance = (str: number) => str > 0 ? (str * 0.1) / (1 + str * 0.1) : 0;
+    const tierLabel = (tier: number) => tier > 0 ? `T${tier}` : '';
 
     const shockStrength = this.upgradeManager.getModifier('shockStrength');
     if (shockStrength > 0) {
       const chance = Math.round(getChance(shockStrength) * 100);
-      elemental.push({ name: 'Shock', value: `${chance}% (${shockStrength} str)` });
-      const chainLightning = this.upgradeManager.getModifier('chainLightning');
-      if (chainLightning > 0) elemental.push({ name: '  Chain', value: `${chainLightning} targets` });
+      const tier = this.upgradeManager.getElementalTier('shockStrength');
+      const cfg = ELEMENTAL_EVOLUTION_CONFIG.lightning;
+      elemental.push({ name: 'Shock', value: `${tierLabel(tier)} ${chance}% (${shockStrength} str)` });
+      if (tier >= 1) elemental.push({ name: '  Arcs', value: `${cfg.arcCount[tier]} @ ${Math.round(cfg.arcDamagePercent[tier] * 100)}% dmg` });
+      if (tier >= 1) elemental.push({ name: '  Stun', value: `${cfg.stunDuration[tier]}ms` });
     }
 
     const freezeStrength = this.upgradeManager.getModifier('freezeStrength');
     if (freezeStrength > 0) {
       const chance = Math.round(getChance(freezeStrength) * 100);
-      elemental.push({ name: 'Freeze', value: `${chance}% (${freezeStrength} str)` });
-      const shatterDamage = this.upgradeManager.getModifier('shatterDamage');
-      if (shatterDamage > 0) elemental.push({ name: '  Shatter', value: `${Math.round(shatterDamage * 100)}% HP` });
-      const frostSlow = this.upgradeManager.getModifier('frostSlow');
-      if (frostSlow > 0) elemental.push({ name: '  Slow', value: `${Math.round(Math.min(frostSlow, 1) * 100)}%` });
+      const tier = this.upgradeManager.getElementalTier('freezeStrength');
+      const cfg = ELEMENTAL_EVOLUTION_CONFIG.ice;
+      elemental.push({ name: 'Ice', value: `${tierLabel(tier)} ${chance}% (${freezeStrength} str)` });
+      if (tier === 1) elemental.push({ name: '  Chill', value: `${Math.round(cfg.chillSlowAmount * 100)}% slow` });
+      if (tier >= 2) elemental.push({ name: '  Freeze', value: `${cfg.freezeDuration[tier]}ms` });
+      if (tier >= 3) elemental.push({ name: '  Aura', value: `${Math.round(cfg.frostAuraSlowAmount * 100)}% slow nearby` });
+      if (tier >= 4) elemental.push({ name: '  Shatter', value: `${Math.round(cfg.shatterDamagePercent * 100)}% HP AoE` });
     }
 
     const burnStrength = this.upgradeManager.getModifier('burnStrength');
     if (burnStrength > 0) {
       const chance = Math.round(getChance(burnStrength) * 100);
+      const tier = this.upgradeManager.getElementalTier('burnStrength');
+      const cfg = ELEMENTAL_EVOLUTION_CONFIG.fire;
       const damageMult = 1 + this.upgradeManager.getModifier('damage');
-      const scaledDPS = Math.round(burnStrength * 8 * damageMult);
-      const duration = STATUS_EFFECT_CONFIG.burn.defaultDuration / 1000;
-      elemental.push({ name: 'Burn', value: `${chance}% (${burnStrength} str)` });
-      elemental.push({ name: '  DPS/stack', value: `${scaledDPS} (${duration}s)` });
-      const fireExplosion = this.upgradeManager.getModifier('fireExplosion');
-      if (fireExplosion > 0) elemental.push({ name: '  Explosion', value: `${fireExplosion}px` });
-      const fireAura = this.upgradeManager.getModifier('fireAura');
-      if (fireAura > 0) elemental.push({ name: '  Aura', value: `${fireAura}px` });
+      const dpsMultiplier = tier >= 2 ? cfg.tier2DpsMultiplier : 1;
+      const scaledDPS = Math.round(burnStrength * 8 * damageMult * dpsMultiplier);
+      elemental.push({ name: 'Burn', value: `${tierLabel(tier)} ${chance}% (${burnStrength} str)` });
+      elemental.push({ name: '  DPS/stack', value: `${scaledDPS}` });
+      if (tier >= 2) elemental.push({ name: '  Spread', value: `${cfg.deathSpreadCount[tier]} on death` });
+      if (tier >= 3) elemental.push({ name: '  Slow', value: `${Math.round(cfg.burnSlowAmount * 100)}%` });
+      if (tier >= 4) elemental.push({ name: '  Explode', value: 'on death' });
     }
 
     const poisonStrength = this.upgradeManager.getModifier('poisonStrength');
     if (poisonStrength > 0) {
       const chance = Math.round(getChance(poisonStrength) * 100);
-      const amp = poisonStrength * 5; // 5% per strength
-      const duration = STATUS_EFFECT_CONFIG.poison.defaultDuration / 1000;
-      elemental.push({ name: 'Poison', value: `${chance}% (${poisonStrength} str)` });
+      const tier = this.upgradeManager.getElementalTier('poisonStrength');
+      const cfg = ELEMENTAL_EVOLUTION_CONFIG.poison;
+      const amp = Math.round(poisonStrength * cfg.ampPerStrength * 100);
+      const duration = cfg.duration / 1000;
+      elemental.push({ name: 'Poison', value: `${tierLabel(tier)} ${chance}% (${poisonStrength} str)` });
       elemental.push({ name: '  Amp/stack', value: `${amp}% (${duration}s)` });
-      const poisonCloud = this.upgradeManager.getModifier('poisonCloud');
-      if (poisonCloud > 0) elemental.push({ name: '  Cloud', value: `${poisonCloud}px` });
+      if (tier >= 2) elemental.push({ name: '  Growth', value: `+1 stack/${cfg.growthInterval / 1000}s` });
+      if (tier >= 3) elemental.push({ name: '  Spread', value: `${cfg.deathSpreadCount} on death` });
+      if (tier >= 4) elemental.push({ name: '  Execute', value: `<${Math.round(cfg.executeThreshold * 100)}% HP` });
     }
 
     const rerollChance = this.upgradeManager.getModifier('rerollChance');

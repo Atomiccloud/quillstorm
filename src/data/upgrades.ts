@@ -30,21 +30,11 @@ export interface UpgradeEffects {
   dangerLevel?: number;      // Opt-in difficulty stacks (+enemy stats, +rewards)
   eliteDamageBonus?: number; // Bonus damage vs elite enemies (multiplier)
   upgradeChoices?: number;   // Extra upgrade cards shown per selection
-  // Elemental - Lightning (strength-based: proc chance = str*0.1 / (1 + str*0.1))
-  shockStrength?: number;    // Strength points (Uncommon +2, Rare +3, Epic +3, Legendary +5)
-  chainLightning?: number;   // Flat count (enemies to chain to, stacks additively)
-  // Elemental - Ice (strength-based)
-  freezeStrength?: number;   // Strength points
-  frostSlow?: number;        // Percentage slow (0.5 = 50%, stacks additively)
-  shatterDamage?: number;    // Multiplier (% of max HP as AOE, stacks additively)
-  // Elemental - Fire (strength-based: DPS = strength * 8 * damageMult)
-  burnStrength?: number;     // Strength points
-  fireAura?: number;         // Radius in pixels (stacks additively)
-  fireExplosion?: number;    // Radius in pixels (stacks additively)
-  // Elemental - Poison (strength-based: amp = strength * 5%)
-  poisonStrength?: number;   // Strength points
-  poisonSpread?: number;     // Boolean flag (1 = spreads on death)
-  poisonCloud?: number;      // Radius in pixels (stacks additively)
+  // Elemental - strength-based (evolution tiers at 2/5/8/12 str)
+  shockStrength?: number;    // Lightning strength (stun + chain arcs)
+  freezeStrength?: number;   // Ice strength (chill → freeze → shatter)
+  burnStrength?: number;     // Fire strength (DoT → spread → explosion)
+  poisonStrength?: number;   // Poison strength (amp → growth → execute)
   // Defense (logarithmic diminishing returns, no cap, infinitely stackable)
   armor?: number;            // Raw armor value (effective = ln(1+raw) / (ln(1+raw)+1.5))
   evasion?: number;          // Raw evasion value (effective = ln(1+raw) / (ln(1+raw)+2.0))
@@ -80,7 +70,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Swift Quills',
     description: 'Faster attacks with quills that hit harder at range.',
     rarity: 'common',
-    effects: { fireRate: 0.10, projectileSpeed: 0.15, distanceDamage: 0.25 },
+    effects: { fireRate: 0.10, projectileSpeed: 0.15, distanceDamage: 0.40 },
   },
   {
     id: 'max_quills_1',
@@ -508,136 +498,103 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'static_quills',
     name: 'Static Quills',
-    description: 'Quills crackle with static. Chance to stun enemies.',
+    description: 'Quills crackle with static. Chance to stun and arc to nearby enemies.',
     rarity: 'uncommon',
     effects: { shockStrength: 2 },
-    // Stackable: +2 strength each (17% → 29% → 38%...)
   },
   {
     id: 'lightning_quills',
     name: 'Lightning Quills',
-    description: 'Electrified quills stop enemies dead in their tracks.',
+    description: 'Electrified quills stun longer and arc to more enemies.',
     rarity: 'rare',
     effects: { shockStrength: 3 },
-    // Stackable: +3 strength each (23% → 38% → 47%...)
-  },
-  {
-    id: 'thunder_strike',
-    name: 'Thunder Strike',
-    description: 'Lightning arcs to 3 nearby enemies on shock.',
-    rarity: 'epic',
-    effects: { shockStrength: 3, chainLightning: 3 },
-    // Stackable: +3 strength, +3 chain targets each
-  },
-  {
-    id: 'storm_caller',
-    name: 'Storm Caller',
-    description: 'Unleash a storm of chain lightning across the battlefield.',
-    rarity: 'legendary',
-    effects: { shockStrength: 5, chainLightning: 3 },
-    // Stackable: +5 strength (33%), +3 chain targets each
   },
 
   // === ELEMENTAL UPGRADES - ICE ===
   {
     id: 'frost_tips',
     name: 'Frost Tips',
-    description: 'Chilled quills that can briefly freeze enemies solid.',
+    description: 'Chilled quills slow enemies. Higher strength freezes them solid.',
     rarity: 'uncommon',
     effects: { freezeStrength: 2 },
-    // Stackable: +2 strength each (17% → 29% → 38%...)
   },
   {
     id: 'icicle_quills',
     name: 'Icicle Quills',
-    description: 'Deep cold locks enemies in place.',
+    description: 'Deep cold freezes enemies, locking them in place.',
     rarity: 'rare',
     effects: { freezeStrength: 3 },
-    // Stackable: +3 strength each (23% → 38% → 47%...)
-  },
-  {
-    id: 'blizzard_quills',
-    name: 'Blizzard Quills',
-    description: 'Frozen enemies chill nearby foes, slowing them 50%.',
-    rarity: 'epic',
-    effects: { freezeStrength: 3, frostSlow: 0.5 },
-    // Stackable: +3 strength, +50% slow each (caps at 100%)
-  },
-  {
-    id: 'absolute_zero',
-    name: 'Absolute Zero',
-    description: 'Frozen enemies that die shatter, dealing 50% max HP to nearby foes.',
-    rarity: 'legendary',
-    effects: { freezeStrength: 5, shatterDamage: 0.5 },
-    // Stackable: +5 strength (33%), +50% shatter damage each
   },
 
   // === ELEMENTAL UPGRADES - FIRE ===
   {
     id: 'ember_quills',
     name: 'Ember Quills',
-    description: 'Smoldering quills set enemies ablaze. Burns stack.',
+    description: 'Smoldering quills set enemies ablaze. Burns stack and spread.',
     rarity: 'uncommon',
     effects: { burnStrength: 2 },
-    // Stackable: +2 strength each (17% chance, +16 DPS)
   },
   {
     id: 'flame_quills',
     name: 'Flame Quills',
-    description: 'Hotter flames burn brighter and fiercer.',
+    description: 'Hotter flames burn fiercer and ignite nearby enemies on kill.',
     rarity: 'rare',
     effects: { burnStrength: 3 },
-    // Stackable: +3 strength each (23% chance, +24 DPS)
-  },
-  {
-    id: 'inferno_quills',
-    name: 'Inferno Quills',
-    description: 'Burning enemies scorch nearby foes.',
-    rarity: 'epic',
-    effects: { burnStrength: 3, fireAura: 30 },
-    // Stackable: +3 strength, +30px aura each
-  },
-  {
-    id: 'hellfire',
-    name: 'Hellfire',
-    description: 'Burning enemies explode on death.',
-    rarity: 'legendary',
-    effects: { burnStrength: 5, fireExplosion: 80 },
-    // Stackable: +5 strength (33%, +40 DPS), +80px explosion each
   },
 
   // === ELEMENTAL UPGRADES - POISON ===
   {
     id: 'toxic_quills',
     name: 'Toxic Quills',
-    description: 'Venomous quills weaken enemies. Amplifies damage taken.',
+    description: 'Venomous quills amplify damage taken. Stacks grow over time.',
     rarity: 'uncommon',
     effects: { poisonStrength: 2 },
-    // Stackable: +2 strength each (17% chance, +10% amp)
   },
   {
     id: 'noxious_spines',
     name: 'Noxious Spines',
-    description: 'Deeper venom makes enemies crumble faster.',
+    description: 'Deeper venom spreads on kill. High strength executes weakened foes.',
     rarity: 'rare',
     effects: { poisonStrength: 3 },
-    // Stackable: +3 strength each (23% chance, +15% amp)
   },
+
+  // === ELEMENTAL UPGRADES - DUAL-ELEMENT EPICS ===
   {
-    id: 'plague_bearer',
-    name: 'Plague Bearer',
-    description: 'Poison spreads to nearby enemies when a poisoned foe dies.',
+    id: 'tempest',
+    name: 'Tempest',
+    description: 'Lightning and ice combine. Shocked enemies that get chilled are instantly frozen.',
     rarity: 'epic',
-    effects: { poisonStrength: 3, poisonSpread: 1 },
-    // Stackable: +3 strength, spread flag
+    effects: { shockStrength: 2, freezeStrength: 2 },
   },
   {
-    id: 'pandemic',
-    name: 'Pandemic',
-    description: 'Death releases a poison cloud that infects all nearby enemies.',
+    id: 'wildfire',
+    name: 'Wildfire',
+    description: 'Fire and poison synergize. Burning poisoned enemies grow stacks twice as fast.',
+    rarity: 'epic',
+    effects: { burnStrength: 2, poisonStrength: 2 },
+  },
+  {
+    id: 'frostfire',
+    name: 'Frostfire',
+    description: 'Fire and ice react. Frozen burning enemies release steam AoE on thaw.',
+    rarity: 'epic',
+    effects: { burnStrength: 2, freezeStrength: 2 },
+  },
+  {
+    id: 'venomshock',
+    name: 'Venomshock',
+    description: 'Lightning carries poison. Chain arcs spread poison to targets they hit.',
+    rarity: 'epic',
+    effects: { shockStrength: 2, poisonStrength: 2 },
+  },
+
+  // === ELEMENTAL UPGRADES - UNIVERSAL LEGENDARY ===
+  {
+    id: 'elemental_convergence',
+    name: 'Elemental Convergence',
+    description: 'Master all elements. Procs have 20% chance to trigger a second element.',
     rarity: 'legendary',
-    effects: { poisonStrength: 5, poisonCloud: 50 },
-    // Stackable: +5 strength (33%, +25% amp), +50px cloud each
+    effects: { shockStrength: 3, freezeStrength: 3, burnStrength: 3, poisonStrength: 3 },
   },
 
   // === DEFENSE UPGRADES - ARMOR ===

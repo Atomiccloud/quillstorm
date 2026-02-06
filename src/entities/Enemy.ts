@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG } from '../config';
+import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG } from '../config';
 import { SaveManager } from '../systems/SaveManager';
 
 export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss' | 'bomber';
@@ -15,6 +15,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   public speed: number;
   public points: number;
   public isElite: boolean = false;
+  public _killHandled: boolean = false;
 
   private target: Phaser.GameObjects.Container | null = null;
   private facingRight: boolean = true;
@@ -63,13 +64,28 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   // Status effects
   private shockTimer: number = 0;
+  private chillTimer: number = 0;
+  private chillSlowAmount: number = 0;
   private freezeTimer: number = 0;
   private burnStacks: { timer: number; dps: number; duration: number }[] = [];
   private poisonStacks: { timer: number; amp: number; duration: number }[] = [];
-  private _isStunned: boolean = false;   // shocked or frozen
+  private _isStunned: boolean = false;   // shocked
   private _isFrozen: boolean = false;
   private _statusTintTimer: number = 0;  // for visual flash timing
   private stageTint: number | null = null;  // Stage-based tint for infinite swarm
+  // Burn slow (fire T3+)
+  private _burnSlowActive: boolean = false;
+  // Poison evolution
+  private _poisonGrowthEnabled: boolean = false;
+  private _poisonGrowthTimer: number = 0;
+  private _poisonGrowthAmp: number = 0;
+  private _poisonGrowthDur: number = 0;
+  private _poisonGrowthMultiplier: number = 1;
+  private _poisonExecuteThreshold: number = 0; // 0 = no execute
+  // Base speed for slow calculations
+  private baseSpeed: number = 0;
+  // Frostfire steam AoE callback (set by GameScene)
+  public onFreezeEnd: ((enemy: Enemy) => void) | null = null;
 
   constructor(
     scene: Phaser.Scene,
@@ -137,6 +153,9 @@ export class Enemy extends Phaser.GameObjects.Container {
       this.speed = Math.floor(this.speed * ELITE_CONFIG.speedMultiplier);
       this.points = Math.floor(this.points * ELITE_CONFIG.pointsMultiplier);
     }
+
+    // Store base speed after all multipliers (for slow effect calculations)
+    this.baseSpeed = this.speed;
 
     if (type === 'shellback') {
       this.blockAngle = (config as typeof ENEMY_CONFIG.shellback).blockAngle;
@@ -1285,6 +1304,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     this._isStunned = false;
     this._isFrozen = false;
     this._statusTintTimer += delta;
+    let speedMult = 1;
 
     // Shock (stun)
     if (this.shockTimer > 0) {
@@ -1295,16 +1315,31 @@ export class Enemy extends Phaser.GameObjects.Container {
       }
     }
 
-    // Freeze
+    // Chill (slow) — ice T1
+    if (this.chillTimer > 0) {
+      this.chillTimer -= delta;
+      speedMult *= (1 - this.chillSlowAmount);
+      if (this.chillTimer <= 0) {
+        this.chillTimer = 0;
+        this.chillSlowAmount = 0;
+      }
+    }
+
+    // Freeze (immobilize) — ice T2+
     if (this.freezeTimer > 0) {
       this.freezeTimer -= delta;
       this._isFrozen = true;
       if (this.freezeTimer <= 0) {
         this.freezeTimer = 0;
+        // Frostfire combo: steam AoE on thaw
+        if (this.onFreezeEnd) {
+          this.onFreezeEnd(this);
+        }
       }
     }
 
     // Burn stacks - tick DPS independently, remove expired
+    this._burnSlowActive = false;
     for (let i = this.burnStacks.length - 1; i >= 0; i--) {
       const stack = this.burnStacks[i];
       stack.timer -= delta;
@@ -1318,8 +1353,12 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.burnStacks.splice(i, 1);
       }
     }
+    // Burn slow flag is set externally by GameScene when applying burn at T3+
+    if (this._burnSlowActive) {
+      speedMult *= (1 - ELEMENTAL_EVOLUTION_CONFIG.fire.burnSlowAmount);
+    }
 
-    // Poison stacks - just tick timers, amp is applied in _uf()
+    // Poison stacks - tick timers, amp is applied in _uf()
     for (let i = this.poisonStacks.length - 1; i >= 0; i--) {
       const stack = this.poisonStacks[i];
       stack.timer -= delta;
@@ -1327,6 +1366,28 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.poisonStacks.splice(i, 1);
       }
     }
+
+    // Poison growth (T2+) — add stacks over time
+    if (this._poisonGrowthEnabled && this.poisonStacks.length > 0) {
+      this._poisonGrowthTimer += delta;
+      const effectiveInterval = ELEMENTAL_EVOLUTION_CONFIG.poison.growthInterval / this._poisonGrowthMultiplier;
+      if (this._poisonGrowthTimer >= effectiveInterval) {
+        this._poisonGrowthTimer -= effectiveInterval;
+        if (this.poisonStacks.length < STATUS_EFFECT_CONFIG.poison.maxStacks) {
+          this.poisonStacks.push({ timer: this._poisonGrowthDur, amp: this._poisonGrowthAmp, duration: this._poisonGrowthDur });
+        }
+      }
+    }
+
+    // Poison execute (T4) — kill non-boss enemies below threshold
+    if (this._poisonExecuteThreshold > 0 && this.poisonStacks.length > 0 && this.health > 0) {
+      if (!this.isBoss() && this.health / this.maxHealth <= this._poisonExecuteThreshold) {
+        this.health = 0;
+      }
+    }
+
+    // Apply speed slow from chill/burn
+    this.speed = Math.floor(this.baseSpeed * speedMult);
   }
 
   applyShock(duration: number): void {
@@ -1336,11 +1397,22 @@ export class Enemy extends Phaser.GameObjects.Container {
     }
   }
 
+  applyChill(slowAmount: number, duration: number): void {
+    // Single instance - refresh/upgrade
+    if (duration > this.chillTimer || slowAmount > this.chillSlowAmount) {
+      this.chillTimer = Math.max(this.chillTimer, duration);
+      this.chillSlowAmount = Math.max(this.chillSlowAmount, slowAmount);
+    }
+  }
+
   applyFreeze(duration: number): void {
     // Single instance - refresh if new duration is longer than remaining
     if (duration > this.freezeTimer) {
       this.freezeTimer = duration;
     }
+    // Freeze overrides chill
+    this.chillTimer = 0;
+    this.chillSlowAmount = 0;
   }
 
   applyKnockback(forceX: number, forceY: number, duration: number): void {
@@ -1405,6 +1477,29 @@ export class Enemy extends Phaser.GameObjects.Container {
     return this.poisonStacks.length;
   }
 
+  /** Whether this enemy is currently chilled (slowed) */
+  isChilled(): boolean {
+    return this.chillTimer > 0;
+  }
+
+  /** Enable poison stack growth (T2+) */
+  enablePoisonGrowth(amp: number, duration: number, growthMultiplier: number = 1): void {
+    this._poisonGrowthEnabled = true;
+    this._poisonGrowthAmp = amp;
+    this._poisonGrowthDur = duration;
+    this._poisonGrowthMultiplier = growthMultiplier;
+  }
+
+  /** Set poison execute threshold (T4, non-boss only) */
+  setPoisonExecuteThreshold(threshold: number): void {
+    this._poisonExecuteThreshold = Math.max(this._poisonExecuteThreshold, threshold);
+  }
+
+  /** Set burn slow flag (T3+) — call each frame while applicable */
+  setBurnSlowActive(): void {
+    this._burnSlowActive = true;
+  }
+
   private drawStatusOverlays(w: number, h: number): void {
     const opacity = SaveManager.getEffectsOpacity();
     if (opacity <= 0) return;
@@ -1432,7 +1527,14 @@ export class Enemy extends Phaser.GameObjects.Container {
       }
     }
 
-    // Freeze overlay - blue tint
+    // Chill overlay - light blue tint (ice T1)
+    if (this.chillTimer > 0 && this.freezeTimer <= 0) {
+      const pulse = (0.2 + 0.1 * Math.sin(this._statusTintTimer * 0.01)) * opacity;
+      this.graphics.fillStyle(STATUS_EFFECT_CONFIG.chill.color, pulse);
+      this.graphics.fillEllipse(0, 0, w, h);
+    }
+
+    // Freeze overlay - solid blue tint + crystals (ice T2+)
     if (this.freezeTimer > 0) {
       this.graphics.fillStyle(STATUS_EFFECT_CONFIG.freeze.color, 0.35 * opacity);
       this.graphics.fillEllipse(0, 0, w, h);

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG, KNOCKBACK_CONFIG, DODGE_COUNTER_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG, KNOCKBACK_CONFIG, DODGE_COUNTER_CONFIG, COMPANION_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -9,7 +9,8 @@ import { TreasureChest } from '../entities/TreasureChest';
 import { Pinecone } from '../entities/Pinecone';
 import { QuillManager } from '../systems/QuillManager';
 import { WaveManager } from '../systems/WaveManager';
-import { UpgradeManager } from '../systems/UpgradeManager';
+import { UpgradeManager, ModifierSource } from '../systems/UpgradeManager';
+import { CompanionUpgradeProxy } from '../systems/CompanionUpgradeProxy';
 import { ProgressionManager } from '../systems/ProgressionManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
@@ -108,6 +109,7 @@ export class GameScene extends Phaser.Scene {
     this.waveManager.setTarget(this.player);
     this.waveManager.setProgressionManager(this.progressionManager);
     this.waveManager.setUpgradeManager(this.upgradeManager);
+    this.waveManager.onUnhandledKill = (enemy) => this.handleEnemyKill(enemy);
 
     // Give quill manager access to enemies for homing quills
     this.quillManager.setEnemiesGroup(this.waveManager.enemies);
@@ -732,13 +734,16 @@ export class GameScene extends Phaser.Scene {
 
     if (quill.isDead() || enemy.isDead()) return;
 
+    // Use the quill's modifier source (real UpgradeManager for player, CompanionUpgradeProxy for companions)
+    const mods = quill.modifiers;
+
     // Calculate hit angle for shellback blocking
     const hitAngle = Math.atan2(enemy.y - quill.y, enemy.x - quill.x);
 
     // Deal damage (apply elite damage bonus if target is elite)
     let damage = quill.getDamage();
     if (enemy.isElite) {
-      const eliteDmgBonus = this.upgradeManager.getModifier('eliteDamageBonus');
+      const eliteDmgBonus = mods.getModifier('eliteDamageBonus');
       if (eliteDmgBonus > 0) {
         damage = Math.floor(damage * (1 + eliteDmgBonus));
       }
@@ -746,7 +751,7 @@ export class GameScene extends Phaser.Scene {
     const killed = enemy._uf(damage, hitAngle);
 
     // Vampirism - stack-based proc chance and flat healing (uses rollProc for Fate's Favor)
-    const vampStacks = this.upgradeManager.getModifier('vampirismStrength');
+    const vampStacks = mods.getModifier('vampirismStrength');
     if (vampStacks > 0) {
       const procChance = vampStacks / (vampStacks + VAMPIRISM_CONFIG.procDivisor);
       if (this.rollProc(procChance)) {
@@ -756,7 +761,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Knockback from quill hit
-    const knockbackMod = this.upgradeManager.getModifier('knockback');
+    const knockbackMod = mods.getModifier('knockback');
     if (knockbackMod > 0 && !killed) {
       const kbForce = knockbackMod * KNOCKBACK_CONFIG.baseForceMult;
       enemy.applyKnockback(
@@ -767,7 +772,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Explosion AOE - damage nearby enemies (capped at maxExplosionRadius)
-    const rawExplosionRadius = this.upgradeManager.getModifier('explosionRadius');
+    const rawExplosionRadius = mods.getModifier('explosionRadius');
     const explosionRadius = Math.min(rawExplosionRadius, QUILL_CONFIG.maxExplosionRadius);
     if (explosionRadius > 0) {
       this.spawnExplosionEffect(enemy.x, enemy.y, explosionRadius);
@@ -777,16 +782,20 @@ export class GameScene extends Phaser.Scene {
         if (otherEnemy === enemy || otherEnemy.isDead()) return;
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, otherEnemy.x, otherEnemy.y);
         if (dist <= explosionRadius) {
-          otherEnemy._uf(damage * 0.5); // AOE does 50% damage
-          // Push enemies away from explosion center
-          if (knockbackMod > 0) {
-            const pushAngle = Math.atan2(otherEnemy.y - enemy.y, otherEnemy.x - enemy.x);
-            const kbForce = knockbackMod * KNOCKBACK_CONFIG.baseForceMult;
-            otherEnemy.applyKnockback(
-              Math.cos(pushAngle) * kbForce,
-              Math.sin(pushAngle) * kbForce,
-              KNOCKBACK_CONFIG.duration
-            );
+          const aoeKilled = otherEnemy._uf(damage * 0.5); // AOE does 50% damage
+          if (aoeKilled) {
+            this.handleEnemyKill(otherEnemy);
+          } else {
+            // Push enemies away from explosion center
+            if (knockbackMod > 0) {
+              const pushAngle = Math.atan2(otherEnemy.y - enemy.y, otherEnemy.x - enemy.x);
+              const kbForce = knockbackMod * KNOCKBACK_CONFIG.baseForceMult;
+              otherEnemy.applyKnockback(
+                Math.cos(pushAngle) * kbForce,
+                Math.sin(pushAngle) * kbForce,
+                KNOCKBACK_CONFIG.duration
+              );
+            }
           }
         }
       });
@@ -794,7 +803,7 @@ export class GameScene extends Phaser.Scene {
 
     // Elemental procs (only on surviving enemies)
     if (!killed) {
-      this.applyElementalProcs(enemy, quill.isEmpowered);
+      this.applyElementalProcs(enemy, quill.isEmpowered, mods, damage);
     }
 
     if (killed) {
@@ -808,6 +817,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleEnemyKill(enemy: Enemy): void {
+    if (enemy._killHandled) return;
+    enemy._killHandled = true;
+
     if (enemy.isElite) {
       AudioManager.playEliteKill();
     } else {
@@ -1247,9 +1259,8 @@ export class GameScene extends Phaser.Scene {
     // Activate infinite swarm in wave manager
     this.waveManager.activateInfiniteSwarm(this.time.now);
 
-    // Reset shields and enable time-based regen for infinite swarm
     this.player.resetShieldsForWave();
-    this.player.enableInfiniteSwarmShieldRegen();
+    this.player._es();
 
     // Initialize stage tracking
     this.lastSwarmStage = 0;
@@ -1632,73 +1643,50 @@ export class GameScene extends Phaser.Scene {
 
       this.companions.push(companion);
     }
+
+    // Update fire rate interval for all companions based on current upgrades
+    if (this.companions.length > 0) {
+      const efficiency = Math.min(
+        COMPANION_CONFIG.baseEfficiency + this.companions.length * COMPANION_CONFIG.efficiencyPerCompanion,
+        COMPANION_CONFIG.maxEfficiency
+      );
+      const fireRateMod = this.upgradeManager.getModifier('fireRate');
+      const scaledInterval = COMPANION_CONFIG.baseShootInterval / (1 + fireRateMod * efficiency);
+      this.companions.forEach(c => c.setShootInterval(scaledInterval));
+    }
   }
 
   private companionShoot(x: number, y: number, targetX: number, targetY: number): void {
-    // Create a mini quill from companion position
+    const proxy = new CompanionUpgradeProxy(this.upgradeManager, this.companions.length);
     const angle = Phaser.Math.Angle.Between(x, y, targetX, targetY);
 
-    // Create simple projectile (smaller, less damage than player)
-    const quill = this.add.graphics();
-    quill.fillStyle(0x00ffff);
-    quill.fillTriangle(8, 0, -4, -3, -4, 3);
+    // Calculate companion projectile count: 20% of player's total, min 1
+    const playerProjCount = 1 + Math.floor(this.upgradeManager.getModifier('projectileCount'));
+    const companionProjCount = Math.max(1, Math.floor(playerProjCount * COMPANION_CONFIG.projectileCountRatio));
 
-    const container = this.add.container(x, y, [quill]);
-    container.rotation = angle;
+    for (let i = 0; i < companionProjCount; i++) {
+      let projectileAngle = angle;
+      if (companionProjCount > 1) {
+        const offsetIndex = i - (companionProjCount - 1) / 2;
+        projectileAngle = angle + offsetIndex * COMPANION_CONFIG.spreadAngle;
+      }
 
-    this.physics.add.existing(container);
-    const body = container.body as Phaser.Physics.Arcade.Body;
-    body.setSize(12, 8);
-    body.setAllowGravity(false);
+      const quill = new Quill(
+        this,
+        x, y,
+        projectileAngle,
+        proxy,
+        this.waveManager.enemies,
+        COMPANION_CONFIG.quillColor,
+        COMPANION_CONFIG.tipColor,
+        false,
+        false
+      );
 
-    const speed = 400;
-    body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+      this.quillManager.quills.add(quill);
+    }
 
     AudioManager.playShoot();
-
-    // Add collision with enemies
-    this.physics.add.overlap(container, this.waveManager.enemies, (_, enemyObj) => {
-      const enemy = enemyObj as Enemy;
-      if (!enemy.isDead()) {
-        // Companion quills do base damage (less than player upgraded quills)
-        const damage = 10 * (1 + this.upgradeManager.getModifier('damage') * 0.5);
-        const killed = enemy._uf(damage);
-
-        // Elemental procs from companion quills
-        if (!killed) {
-          this.applyElementalProcs(enemy);
-        }
-
-        if (killed) {
-          if (enemy.isElite) {
-            AudioManager.playEliteKill();
-          } else {
-            AudioManager.playEnemyDeath();
-          }
-          const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
-          const dangerScoreMult = 1 + dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack;
-          this.hud.addScore(Math.floor(enemy.points * dangerScoreMult));
-          this.spawnDeathParticles(enemy.x, enemy.y);
-          SessionManager._rk(enemy.enemyType, enemy.isElite);
-          this.recordSessionKill(enemy.enemyType, enemy.isElite);
-          // Splitter splits on death from companion quills too
-          if (enemy.isSplitter()) {
-            AudioManager.playSplit();
-            this.waveManager.spawnSplitlings(enemy.x, enemy.y);
-          }
-          // On-death elemental effects from companion kills too
-          this.handleElementalOnDeath(enemy);
-        } else {
-          AudioManager.playHit();
-        }
-        container.destroy();
-      }
-    });
-
-    // Destroy after timeout
-    this.time.delayedCall(2000, () => {
-      if (container.active) container.destroy();
-    });
   }
 
   // --- Proc & Elemental Systems ---
@@ -1717,53 +1705,164 @@ export class GameScene extends Phaser.Scene {
     return x / (1 + x);
   }
 
-  /** Apply elemental status effects from quill hit. Empowered quills (Apotheosis) auto-proc all elements. */
-  private applyElementalProcs(enemy: Enemy, empowered: boolean = false): void {
-    // Lightning - shock (stun) — strength-based proc chance
-    const shockStrength = this.upgradeManager.getModifier('shockStrength');
-    const shockChance = this.getElementalChance(shockStrength);
-    if (shockStrength > 0 && (empowered || this.rollProc(shockChance))) {
-      enemy.applyShock(STATUS_EFFECT_CONFIG.shock.defaultDuration);
+  /** Apply elemental status effects from quill hit. Empowered quills (Apotheosis) auto-proc all elements.
+   *  hitDamage is the raw quill damage for lightning arc calculations. */
+  private applyElementalProcs(enemy: Enemy, empowered: boolean = false, modSource?: ModifierSource, hitDamage: number = 0): void {
+    const mods = modSource || this.upgradeManager;
+    const cfg = ELEMENTAL_EVOLUTION_CONFIG;
+    const firedElements: string[] = [];
 
-      // Chain lightning - arcs to nearby enemies on shock proc
-      const chainCount = Math.floor(this.upgradeManager.getModifier('chainLightning'));
-      if (chainCount > 0) {
-        this.triggerChainLightning(enemy, chainCount, STATUS_EFFECT_CONFIG.shock.defaultDuration);
+    // --- LIGHTNING --- stun + chain arcs (tier-based)
+    const shockStr = mods.getModifier('shockStrength');
+    const shockTier = UpgradeManager.getElementalTierFromStrength(shockStr);
+    if (shockTier > 0 && (empowered || this.rollProc(this.getElementalChance(shockStr)))) {
+      firedElements.push('shock');
+      const stunDur = cfg.lightning.stunDuration[shockTier];
+      enemy.applyShock(stunDur);
+
+      // Chain arcs — count, damage%, and stun chance all tier-based
+      const arcCount = cfg.lightning.arcCount[shockTier];
+      const arcDmgPct = cfg.lightning.arcDamagePercent[shockTier];
+      const arcStunPct = cfg.lightning.arcStunChance[shockTier];
+      if (arcCount > 0) {
+        this.triggerChainLightning(enemy, arcCount, hitDamage * arcDmgPct, stunDur, arcStunPct, mods);
       }
     }
 
-    // Ice - freeze (immobilize) — strength-based proc chance
-    const freezeStrength = this.upgradeManager.getModifier('freezeStrength');
-    const freezeChance = this.getElementalChance(freezeStrength);
-    if (freezeStrength > 0 && (empowered || this.rollProc(freezeChance))) {
-      enemy.applyFreeze(STATUS_EFFECT_CONFIG.freeze.defaultDuration);
+    // --- ICE --- chill (T1) or freeze (T2+)
+    const freezeStr = mods.getModifier('freezeStrength');
+    const freezeTier = UpgradeManager.getElementalTierFromStrength(freezeStr);
+    if (freezeTier > 0 && (empowered || this.rollProc(this.getElementalChance(freezeStr)))) {
+      firedElements.push('freeze');
+      if (freezeTier >= 2) {
+        // Direct freeze at T2+
+        const freezeDur = cfg.ice.freezeDuration[freezeTier];
+        enemy.applyFreeze(freezeDur);
+        // Frostfire combo: set callback for steam AoE on thaw
+        if (enemy.isBurning() && this.upgradeManager.hasUpgrade('frostfire')) {
+          enemy.onFreezeEnd = (e) => this.triggerFrostfireSteam(e);
+        }
+      } else {
+        // Chill (70% slow) at T1
+        enemy.applyChill(cfg.ice.chillSlowAmount, cfg.ice.chillDuration);
+      }
+      // Tempest combo: shocked enemies that get chilled are instantly frozen
+      if (enemy.isShocked() && this.upgradeManager.hasUpgrade('tempest') && freezeTier < 2) {
+        enemy.applyFreeze(cfg.ice.freezeDuration[2] || 800);
+      }
+      // T3+: frozen enemies radiate frost aura
+      if (freezeTier >= 3 && enemy.isFreezeActive()) {
+        this.applyFrostAura(enemy);
+      }
     }
 
-    // Fire - burn (stacking DoT) — DPS = strength * 8 * damageMult
-    const burnStrength = this.upgradeManager.getModifier('burnStrength');
-    const burnChance = this.getElementalChance(burnStrength);
-    if (burnStrength > 0 && (empowered || this.rollProc(burnChance))) {
-      const damageMult = 1 + this.upgradeManager.getModifier('damage');
-      const scaledDPS = burnStrength * 8 * damageMult;
-      enemy.applyBurn(scaledDPS, STATUS_EFFECT_CONFIG.burn.defaultDuration);
+    // --- FIRE --- stacking DoT, tier-based DPS
+    const burnStr = mods.getModifier('burnStrength');
+    const burnTier = UpgradeManager.getElementalTierFromStrength(burnStr);
+    if (burnTier > 0 && (empowered || this.rollProc(this.getElementalChance(burnStr)))) {
+      firedElements.push('burn');
+      const damageMult = 1 + mods.getModifier('damage');
+      let scaledDPS = burnStr * 8 * damageMult;
+      if (burnTier >= 2) scaledDPS *= cfg.fire.tier2DpsMultiplier;
+      enemy.applyBurn(scaledDPS, cfg.fire.burnDuration);
+      // T3+: burns slow enemies
+      if (burnTier >= 3) enemy.setBurnSlowActive();
     }
 
-    // Poison - venom (stacking damage amp) — amp = strength * 5%
-    const poisonStrength = this.upgradeManager.getModifier('poisonStrength');
-    const poisonChance = this.getElementalChance(poisonStrength);
-    if (poisonStrength > 0 && (empowered || this.rollProc(poisonChance))) {
-      const poisonAmp = poisonStrength * 0.05;
-      enemy.applyPoison(poisonAmp, STATUS_EFFECT_CONFIG.poison.defaultDuration);
+    // --- POISON --- damage amp + execute, tier-based
+    const poisonStr = mods.getModifier('poisonStrength');
+    const poisonTier = UpgradeManager.getElementalTierFromStrength(poisonStr);
+    if (poisonTier > 0 && (empowered || this.rollProc(this.getElementalChance(poisonStr)))) {
+      firedElements.push('poison');
+      const poisonAmp = poisonStr * cfg.poison.ampPerStrength;
+      enemy.applyPoison(poisonAmp, cfg.poison.duration);
+      // T2+: enable poison stack growth
+      if (poisonTier >= 2) {
+        const growthMult = (enemy.isBurning() && this.upgradeManager.hasUpgrade('wildfire')) ? 2 : 1;
+        enemy.enablePoisonGrowth(poisonAmp, cfg.poison.duration, growthMult);
+      }
+      // T4: enable execute threshold (non-boss)
+      if (poisonTier >= 4) {
+        enemy.setPoisonExecuteThreshold(cfg.poison.executeThreshold);
+      }
+    }
+
+    // --- ELEMENTAL CONVERGENCE --- 20% chance for secondary random proc
+    if (firedElements.length > 0 && this.upgradeManager.hasUpgrade('elemental_convergence')) {
+      if (Math.random() < 0.20) {
+        const allElements = ['shock', 'freeze', 'burn', 'poison'];
+        const remaining = allElements.filter(e => !firedElements.includes(e));
+        if (remaining.length > 0) {
+          const secondary = remaining[Math.floor(Math.random() * remaining.length)];
+          this.applySecondaryElementalProc(enemy, secondary, mods, hitDamage);
+        }
+      }
     }
   }
 
-  /** Chain lightning arcs from source to nearby enemies */
-  private triggerChainLightning(source: Enemy, chainCount: number, shockDuration: number): void {
-    const range = STATUS_EFFECT_CONFIG.shock.chainRange;
+  /** Apply a single element proc as a secondary effect (from Elemental Convergence) */
+  private applySecondaryElementalProc(enemy: Enemy, element: string, mods: ModifierSource, hitDamage: number): void {
+    const cfg = ELEMENTAL_EVOLUTION_CONFIG;
+    switch (element) {
+      case 'shock': {
+        const str = mods.getModifier('shockStrength');
+        const tier = UpgradeManager.getElementalTierFromStrength(str);
+        if (tier > 0) {
+          enemy.applyShock(cfg.lightning.stunDuration[tier]);
+          const arcCount = cfg.lightning.arcCount[tier];
+          if (arcCount > 0) {
+            this.triggerChainLightning(enemy, arcCount, hitDamage * cfg.lightning.arcDamagePercent[tier],
+              cfg.lightning.stunDuration[tier], cfg.lightning.arcStunChance[tier], mods);
+          }
+        }
+        break;
+      }
+      case 'freeze': {
+        const str = mods.getModifier('freezeStrength');
+        const tier = UpgradeManager.getElementalTierFromStrength(str);
+        if (tier >= 2) {
+          enemy.applyFreeze(cfg.ice.freezeDuration[tier]);
+        } else if (tier > 0) {
+          enemy.applyChill(cfg.ice.chillSlowAmount, cfg.ice.chillDuration);
+        }
+        break;
+      }
+      case 'burn': {
+        const str = mods.getModifier('burnStrength');
+        const tier = UpgradeManager.getElementalTierFromStrength(str);
+        if (tier > 0) {
+          const damageMult = 1 + mods.getModifier('damage');
+          let dps = str * 8 * damageMult;
+          if (tier >= 2) dps *= cfg.fire.tier2DpsMultiplier;
+          enemy.applyBurn(dps, cfg.fire.burnDuration);
+          if (tier >= 3) enemy.setBurnSlowActive();
+        }
+        break;
+      }
+      case 'poison': {
+        const str = mods.getModifier('poisonStrength');
+        const tier = UpgradeManager.getElementalTierFromStrength(str);
+        if (tier > 0) {
+          const amp = str * cfg.poison.ampPerStrength;
+          enemy.applyPoison(amp, cfg.poison.duration);
+          if (tier >= 2) enemy.enablePoisonGrowth(amp, cfg.poison.duration);
+          if (tier >= 4) enemy.setPoisonExecuteThreshold(cfg.poison.executeThreshold);
+        }
+        break;
+      }
+    }
+  }
+
+  /** Chain lightning arcs from source to nearby enemies, dealing damage and optionally stunning */
+  private triggerChainLightning(source: Enemy, arcCount: number, arcDamage: number,
+    stunDuration: number, arcStunChance: number, mods: ModifierSource): void {
+    const range = ELEMENTAL_EVOLUTION_CONFIG.lightning.arcRange;
     let currentSource = source;
     const hitEnemies = new Set<Enemy>([source]);
+    const hasVenomshock = this.upgradeManager.hasUpgrade('venomshock');
+    const poisonStr = hasVenomshock ? mods.getModifier('poisonStrength') : 0;
 
-    for (let i = 0; i < chainCount; i++) {
+    for (let i = 0; i < arcCount; i++) {
       let nearest: Enemy | null = null;
       let nearestDist = Infinity;
 
@@ -1779,10 +1878,30 @@ export class GameScene extends Phaser.Scene {
 
       if (!nearest) break;
 
-      (nearest as Enemy).applyShock(shockDuration);
-      this.spawnChainLightningEffect(currentSource.x, currentSource.y, (nearest as Enemy).x, (nearest as Enemy).y);
-      hitEnemies.add(nearest as Enemy);
-      currentSource = nearest as Enemy;
+      const target = nearest as Enemy;
+      // Deal arc damage
+      if (arcDamage > 0) {
+        const killed = target._uf(arcDamage);
+        if (killed) {
+          this.handleEnemyKill(target);
+          hitEnemies.add(target);
+          currentSource = target;
+          continue;
+        }
+      }
+      // Stun chance for arc targets
+      if (arcStunChance > 0 && Math.random() < arcStunChance) {
+        target.applyShock(stunDuration);
+      }
+      // Venomshock combo: spread poison via arcs
+      if (hasVenomshock && poisonStr > 0) {
+        const cfg = ELEMENTAL_EVOLUTION_CONFIG;
+        const amp = poisonStr * cfg.poison.ampPerStrength;
+        target.applyPoison(amp, cfg.poison.duration);
+      }
+      this.spawnChainLightningEffect(currentSource.x, currentSource.y, target.x, target.y);
+      hitEnemies.add(target);
+      currentSource = target;
     }
   }
 
@@ -1816,80 +1935,157 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  /** Handle on-death elemental effects for a killed enemy */
-  private handleElementalOnDeath(enemy: Enemy): void {
+  /** Apply frost aura from a frozen enemy (ice T3+) — slows nearby non-frozen enemies */
+  private applyFrostAura(frozenEnemy: Enemy): void {
+    const cfg = ELEMENTAL_EVOLUTION_CONFIG.ice;
+    this.waveManager.enemies.getChildren().forEach((obj) => {
+      const e = obj as Enemy;
+      if (e === frozenEnemy || e.isDead() || e.isFreezeActive()) return;
+      const dist = Phaser.Math.Distance.Between(frozenEnemy.x, frozenEnemy.y, e.x, e.y);
+      if (dist <= cfg.frostAuraRange) {
+        e.applyChill(cfg.frostAuraSlowAmount, 500); // Short chill, refreshed while frozen enemy is near
+      }
+    });
+  }
+
+  /** Frostfire combo: frozen+burning enemy releases steam AoE when freeze ends */
+  private triggerFrostfireSteam(enemy: Enemy): void {
+    if (!enemy.isBurning()) return;
+    const radius = 80;
+    const damage = enemy.maxHealth * 0.15; // 15% max HP steam damage
     const ex = enemy.x;
     const ey = enemy.y;
 
-    // Fire explosion - burning enemies explode on death
-    const fireExplosionRadius = this.upgradeManager.getModifier('fireExplosion');
-    if (fireExplosionRadius > 0 && enemy.isBurning()) {
-      // Scale explosion with burn stack count
-      const stacks = enemy.getBurnStackCount();
-      const radius = fireExplosionRadius * (1 + stacks * 0.15);
-      const burnStrength = this.upgradeManager.getModifier('burnStrength');
-      const damageMult = 1 + this.upgradeManager.getModifier('damage');
-      const scaledDPS = burnStrength * 8 * damageMult;
-      const explosionDamage = scaledDPS * stacks * 2; // Burst damage based on active burn stacks
+    this.waveManager.enemies.getChildren().forEach((obj) => {
+      const e = obj as Enemy;
+      if (e === enemy || e.isDead()) return;
+      const dist = Phaser.Math.Distance.Between(ex, ey, e.x, e.y);
+      if (dist <= radius) {
+        const killed = e._uf(damage);
+        if (killed) this.handleEnemyKill(e);
+      }
+    });
 
-      this.waveManager.enemies.getChildren().forEach((obj) => {
-        const e = obj as Enemy;
-        if (e === enemy || e.isDead()) return;
-        const dist = Phaser.Math.Distance.Between(ex, ey, e.x, e.y);
-        if (dist <= radius) {
-          e._uf(explosionDamage);
-          // Spread a burn stack to nearby enemies
-          e.applyBurn(scaledDPS, STATUS_EFFECT_CONFIG.burn.defaultDuration);
-        }
+    // Steam visual
+    if (this.effectsOpacity > 0) {
+      const steam = this.add.circle(ex, ey, 10, 0xccddff, 0);
+      steam.setStrokeStyle(3, 0xaabbdd, this.effectsOpacity * 0.6);
+      this.tweens.add({
+        targets: steam,
+        radius: radius,
+        alpha: 0,
+        duration: 400,
+        onComplete: () => steam.destroy(),
       });
-
-      this.spawnFireExplosionEffect(ex, ey, radius);
     }
+  }
 
-    // Poison spread - poisoned enemies spread poison on death
-    const hasPoisonSpread = this.upgradeManager.getModifier('poisonSpread') > 0;
-    const poisonCloudRadius = this.upgradeManager.getModifier('poisonCloud');
+  /** Handle on-death elemental effects for a killed enemy (tier-gated) */
+  private handleElementalOnDeath(enemy: Enemy): void {
+    const ex = enemy.x;
+    const ey = enemy.y;
+    const cfg = ELEMENTAL_EVOLUTION_CONFIG;
 
-    if (enemy.isPoisoned() && (hasPoisonSpread || poisonCloudRadius > 0)) {
-      const spreadRange = hasPoisonSpread ? STATUS_EFFECT_CONFIG.poison.spreadRange : 0;
-      const poisonStrength = this.upgradeManager.getModifier('poisonStrength');
-      const poisonAmp = poisonStrength * 0.05;
-      const poisonDur = STATUS_EFFECT_CONFIG.poison.defaultDuration;
+    // --- FIRE death effects ---
+    const burnStr = this.upgradeManager.getModifier('burnStrength');
+    const burnTier = UpgradeManager.getElementalTierFromStrength(burnStr);
+    if (enemy.isBurning() && burnTier >= 2) {
+      const damageMult = 1 + this.upgradeManager.getModifier('damage');
+      let scaledDPS = burnStr * 8 * damageMult;
+      if (burnTier >= 2) scaledDPS *= cfg.fire.tier2DpsMultiplier;
 
-      if (hasPoisonSpread) {
-        // Spread poison to nearby enemies
+      // T2+: Spread burn to N nearby enemies on death
+      const spreadCount = cfg.fire.deathSpreadCount[burnTier];
+      if (spreadCount > 0) {
+        let spread = 0;
+        this.waveManager.enemies.getChildren().forEach((obj) => {
+          const e = obj as Enemy;
+          if (e === enemy || e.isDead() || spread >= spreadCount) return;
+          const dist = Phaser.Math.Distance.Between(ex, ey, e.x, e.y);
+          if (dist <= cfg.fire.deathSpreadRange) {
+            e.applyBurn(scaledDPS, cfg.fire.burnDuration);
+            spread++;
+          }
+        });
+        if (spread > 0) this.spawnPoisonSpreadEffect(ex, ey, cfg.fire.deathSpreadRange); // Reuse spread effect
+      }
+
+      // T4: Explosion on death
+      if (burnTier >= 4) {
+        const stacks = enemy.getBurnStackCount();
+        const radius = cfg.fire.explosionBaseRadius * (1 + stacks * cfg.fire.explosionStackScale);
+        const explosionDamage = scaledDPS * stacks * cfg.fire.explosionDamageMultiplier;
+
         this.waveManager.enemies.getChildren().forEach((obj) => {
           const e = obj as Enemy;
           if (e === enemy || e.isDead()) return;
           const dist = Phaser.Math.Distance.Between(ex, ey, e.x, e.y);
-          if (dist <= spreadRange) {
-            e.applyPoison(poisonAmp, poisonDur);
+          if (dist <= radius) {
+            const killed = e._uf(explosionDamage);
+            if (!killed) {
+              e.applyBurn(scaledDPS, cfg.fire.burnDuration);
+            } else {
+              this.handleEnemyKill(e);
+            }
           }
         });
-        this.spawnPoisonSpreadEffect(ex, ey, spreadRange);
-      }
-
-      if (poisonCloudRadius > 0) {
-        // Lingering poison cloud that ticks poison on nearby enemies
-        this.spawnPoisonCloud(ex, ey, poisonCloudRadius, poisonAmp, poisonDur);
+        this.spawnFireExplosionEffect(ex, ey, radius);
       }
     }
 
-    // Ice shatter - frozen enemies deal AOE damage on death
-    const shatterDamage = this.upgradeManager.getModifier('shatterDamage');
-    if (shatterDamage > 0 && enemy.isFreezeActive()) {
-      const shatterRadius = STATUS_EFFECT_CONFIG.freeze.shatterRange;
-      const shatterDmg = enemy.maxHealth * shatterDamage; // % of max HP as AOE
+    // --- POISON death effects ---
+    const poisonStr = this.upgradeManager.getModifier('poisonStrength');
+    const poisonTier = UpgradeManager.getElementalTierFromStrength(poisonStr);
+    if (enemy.isPoisoned() && poisonTier >= 3) {
+      const poisonAmp = poisonStr * cfg.poison.ampPerStrength;
+      const poisonDur = cfg.poison.duration;
+
+      // T3+: Spread all stacks to nearby enemies
+      const spreadCount = cfg.poison.deathSpreadCount;
+      let spread = 0;
+      this.waveManager.enemies.getChildren().forEach((obj) => {
+        const e = obj as Enemy;
+        if (e === enemy || e.isDead() || spread >= spreadCount) return;
+        const dist = Phaser.Math.Distance.Between(ex, ey, e.x, e.y);
+        if (dist <= cfg.poison.deathSpreadRange) {
+          // Spread stacks equal to dead enemy's count
+          const stackCount = enemy.getPoisonStackCount();
+          for (let s = 0; s < stackCount; s++) {
+            e.applyPoison(poisonAmp, poisonDur);
+          }
+          spread++;
+        }
+      });
+      if (spread > 0) this.spawnPoisonSpreadEffect(ex, ey, cfg.poison.deathSpreadRange);
+
+      // T4: Poison cloud on death
+      if (poisonTier >= 4) {
+        this.spawnPoisonCloud(ex, ey, cfg.poison.cloudRadius, poisonAmp, poisonDur);
+      }
+    }
+
+    // --- ICE death effects ---
+    const freezeStr = this.upgradeManager.getModifier('freezeStrength');
+    const freezeTier = UpgradeManager.getElementalTierFromStrength(freezeStr);
+    // T4: Frozen enemies shatter on death (25% max HP AoE + apply chill)
+    if (freezeTier >= 4 && enemy.isFreezeActive()) {
+      const shatterRadius = cfg.ice.shatterRange;
+      const shatterDmg = enemy.maxHealth * cfg.ice.shatterDamagePercent;
 
       this.waveManager.enemies.getChildren().forEach((obj) => {
         const e = obj as Enemy;
         if (e === enemy || e.isDead()) return;
         const dist = Phaser.Math.Distance.Between(ex, ey, e.x, e.y);
         if (dist <= shatterRadius) {
-          e._uf(shatterDmg);
+          const killed = e._uf(shatterDmg);
+          if (killed) {
+            this.handleEnemyKill(e);
+          } else {
+            // Apply chill to survivors
+            e.applyChill(cfg.ice.chillSlowAmount, cfg.ice.chillDuration);
+          }
         }
       });
-
       this.spawnShatterEffect(ex, ey, shatterRadius);
     }
   }
@@ -1956,6 +2152,8 @@ export class GameScene extends Phaser.Scene {
 
   /** Lingering poison cloud that ticks poison on nearby enemies */
   private spawnPoisonCloud(x: number, y: number, radius: number, poisonAmp: number, poisonDuration: number): void {
+    const cfg = ELEMENTAL_EVOLUTION_CONFIG.poison;
+
     // Visual cloud
     const cloudGraphics = this.add.graphics();
     if (this.effectsOpacity > 0) {
@@ -1964,15 +2162,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Tick timer - apply poison to enemies in range periodically
-    const tickRate = STATUS_EFFECT_CONFIG.poison.cloudTickRate;
-    const cloudLife = STATUS_EFFECT_CONFIG.poison.cloudDuration;
-    let elapsed = 0;
+    const tickRate = cfg.cloudTickRate;
+    const cloudLife = cfg.cloudDuration;
 
     const tickEvent = this.time.addEvent({
       delay: tickRate,
       repeat: Math.floor(cloudLife / tickRate) - 1,
       callback: () => {
-        elapsed += tickRate;
         this.waveManager.enemies.getChildren().forEach((obj) => {
           const e = obj as Enemy;
           if (e.isDead()) return;
@@ -2037,7 +2233,10 @@ export class GameScene extends Phaser.Scene {
     if (baseThorns > 0 && !enemy.isDead()) {
       const damageModifier = this.upgradeManager.getModifier('damage');
       const thornsDamage = baseThorns * (1 + damageModifier);
-      enemy._uf(thornsDamage);
+      const killed = enemy._uf(thornsDamage);
+      if (killed) {
+        this.handleEnemyKill(enemy);
+      }
     }
   }
 

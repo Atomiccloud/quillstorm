@@ -25,6 +25,31 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Bomber replaces healer at wave 15, creating area denial mechanics',
       // Spawn pacing
       'Slightly increased breathing room between enemy spawns in later waves',
+      // Upgrade balance pass
+      'Thick Quills buffed: bigger quills, knockback, and bonus damage',
+      'Quick Draw + Aerodynamic merged into Swift Quills (fire rate + speed + distance damage)',
+      'All armor upgrades now include thorns reflection',
+      'All evasion upgrades buffed — dodging can now counter-attack enemies',
+      // New mechanics
+      'New mechanic: Knockback — quills push enemies on hit',
+      'New mechanic: Distance Damage — quills deal bonus damage at range',
+      'New mechanic: Dodge Counter — successful dodges can execute attackers',
+      // Companion overhaul
+      'Companions now inherit your build — damage, crit, speed, elemental, and more at scaled efficiency',
+      'Companion efficiency: 40% base + 3% per companion (up to 70%)',
+      'Companions fire 20% of your projectile count and scale with your fire rate',
+      'Companion range increased to 600px',
+      // Kill handling fixes
+      'All kill sources now properly award score, XP, and drops (burn, explosion, shatter, thorns)',
+      // Elemental overhaul
+      'Elemental overhaul: each element now evolves through 4 tiers at strength 2/5/8/12',
+      'Lightning: stun + chain arcs that scale with strength (more arcs, longer stun, arc stun chance)',
+      'Ice: 70% slow at T1 → direct freeze at T2 → frost aura at T3 → shatter on death at T4',
+      'Fire: burn DoT with +50% DPS at T2, death spread at T2+, burn slow at T3, explosion at T4',
+      'Poison: 25% amp per strength per stack, stack growth at T2, death spread at T3, execute <15% HP at T4',
+      '4 new dual-element epic upgrades: Tempest, Wildfire, Frostfire, Venomshock',
+      'New legendary: Elemental Convergence (+3 all elements, 20% secondary proc chance)',
+      'Removed 8 old elemental upgrades absorbed into evolution tiers (73 total upgrades)',
     ],
   },
   {

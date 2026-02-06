@@ -15,7 +15,7 @@ export interface UpgradeEntry {
 export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   // ===== COMMON =====
   damage_1: { effects: { damage: 0.1 } },
-  fire_rate_1: { effects: { fireRate: 0.10, projectileSpeed: 0.15, distanceDamage: 0.25 } },
+  fire_rate_1: { effects: { fireRate: 0.10, projectileSpeed: 0.15, distanceDamage: 0.40 } },
   max_quills_1: { effects: { maxQuills: 5 } },
   regen_1: { effects: { regenRate: 0.2 } },
   speed_1: { effects: { moveSpeed: 0.1 } },
@@ -80,10 +80,10 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   smart_missiles: { effects: { homingStrength: 0.7, piercing: 1 } },
   golden_touch: { effects: { prosperity: 25, maxHealth: 10 } },
   danger_3: { effects: { dangerLevel: 3 } },
-  thunder_strike: { effects: { shockStrength: 3, chainLightning: 3 } },
-  blizzard_quills: { effects: { freezeStrength: 3, frostSlow: 0.5 } },
-  inferno_quills: { effects: { burnStrength: 3, fireAura: 30 } },
-  plague_bearer: { effects: { poisonStrength: 3, poisonSpread: 1 } },
+  tempest: { effects: { shockStrength: 2, freezeStrength: 2 } },
+  wildfire: { effects: { burnStrength: 2, poisonStrength: 2 } },
+  frostfire: { effects: { burnStrength: 2, freezeStrength: 2 } },
+  venomshock: { effects: { shockStrength: 2, poisonStrength: 2 } },
   diamond_hide: { effects: { armor: 0.22, thorns: 12 } },
   phantom_porcupine: { effects: { evasion: 0.22, moveSpeed: 0.10 } },
 
@@ -98,10 +98,7 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   vampire_lord: { effects: { vampirismStrength: 3, damage: 0.3 }, maxStacks: 1 },
   immortal_fortress: { effects: { shieldCharges: 4, maxHealth: 100 }, maxStacks: 1 },
   midas: { effects: { prosperity: 40, damage: 0.15 }, maxStacks: 1 },
-  storm_caller: { effects: { shockStrength: 5, chainLightning: 3 } },
-  absolute_zero: { effects: { freezeStrength: 5, shatterDamage: 0.5 } },
-  hellfire: { effects: { burnStrength: 5, fireExplosion: 80 } },
-  pandemic: { effects: { poisonStrength: 5, poisonCloud: 50 } },
+  elemental_convergence: { effects: { shockStrength: 3, freezeStrength: 3, burnStrength: 3, poisonStrength: 3 }, maxStacks: 1 },
   living_bastion: { effects: { armor: 0.45, thorns: 24, maxHealth: 25 } },
   wraith_form: { effects: { evasion: 0.28, moveSpeed: 0.15 } },
 

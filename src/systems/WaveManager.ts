@@ -24,6 +24,8 @@ export class WaveManager {
 
   // Callback for when a splitter dies - GameScene sets this
   public onSplitterDeath: ((x: number, y: number) => void) | null = null;
+  // Callback for kills not handled by quill/explosion (e.g. burn DoT kills)
+  public onUnhandledKill?: (enemy: Enemy) => void;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -217,10 +219,13 @@ export class WaveManager {
       }
     }
 
-    // Clean up dead enemies
+    // Clean up dead enemies (handle unprocessed kills like burn DoT)
     this.enemies.getChildren().forEach((enemy) => {
       const e = enemy as Enemy;
       if (e.isDead()) {
+        if (!e._killHandled && this.onUnhandledKill) {
+          this.onUnhandledKill(e);
+        }
         e.destroy();
       }
     });
