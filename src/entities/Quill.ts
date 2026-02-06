@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { QUILL_CONFIG, COLORS } from '../config';
+import { QUILL_CONFIG, COLORS, DISTANCE_DAMAGE_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class Quill extends Phaser.GameObjects.Container {
@@ -20,6 +20,8 @@ export class Quill extends Phaser.GameObjects.Container {
   private rainbow: boolean;
   private rainbowColors: number[] = [0xff0000, 0xff8800, 0xffff00, 0x00ff00, 0x0088ff, 0x8800ff];
   private rainbowTimer: number = 0;
+  private spawnX: number;
+  private spawnY: number;
 
   public damage: number;
   public isEmpowered: boolean = false;
@@ -38,6 +40,8 @@ export class Quill extends Phaser.GameObjects.Container {
   ) {
     super(scene, x, y);
 
+    this.spawnX = x;
+    this.spawnY = y;
     this.upgradeManager = upgradeManager;
     this.isEmpowered = empowered ?? false;
     this.quillColor = quillColor ?? COLORS.quill;
@@ -223,6 +227,14 @@ export class Quill extends Phaser.GameObjects.Container {
   }
 
   onHitEnemy(): boolean {
+    // Apply distance damage bonus before crit (so crit multiplies it)
+    const distDamageMod = this.upgradeManager.getModifier('distanceDamage');
+    if (distDamageMod > 0) {
+      const dist = Phaser.Math.Distance.Between(this.spawnX, this.spawnY, this.x, this.y);
+      const distRatio = Math.min(dist / DISTANCE_DAMAGE_CONFIG.maxDistance, 1.0);
+      this.damage *= (1 + distDamageMod * distRatio);
+    }
+
     // Check for crit (empowered quills from Apotheosis always crit)
     // v0.5.0: Crit now has diminishing returns: effective = raw / (raw + 1)
     const rawCrit = this.upgradeManager.getModifier('critChance');

@@ -56,6 +56,11 @@ export class Enemy extends Phaser.GameObjects.Container {
   // Bomber state
   private lastBombTime: number = 0;
 
+  // Knockback state
+  private knockbackTimer: number = 0;
+  private knockbackVx: number = 0;
+  private knockbackVy: number = 0;
+
   // Status effects
   private shockTimer: number = 0;
   private freezeTimer: number = 0;
@@ -173,6 +178,14 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     // Update status effects
     this.updateStatusEffects(delta);
+
+    // Handle knockback (takes priority, skips AI)
+    if (this.knockbackTimer > 0) {
+      this.knockbackTimer -= delta;
+      this.body.setVelocity(this.knockbackVx, this.knockbackVy);
+      this.draw();
+      return;
+    }
 
     // If stunned or frozen, skip all AI (movement, attacks, abilities)
     if (this._isStunned || this._isFrozen) {
@@ -1328,6 +1341,15 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (duration > this.freezeTimer) {
       this.freezeTimer = duration;
     }
+  }
+
+  applyKnockback(forceX: number, forceY: number, duration: number): void {
+    // Skip if stunned, frozen, burrowed, rolling, or boss
+    if (this._isStunned || this._isFrozen || this.isBurrowed || this.isRolling) return;
+    if (this.enemyType === 'boss' || this.enemyType === 'flyingBoss') return;
+    this.knockbackTimer = duration;
+    this.knockbackVx = forceX;
+    this.knockbackVy = forceY;
   }
 
   applyBurn(dps: number, duration: number): void {

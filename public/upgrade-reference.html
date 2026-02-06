@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quillstorm — Upgrade Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-surface: #16162a;
+    --bg-hover: #222240;
+    --border: #2a2a4a;
+    --text: #e0e0f0;
+    --text-dim: #8888aa;
+    --text-muted: #555577;
+
+    --common: #9ca3af;
+    --common-bg: rgba(156,163,175,0.08);
+    --uncommon: #4ade80;
+    --uncommon-bg: rgba(74,222,128,0.08);
+    --rare: #60a5fa;
+    --rare-bg: rgba(96,165,250,0.08);
+    --epic: #c084fc;
+    --epic-bg: rgba(192,132,252,0.08);
+    --legendary: #fb923c;
+    --legendary-bg: rgba(251,146,60,0.08);
+    --mythic: #f472b6;
+    --mythic-bg: rgba(244,114,182,0.12);
+
+    --lightning: #facc15;
+    --ice: #7dd3fc;
+    --fire: #f97316;
+    --poison: #4ade80;
+    --defense-armor: #94a3b8;
+    --defense-evasion: #a78bfa;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a1a3e 0%, #0f0f2a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 2rem 2rem 1.5rem;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f472b6, #fb923c, #facc15);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    color: var(--text-dim);
+    margin-top: 0.3rem;
+    font-size: 0.95rem;
+  }
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .stat-badge {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+  .stat-badge strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  /* Navigation */
+  .nav-outer {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,26,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0.75rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .nav-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .nav-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 48px;
+  }
+  .filter-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .filter-btn:hover { background: var(--bg-hover); color: var(--text); }
+  .filter-btn.active { border-color: currentColor; }
+  .filter-btn.active[data-rarity="all"] { color: var(--text); border-color: var(--text-dim); }
+  .filter-btn.active[data-rarity="common"] { color: var(--common); background: var(--common-bg); }
+  .filter-btn.active[data-rarity="uncommon"] { color: var(--uncommon); background: var(--uncommon-bg); }
+  .filter-btn.active[data-rarity="rare"] { color: var(--rare); background: var(--rare-bg); }
+  .filter-btn.active[data-rarity="epic"] { color: var(--epic); background: var(--epic-bg); }
+  .filter-btn.active[data-rarity="legendary"] { color: var(--legendary); background: var(--legendary-bg); }
+  .filter-btn.active[data-rarity="mythic"] { color: var(--mythic); background: var(--mythic-bg); }
+
+  .filter-btn.active[data-cat="all"] { color: var(--text); border-color: var(--text-dim); }
+  .filter-btn.active[data-cat="offense"] { color: #f87171; border-color: #f87171; background: rgba(248,113,113,0.08); }
+  .filter-btn.active[data-cat="defense"] { color: #60a5fa; border-color: #60a5fa; background: rgba(96,165,250,0.08); }
+  .filter-btn.active[data-cat="utility"] { color: #fbbf24; border-color: #fbbf24; background: rgba(251,191,36,0.08); }
+  .filter-btn.active[data-cat="elemental"] { color: #a78bfa; border-color: #a78bfa; background: rgba(167,139,250,0.08); }
+  .filter-btn.active[data-cat="special"] { color: #f472b6; border-color: #f472b6; background: rgba(244,114,182,0.08); }
+
+  .search-input {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text);
+    font-family: inherit;
+    width: 200px;
+    outline: none;
+    margin-left: auto;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-input:focus { border-color: #60a5fa; }
+
+  /* Main content */
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 4rem;
+  }
+
+  /* Sections */
+  .section {
+    margin-bottom: 2.5rem;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-header h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .section-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  /* Rarity drop table */
+  .rarity-table {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  .rarity-cell {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: transform 0.15s;
+  }
+  .rarity-cell:hover { transform: translateY(-2px); }
+  .rarity-cell .rarity-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.25rem;
+  }
+  .rarity-cell .rarity-chance {
+    font-size: 1.4rem;
+    font-weight: 800;
+  }
+  .rarity-cell .rarity-bar {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+  }
+  .rarity-cell[data-r="common"] .rarity-name, .rarity-cell[data-r="common"] .rarity-chance { color: var(--common); }
+  .rarity-cell[data-r="common"] .rarity-bar { background: var(--common); }
+  .rarity-cell[data-r="uncommon"] .rarity-name, .rarity-cell[data-r="uncommon"] .rarity-chance { color: var(--uncommon); }
+  .rarity-cell[data-r="uncommon"] .rarity-bar { background: var(--uncommon); }
+  .rarity-cell[data-r="rare"] .rarity-name, .rarity-cell[data-r="rare"] .rarity-chance { color: var(--rare); }
+  .rarity-cell[data-r="rare"] .rarity-bar { background: var(--rare); }
+  .rarity-cell[data-r="epic"] .rarity-name, .rarity-cell[data-r="epic"] .rarity-chance { color: var(--epic); }
+  .rarity-cell[data-r="epic"] .rarity-bar { background: var(--epic); }
+  .rarity-cell[data-r="legendary"] .rarity-name, .rarity-cell[data-r="legendary"] .rarity-chance { color: var(--legendary); }
+  .rarity-cell[data-r="legendary"] .rarity-bar { background: var(--legendary); }
+  .rarity-cell[data-r="mythic"] .rarity-name, .rarity-cell[data-r="mythic"] .rarity-chance { color: var(--mythic); }
+  .rarity-cell[data-r="mythic"] .rarity-bar { background: var(--mythic); }
+
+  /* Upgrade grid */
+  .upgrade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .upgrade-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    transition: all 0.15s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .upgrade-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 10px 0 0 10px;
+  }
+  .upgrade-card:hover { border-color: #444466; transform: translateY(-1px); }
+
+  .upgrade-card[data-rarity="common"]::before { background: var(--common); }
+  .upgrade-card[data-rarity="uncommon"]::before { background: var(--uncommon); }
+  .upgrade-card[data-rarity="rare"]::before { background: var(--rare); }
+  .upgrade-card[data-rarity="epic"]::before { background: var(--epic); }
+  .upgrade-card[data-rarity="legendary"]::before { background: var(--legendary); }
+  .upgrade-card[data-rarity="mythic"]::before { background: linear-gradient(180deg, var(--mythic), #a855f7); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+  .card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  .upgrade-card[data-rarity="common"] .card-name { color: var(--common); }
+  .upgrade-card[data-rarity="uncommon"] .card-name { color: var(--uncommon); }
+  .upgrade-card[data-rarity="rare"] .card-name { color: var(--rare); }
+  .upgrade-card[data-rarity="epic"] .card-name { color: var(--epic); }
+  .upgrade-card[data-rarity="legendary"] .card-name { color: var(--legendary); }
+  .upgrade-card[data-rarity="mythic"] .card-name { color: var(--mythic); }
+
+  .card-badges {
+    display: flex;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+  .badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .badge-rarity {
+    border: 1px solid;
+  }
+  .badge-rarity[data-r="common"] { color: var(--common); border-color: rgba(156,163,175,0.3); }
+  .badge-rarity[data-r="uncommon"] { color: var(--uncommon); border-color: rgba(74,222,128,0.3); }
+  .badge-rarity[data-r="rare"] { color: var(--rare); border-color: rgba(96,165,250,0.3); }
+  .badge-rarity[data-r="epic"] { color: var(--epic); border-color: rgba(192,132,252,0.3); }
+  .badge-rarity[data-r="legendary"] { color: var(--legendary); border-color: rgba(251,146,60,0.3); }
+  .badge-rarity[data-r="mythic"] { color: var(--mythic); border-color: rgba(244,114,182,0.3); }
+
+  .badge-stacks {
+    color: var(--text-dim);
+    background: rgba(136,136,170,0.1);
+    border: 1px solid rgba(136,136,170,0.2);
+  }
+
+  .badge-cat {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    color: var(--text-muted);
+    background: rgba(85,85,119,0.15);
+    border: 1px solid rgba(85,85,119,0.2);
+  }
+
+  .card-desc {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 0.6rem;
+    line-height: 1.4;
+  }
+
+  .card-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .effect-tag {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(96,165,250,0.1);
+    color: #93c5fd;
+    border: 1px solid rgba(96,165,250,0.15);
+  }
+  .effect-tag.negative {
+    background: rgba(248,113,113,0.1);
+    color: #fca5a5;
+    border-color: rgba(248,113,113,0.15);
+  }
+  .effect-tag.element-lightning {
+    background: rgba(250,204,21,0.1);
+    color: var(--lightning);
+    border-color: rgba(250,204,21,0.15);
+  }
+  .effect-tag.element-ice {
+    background: rgba(125,211,252,0.1);
+    color: var(--ice);
+    border-color: rgba(125,211,252,0.15);
+  }
+  .effect-tag.element-fire {
+    background: rgba(249,115,22,0.1);
+    color: var(--fire);
+    border-color: rgba(249,115,22,0.15);
+  }
+  .effect-tag.element-poison {
+    background: rgba(74,222,128,0.1);
+    color: var(--poison);
+    border-color: rgba(74,222,128,0.15);
+  }
+  .effect-tag.defense {
+    background: rgba(148,163,184,0.1);
+    color: var(--defense-armor);
+    border-color: rgba(148,163,184,0.15);
+  }
+  .effect-tag.prosperity {
+    background: rgba(251,191,36,0.1);
+    color: #fbbf24;
+    border-color: rgba(251,191,36,0.15);
+  }
+  .effect-tag.danger {
+    background: rgba(239,68,68,0.1);
+    color: #f87171;
+    border-color: rgba(239,68,68,0.15);
+  }
+  .effect-tag.mythic-tag {
+    background: rgba(244,114,182,0.1);
+    color: var(--mythic);
+    border-color: rgba(244,114,182,0.15);
+  }
+  .effect-tag.companion {
+    background: rgba(251,191,36,0.1);
+    color: #fbbf24;
+    border-color: rgba(251,191,36,0.15);
+  }
+
+  /* Info panels */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .info-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .info-panel h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .info-panel h3 .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  .info-table th {
+    text-align: left;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+  }
+  .info-table td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid rgba(42,42,74,0.5);
+    color: var(--text-dim);
+  }
+  .info-table td:first-child { color: var(--text); font-weight: 500; }
+  .info-table tr:last-child td { border-bottom: none; }
+
+  .no-results {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    display: none;
+  }
+
+  /* Collapsible sections */
+  .collapse-toggle {
+    cursor: pointer;
+    user-select: none;
+  }
+  .collapse-toggle::after {
+    content: ' \25BC';
+    font-size: 0.7em;
+    color: var(--text-muted);
+  }
+  .collapse-toggle.collapsed::after {
+    content: ' \25B6';
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .rarity-table { grid-template-columns: repeat(3, 1fr); }
+    .upgrade-grid { grid-template-columns: 1fr; }
+    .nav { padding: 0.5rem 1rem; }
+    .container { padding: 1rem; }
+    .header { padding: 1.5rem 1rem 1rem; }
+    .header h1 { font-size: 1.6rem; }
+    .info-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .rarity-table { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Quillstorm Upgrade Reference</h1>
+  <p>Complete guide to all upgrades, rarities, and mechanics</p>
+  <div class="stats-row">
+    <div class="stat-badge"><strong>75</strong> upgrades total</div>
+    <div class="stat-badge"><strong>6</strong> rarity tiers</div>
+    <div class="stat-badge"><strong>4</strong> elements</div>
+    <div class="stat-badge"><strong>3</strong> mythics</div>
+    <div class="stat-badge"><strong>3</strong> choices per selection</div>
+  </div>
+</div>
+
+<div class="nav-outer">
+  <div class="nav">
+    <div class="nav-row">
+      <span class="nav-label">Rarity</span>
+      <button class="filter-btn active" data-rarity="all" onclick="setRarity('all')">All</button>
+      <button class="filter-btn" data-rarity="common" onclick="setRarity('common')">Common</button>
+      <button class="filter-btn" data-rarity="uncommon" onclick="setRarity('uncommon')">Uncommon</button>
+      <button class="filter-btn" data-rarity="rare" onclick="setRarity('rare')">Rare</button>
+      <button class="filter-btn" data-rarity="epic" onclick="setRarity('epic')">Epic</button>
+      <button class="filter-btn" data-rarity="legendary" onclick="setRarity('legendary')">Legendary</button>
+      <button class="filter-btn" data-rarity="mythic" onclick="setRarity('mythic')">Mythic</button>
+      <input class="search-input" type="text" placeholder="Search upgrades..." oninput="applyFilters()">
+    </div>
+    <div class="nav-row">
+      <span class="nav-label">Type</span>
+      <button class="filter-btn active" data-cat="all" onclick="setCat('all')">All</button>
+      <button class="filter-btn" data-cat="offense" onclick="setCat('offense')">Offense</button>
+      <button class="filter-btn" data-cat="defense" onclick="setCat('defense')">Defense</button>
+      <button class="filter-btn" data-cat="utility" onclick="setCat('utility')">Utility</button>
+      <button class="filter-btn" data-cat="elemental" onclick="setCat('elemental')">Elemental</button>
+      <button class="filter-btn" data-cat="special" onclick="setCat('special')">Special</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Rarity Drop Rates -->
+  <div class="section">
+    <div class="section-header">
+      <h2>Base Drop Rates (Level-Up)</h2>
+    </div>
+    <div class="rarity-table">
+      <div class="rarity-cell" data-r="common">
+        <div class="rarity-name">Common</div>
+        <div class="rarity-chance">65%</div>
+        <div class="rarity-bar" style="width:100%"></div>
+      </div>
+      <div class="rarity-cell" data-r="uncommon">
+        <div class="rarity-name">Uncommon</div>
+        <div class="rarity-chance">25%</div>
+        <div class="rarity-bar" style="width:38%"></div>
+      </div>
+      <div class="rarity-cell" data-r="rare">
+        <div class="rarity-name">Rare</div>
+        <div class="rarity-chance">6%</div>
+        <div class="rarity-bar" style="width:9%"></div>
+      </div>
+      <div class="rarity-cell" data-r="epic">
+        <div class="rarity-name">Epic</div>
+        <div class="rarity-chance">3.5%</div>
+        <div class="rarity-bar" style="width:5%"></div>
+      </div>
+      <div class="rarity-cell" data-r="legendary">
+        <div class="rarity-name">Legendary</div>
+        <div class="rarity-chance">0.49%</div>
+        <div class="rarity-bar" style="width:2%"></div>
+      </div>
+      <div class="rarity-cell" data-r="mythic">
+        <div class="rarity-name">Mythic</div>
+        <div class="rarity-chance">0.01%</div>
+        <div class="rarity-bar" style="width:1%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Systems Reference -->
+  <div class="section">
+    <div class="section-header">
+      <h2 class="collapse-toggle" onclick="toggleSection(this, 'systems-content')">Systems Reference</h2>
+    </div>
+    <div id="systems-content" class="info-grid">
+      <!-- Elemental Proc Chances -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:var(--lightning)"></span>Elemental Proc System</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">chance = (str &times; 0.1) / (1 + str &times; 0.1)</code>
+        </p>
+        <table class="info-table">
+          <tr><th>Strength</th><th>Proc Chance</th></tr>
+          <tr><td>2</td><td>16.7%</td></tr>
+          <tr><td>3</td><td>23.1%</td></tr>
+          <tr><td>5</td><td>33.3%</td></tr>
+          <tr><td>8</td><td>44.4%</td></tr>
+          <tr><td>10</td><td>50.0%</td></tr>
+          <tr><td>15</td><td>60.0%</td></tr>
+          <tr><td>20</td><td>66.7%</td></tr>
+        </table>
+      </div>
+
+      <!-- Vampirism -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#f87171"></span>Vampirism System</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Proc: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">stacks / (stacks + 20)</code> &nbsp;
+          Heal: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">8 + (stacks &times; 3)</code>
+        </p>
+        <table class="info-table">
+          <tr><th>Stacks</th><th>Proc</th><th>Heal</th></tr>
+          <tr><td>1</td><td>4.8%</td><td>11 HP</td></tr>
+          <tr><td>4</td><td>16.7%</td><td>20 HP</td></tr>
+          <tr><td>5</td><td>20.0%</td><td>23 HP</td></tr>
+          <tr><td>10</td><td>33.3%</td><td>38 HP</td></tr>
+          <tr><td>20</td><td>50.0%</td><td>68 HP</td></tr>
+        </table>
+      </div>
+
+      <!-- Armor -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:var(--defense-armor)"></span>Armor (Damage Reduction)</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + armor/100) / (ln(1 + armor/100) + 1.5)</code>
+        </p>
+        <table class="info-table">
+          <tr><th>Armor</th><th>Reduction</th></tr>
+          <tr><td>5</td><td>3.2%</td></tr>
+          <tr><td>15</td><td>9.0%</td></tr>
+          <tr><td>30</td><td>16.0%</td></tr>
+          <tr><td>50</td><td>21.3%</td></tr>
+          <tr><td>100</td><td>31.6%</td></tr>
+          <tr><td>200</td><td>42.3%</td></tr>
+        </table>
+      </div>
+
+      <!-- Evasion -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:var(--defense-evasion)"></span>Evasion (Dodge Chance)</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + evasion/100) / (ln(1 + evasion/100) + 2.0)</code>
+        </p>
+        <table class="info-table">
+          <tr><th>Evasion</th><th>Dodge</th></tr>
+          <tr><td>5</td><td>2.4%</td></tr>
+          <tr><td>15</td><td>6.9%</td></tr>
+          <tr><td>30</td><td>11.6%</td></tr>
+          <tr><td>50</td><td>16.8%</td></tr>
+          <tr><td>100</td><td>25.7%</td></tr>
+          <tr><td>200</td><td>35.5%</td></tr>
+        </table>
+      </div>
+
+      <!-- Crit -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#f97316"></span>Critical Hits</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Effective: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">rawCrit / (rawCrit + 1)</code> &nbsp;
+          Base damage: <strong style="color:var(--text)">2.0x</strong>
+        </p>
+        <table class="info-table">
+          <tr><th>Raw Crit</th><th>Effective</th></tr>
+          <tr><td>10%</td><td>9%</td></tr>
+          <tr><td>25%</td><td>20%</td></tr>
+          <tr><td>50%</td><td>33%</td></tr>
+          <tr><td>100%</td><td>50%</td></tr>
+          <tr><td>200%</td><td>67%</td></tr>
+        </table>
+      </div>
+
+      <!-- Shields -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#22d3ee"></span>Shield System</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Max charges: <strong style="color:var(--text)">10</strong> &nbsp;|&nbsp; Reset each wave &nbsp;|&nbsp; Diminishing iframes
+        </p>
+        <table class="info-table">
+          <tr><th>Hit #</th><th>Iframe</th></tr>
+          <tr><td>1st</td><td>400ms</td></tr>
+          <tr><td>2nd</td><td>240ms (&times;0.6)</td></tr>
+          <tr><td>3rd</td><td>144ms (&times;0.6)</td></tr>
+          <tr><td>4th+</td><td>100ms (floor)</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Resets to 400ms after 2s without breaks. Infinite swarm: regen 1 charge/30s.</p>
+      </div>
+
+      <!-- Prosperity -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#fbbf24"></span>Prosperity Effects</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Affects chest drop rates and rarity weights. Stacks infinitely.
+        </p>
+        <table class="info-table">
+          <tr><th>Prosperity</th><th>Chest Drop</th><th>Common</th><th>Rare+</th></tr>
+          <tr><td>0</td><td>1%</td><td>65%</td><td>6%</td></tr>
+          <tr><td>100</td><td>7%</td><td>25%</td><td>10%</td></tr>
+          <tr><td>200</td><td>10%</td><td>19%</td><td>20%</td></tr>
+          <tr><td>500</td><td>13%</td><td>1%</td><td>48%</td></tr>
+        </table>
+      </div>
+
+      <!-- Danger -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#ef4444"></span>Danger Level</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Opt-in difficulty. Each stack boosts enemies AND rewards.
+        </p>
+        <table class="info-table">
+          <tr><th>Per Stack</th><th>Value</th></tr>
+          <tr><td>Enemy HP</td><td>+12%</td></tr>
+          <tr><td>Enemy Damage</td><td>+8%</td></tr>
+          <tr><td>Elite Chance</td><td>+3%</td></tr>
+          <tr><td>Score Bonus</td><td>+15%</td></tr>
+          <tr><td>XP Bonus</td><td>+10%</td></tr>
+        </table>
+      </div>
+
+      <!-- Knockback -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#a78bfa"></span>Knockback</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Force: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">modifier &times; 200 px/s</code> &nbsp;
+          Duration: <strong style="color:var(--text)">150ms</strong>
+        </p>
+        <table class="info-table">
+          <tr><th>Feature</th><th>Detail</th></tr>
+          <tr><td>Direction</td><td>Hit angle (quill &rarr; enemy)</td></tr>
+          <tr><td>Explosion</td><td>Push away from blast center</td></tr>
+          <tr><td>Immune</td><td>Bosses, stunned, frozen, burrowed, rolling</td></tr>
+        </table>
+      </div>
+
+      <!-- Distance Damage -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#38bdf8"></span>Distance Damage</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">dmg &times;= (1 + mod &times; min(dist/400, 1))</code>
+        </p>
+        <table class="info-table">
+          <tr><th>Distance</th><th>Bonus (+0.25 mod)</th></tr>
+          <tr><td>100px</td><td>+6.25%</td></tr>
+          <tr><td>200px</td><td>+12.5%</td></tr>
+          <tr><td>400px+</td><td>+25% (max)</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Applied before crit &mdash; crit multiplies the distance bonus.</p>
+      </div>
+
+      <!-- Dodge Counter -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:var(--defense-evasion)"></span>Dodge Counter</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          On successful dodge, chance to execute/chunk the attacker. Based on <strong style="color:var(--text)">highest evasion tier</strong>.
+        </p>
+        <table class="info-table">
+          <tr><th>Evasion Tier</th><th>Execute Chance</th></tr>
+          <tr><td>Common</td><td>30%</td></tr>
+          <tr><td>Uncommon</td><td>40%</td></tr>
+          <tr><td>Rare</td><td>60%</td></tr>
+          <tr><td>Epic</td><td>80%</td></tr>
+          <tr><td>Legendary</td><td>90%</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Normal enemies: instant kill. Elites/Bosses: 25% max HP (scales with damage modifier).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Upgrades -->
+  <div class="section">
+    <div class="section-header">
+      <h2>All Upgrades</h2>
+      <span class="section-count" id="visible-count">75 shown</span>
+    </div>
+    <div class="no-results" id="no-results">No upgrades match your filters.</div>
+    <div class="upgrade-grid" id="upgrade-grid">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+</div>
+
+<script>
+const UPGRADES = [
+  // COMMON
+  { id:'damage_1', name:'Sharp Quills', desc:'Your quills deal more damage.', rarity:'common', cat:'offense', effects:{damage:0.1}, stacks:null },
+  { id:'fire_rate_1', name:'Swift Quills', desc:'Faster attacks with quills that hit harder at range.', rarity:'common', cat:'offense', effects:{fireRate:0.10, projectileSpeed:0.15, distanceDamage:0.25}, stacks:null },
+  { id:'max_quills_1', name:'Extra Quills', desc:'Grow more quills on your back.', rarity:'common', cat:'offense', effects:{maxQuills:5}, stacks:null },
+  { id:'regen_1', name:'Quick Recovery', desc:'Regenerate quills faster.', rarity:'common', cat:'utility', effects:{regenRate:0.2}, stacks:null },
+  { id:'speed_1', name:'Light Feet', desc:'Move faster.', rarity:'common', cat:'utility', effects:{moveSpeed:0.1}, stacks:null },
+  { id:'health_1', name:'Thick Hide', desc:'Increase your maximum health.', rarity:'common', cat:'defense', effects:{maxHealth:20}, stacks:null },
+  { id:'thick_quills', name:'Thick Quills', desc:'Heavy quills slam enemies back on impact.', rarity:'common', cat:'offense', effects:{projectileSize:0.5, knockback:1, damage:0.05}, stacks:null },
+  { id:'life_leech_1', name:'Life Leech', desc:'Chance to heal when dealing damage. Stacks increase proc rate and healing.', rarity:'common', cat:'special', effects:{vampirismStrength:1}, stacks:null },
+  { id:'lucky_find', name:'Lucky Find', desc:'Slightly increases chest drops and rarity.', rarity:'common', cat:'utility', effects:{prosperity:5}, stacks:null },
+  { id:'tough_skin', name:'Tough Skin', desc:'Thicker hide reduces and reflects damage. +8 Armor, +2 Thorns.', rarity:'common', cat:'defense', effects:{armor:0.08, thorns:2}, stacks:null },
+  { id:'quick_reflexes', name:'Quick Reflexes', desc:'Nimble footwork to dodge and counter attacks. +8 Evasion.', rarity:'common', cat:'defense', effects:{evasion:0.08}, stacks:null },
+
+  // UNCOMMON
+  { id:'damage_2', name:'Razor Quills', desc:'Significantly sharper quills.', rarity:'uncommon', cat:'offense', effects:{damage:0.2}, stacks:null },
+  { id:'fire_rate_2', name:'Rapid Fire', desc:'Greatly increased fire rate.', rarity:'uncommon', cat:'offense', effects:{fireRate:0.25}, stacks:null },
+  { id:'max_quills_2', name:'Quill Overload', desc:'Grow many more quills.', rarity:'uncommon', cat:'offense', effects:{maxQuills:10}, stacks:null },
+  { id:'crit_1', name:'Vital Points', desc:'Chance to deal critical damage.', rarity:'uncommon', cat:'offense', effects:{critChance:0.1}, stacks:null },
+  { id:'multi_1', name:'Double Shot', desc:'Fire an additional quill per shot.', rarity:'uncommon', cat:'offense', effects:{projectileCount:1}, stacks:4 },
+  { id:'jump_1', name:'Strong Legs', desc:'Jump higher.', rarity:'uncommon', cat:'utility', effects:{jumpHeight:0.2}, stacks:null },
+  { id:'combo_damage_speed', name:'Combat Training', desc:'Balanced improvement to damage and speed.', rarity:'uncommon', cat:'offense', effects:{damage:0.1, moveSpeed:0.1}, stacks:null },
+  { id:'explosive_tips', name:'Explosive Tips', desc:'Quills explode on impact, damaging nearby enemies.', rarity:'uncommon', cat:'offense', effects:{explosionRadius:40}, stacks:null },
+  { id:'seeker_quills', name:'Seeker Quills', desc:'Quills slightly track enemies.', rarity:'uncommon', cat:'offense', effects:{homingStrength:0.3}, stacks:null },
+  { id:'fortune_seeker', name:'Fortune Seeker', desc:'Better luck with drops and upgrade quality.', rarity:'uncommon', cat:'utility', effects:{prosperity:10}, stacks:null },
+  { id:'danger_1', name:'Reckless', desc:'+12% mob strength, +3% elite spawn chance, +10% XP.', rarity:'uncommon', cat:'special', effects:{dangerLevel:1}, stacks:null },
+  { id:'elite_hunter', name:'Elite Hunter', desc:'Deal bonus damage to elite enemies.', rarity:'uncommon', cat:'offense', effects:{eliteDamageBonus:0.25}, stacks:null },
+  { id:'static_quills', name:'Static Quills', desc:'Quills crackle with static. Chance to stun enemies.', rarity:'uncommon', cat:'elemental', effects:{shockStrength:2}, stacks:null, element:'lightning' },
+  { id:'frost_tips', name:'Frost Tips', desc:'Chilled quills that can briefly freeze enemies solid.', rarity:'uncommon', cat:'elemental', effects:{freezeStrength:2}, stacks:null, element:'ice' },
+  { id:'ember_quills', name:'Ember Quills', desc:'Smoldering quills set enemies ablaze. Burns stack.', rarity:'uncommon', cat:'elemental', effects:{burnStrength:2}, stacks:null, element:'fire' },
+  { id:'toxic_quills', name:'Toxic Quills', desc:'Venomous quills weaken enemies. Amplifies damage taken.', rarity:'uncommon', cat:'elemental', effects:{poisonStrength:2}, stacks:null, element:'poison' },
+  { id:'iron_quills', name:'Iron Quills', desc:'Hardened quills resist and reflect damage. +12 Armor, +4 Thorns.', rarity:'uncommon', cat:'defense', effects:{armor:0.12, thorns:4}, stacks:null },
+  { id:'acrobat', name:'Acrobat', desc:'Agile movements make you harder to hit. +12 Evasion.', rarity:'uncommon', cat:'defense', effects:{evasion:0.12}, stacks:null },
+
+  // RARE
+  { id:'pierce_1', name:'Piercing Quills', desc:'Quills pass through one enemy.', rarity:'rare', cat:'offense', effects:{piercing:1}, stacks:5 },
+  { id:'bounce_1', name:'Bouncing Quills', desc:'Quills bounce off walls twice.', rarity:'rare', cat:'offense', effects:{bouncing:2}, stacks:3 },
+  { id:'crit_2', name:'Deadly Precision', desc:'Increased critical hit chance and damage.', rarity:'rare', cat:'offense', effects:{critChance:0.15, critDamage:0.5}, stacks:null },
+  { id:'damage_3', name:'Lethal Quills', desc:'Massive damage increase.', rarity:'rare', cat:'offense', effects:{damage:0.35}, stacks:null },
+  { id:'multi_2', name:'Triple Shot', desc:'Fire two additional quills per shot.', rarity:'rare', cat:'offense', effects:{projectileCount:2}, stacks:2 },
+  { id:'sustain_1', name:'Endless Quills', desc:'Massive quill capacity and regeneration.', rarity:'rare', cat:'utility', effects:{maxQuills:15, regenRate:0.3}, stacks:null },
+  { id:'glass_cannon', name:'Glass Cannon', desc:'Huge damage boost but reduced health.', rarity:'rare', cat:'offense', effects:{damage:0.5, maxHealth:-30}, stacks:null },
+  { id:'cluster_bombs', name:'Cluster Bombs', desc:'Bigger explosions with more damage.', rarity:'rare', cat:'offense', effects:{explosionRadius:60, damage:0.2}, stacks:null },
+  { id:'reinforced_shield', name:'Reinforced Shield', desc:'Block one hit per wave. Shield cap: 10.', rarity:'rare', cat:'defense', effects:{shieldCharges:1}, stacks:null },
+  { id:'baby_buddy', name:'Baby Buddy', desc:'A baby porcupine fights alongside you!', rarity:'rare', cat:'special', effects:{companionCount:1}, stacks:4 },
+  { id:'treasure_hunter', name:'Treasure Hunter', desc:'Significantly better drops, plus bonus damage.', rarity:'rare', cat:'utility', effects:{prosperity:15, damage:0.05}, stacks:null },
+  { id:'danger_2', name:'Daredevil', desc:'+24% mob strength, +6% elite spawn chance, +20% XP.', rarity:'rare', cat:'special', effects:{dangerLevel:2}, stacks:null },
+  { id:'elite_slayer', name:'Elite Slayer', desc:'Massive bonus damage to elite enemies, with a small damage boost.', rarity:'rare', cat:'offense', effects:{eliteDamageBonus:0.50, damage:0.05}, stacks:null },
+  { id:'lightning_quills', name:'Lightning Quills', desc:'Electrified quills stop enemies dead in their tracks.', rarity:'rare', cat:'elemental', effects:{shockStrength:3}, stacks:null, element:'lightning' },
+  { id:'icicle_quills', name:'Icicle Quills', desc:'Deep cold locks enemies in place.', rarity:'rare', cat:'elemental', effects:{freezeStrength:3}, stacks:null, element:'ice' },
+  { id:'flame_quills', name:'Flame Quills', desc:'Hotter flames burn brighter and fiercer.', rarity:'rare', cat:'elemental', effects:{burnStrength:3}, stacks:null, element:'fire' },
+  { id:'noxious_spines', name:'Noxious Spines', desc:'Deeper venom makes enemies crumble faster.', rarity:'rare', cat:'elemental', effects:{poisonStrength:3}, stacks:null, element:'poison' },
+  { id:'porcupine_plate', name:'Porcupine Plate', desc:'Natural armor plating with spiny defense. +18 Armor, +6 Thorns, +20 HP.', rarity:'rare', cat:'defense', effects:{armor:0.18, thorns:6, maxHealth:20}, stacks:null },
+  { id:'shadow_step', name:'Shadow Step', desc:'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed.', rarity:'rare', cat:'defense', effects:{evasion:0.18, moveSpeed:0.05}, stacks:null },
+
+  // EPIC
+  { id:'pierce_2', name:'Impaling Quills', desc:'Quills pass through multiple enemies.', rarity:'epic', cat:'offense', effects:{piercing:3}, stacks:2 },
+  { id:'multi_3', name:'Shotgun Burst', desc:'Fire a spread of quills.', rarity:'epic', cat:'offense', effects:{projectileCount:4}, stacks:2 },
+  { id:'berserker', name:'Berserker', desc:'Move and shoot faster, but deal less damage per hit.', rarity:'epic', cat:'offense', effects:{fireRate:0.5, moveSpeed:0.3, damage:-0.2}, stacks:null },
+  { id:'crit_master', name:'Critical Master', desc:'High crit chance with devastating crits.', rarity:'epic', cat:'offense', effects:{critChance:0.25, critDamage:1.0}, stacks:null },
+  { id:'tank', name:'Armored Porcupine', desc:'Greatly increased health and quill capacity.', rarity:'epic', cat:'defense', effects:{maxHealth:50, maxQuills:20}, stacks:null },
+  { id:'speed_demon', name:'Speed Demon', desc:'Extreme movement and projectile speed.', rarity:'epic', cat:'utility', effects:{moveSpeed:0.4, projectileSpeed:0.5}, stacks:null },
+  { id:'devastation', name:'Devastation', desc:'Massive explosion radius with increased damage.', rarity:'epic', cat:'offense', effects:{explosionRadius:100, damage:0.4}, stacks:null },
+  { id:'porcupine_pack', name:'Porcupine Pack', desc:'Two baby porcupines join your fight!', rarity:'epic', cat:'special', effects:{companionCount:2}, stacks:2 },
+  { id:'fortress', name:'Fortress', desc:'Block two hits per wave and +30 HP. Shield cap: 10.', rarity:'epic', cat:'defense', effects:{shieldCharges:2, maxHealth:30}, stacks:null },
+  { id:'smart_missiles', name:'Smart Missiles', desc:'Homing quills that pierce enemies.', rarity:'epic', cat:'offense', effects:{homingStrength:0.7, piercing:1}, stacks:null },
+  { id:'danger_3', name:'Death Wish', desc:'+36% mob strength, +9% elite spawn chance, +30% XP.', rarity:'epic', cat:'special', effects:{dangerLevel:3}, stacks:null },
+  { id:'thunder_strike', name:'Thunder Strike', desc:'Lightning arcs to 3 nearby enemies on shock.', rarity:'epic', cat:'elemental', effects:{shockStrength:3, chainLightning:3}, stacks:null, element:'lightning' },
+  { id:'blizzard_quills', name:'Blizzard Quills', desc:'Frozen enemies chill nearby foes, slowing them 50%.', rarity:'epic', cat:'elemental', effects:{freezeStrength:3, frostSlow:0.5}, stacks:null, element:'ice' },
+  { id:'inferno_quills', name:'Inferno Quills', desc:'Burning enemies scorch nearby foes.', rarity:'epic', cat:'elemental', effects:{burnStrength:3, fireAura:30}, stacks:null, element:'fire' },
+  { id:'plague_bearer', name:'Plague Bearer', desc:'Poison spreads to nearby enemies when a poisoned foe dies.', rarity:'epic', cat:'elemental', effects:{poisonStrength:3, poisonSpread:1}, stacks:null, element:'poison' },
+  { id:'golden_touch', name:'Golden Touch', desc:'Major luck boost with extra health.', rarity:'epic', cat:'utility', effects:{prosperity:25, maxHealth:10}, stacks:null },
+  { id:'diamond_hide', name:'Diamond Hide', desc:'Impenetrable hide that reflects damage. +22 Armor, +12 Thorns.', rarity:'epic', cat:'defense', effects:{armor:0.22, thorns:12}, stacks:null },
+  { id:'phantom_porcupine', name:'Phantom Porcupine', desc:'A blur of quills and fury. +22 Evasion, +10% Speed.', rarity:'epic', cat:'defense', effects:{evasion:0.22, moveSpeed:0.10}, stacks:null },
+
+  // LEGENDARY
+  { id:'machine_gun', name:'Quill Storm', desc:'Unleash a torrent of quills! Massive fire rate boost.', rarity:'legendary', cat:'offense', effects:{fireRate:1.0, projectileCount:2, damage:-0.1}, stacks:1 },
+  { id:'sniper', name:'Sniper Quills', desc:'Slower but devastating piercing shots.', rarity:'legendary', cat:'offense', effects:{damage:1.0, piercing:5, fireRate:-0.3, projectileSpeed:0.8}, stacks:1 },
+  { id:'bouncy_doom', name:'Pinball Wizard', desc:'Quills bounce everywhere, gaining damage each bounce.', rarity:'legendary', cat:'offense', effects:{bouncing:5, damage:0.3, projectileSpeed:0.3}, stacks:1 },
+  { id:'infinite_quills', name:'Quill Infinity', desc:'Absurd quill capacity with incredible regeneration.', rarity:'legendary', cat:'utility', effects:{maxQuills:50, regenRate:1.0}, stacks:1 },
+  { id:'glass_god', name:'Glass God', desc:'Incredible power, but you become very fragile.', rarity:'legendary', cat:'offense', effects:{damage:1.5, critChance:0.3, critDamage:1.0, maxHealth:-50}, stacks:1 },
+  { id:'nuclear_quills', name:'Nuclear Quills', desc:'Devastating explosions, but slower firing.', rarity:'legendary', cat:'offense', effects:{explosionRadius:150, damage:0.8, fireRate:-0.3}, stacks:1 },
+  { id:'porcupine_army', name:'Porcupine Army', desc:'An entire squad of baby porcupines!', rarity:'legendary', cat:'special', effects:{companionCount:4}, stacks:1 },
+  { id:'vampire_lord', name:'Vampire Lord', desc:'Major vampirism boost plus bonus damage.', rarity:'legendary', cat:'special', effects:{vampirismStrength:3, damage:0.3}, stacks:1 },
+  { id:'immortal_fortress', name:'Immortal Fortress', desc:'Block four hits per wave and +100 HP. Shield cap: 10.', rarity:'legendary', cat:'defense', effects:{shieldCharges:4, maxHealth:100}, stacks:null },
+  { id:'midas', name:'Midas', desc:'Everything you touch turns to gold! Maximum prosperity.', rarity:'legendary', cat:'utility', effects:{prosperity:40, damage:0.15}, stacks:null },
+  { id:'living_bastion', name:'Living Bastion', desc:'Become an unstoppable fortress. +45 Armor, +24 Thorns, +25 HP.', rarity:'legendary', cat:'defense', effects:{armor:0.45, thorns:24, maxHealth:25}, stacks:null },
+  { id:'wraith_form', name:'Wraith Form', desc:'Become intangible. +28 Evasion, +15% Speed.', rarity:'legendary', cat:'defense', effects:{evasion:0.28, moveSpeed:0.15}, stacks:null },
+  { id:'storm_caller', name:'Storm Caller', desc:'Unleash a storm of chain lightning across the battlefield.', rarity:'legendary', cat:'elemental', effects:{shockStrength:5, chainLightning:3}, stacks:null, element:'lightning' },
+  { id:'absolute_zero', name:'Absolute Zero', desc:'Frozen enemies that die shatter, dealing 50% max HP to nearby foes.', rarity:'legendary', cat:'elemental', effects:{freezeStrength:5, shatterDamage:0.5}, stacks:null, element:'ice' },
+  { id:'hellfire', name:'Hellfire', desc:'Burning enemies explode on death.', rarity:'legendary', cat:'elemental', effects:{burnStrength:5, fireExplosion:80}, stacks:null, element:'fire' },
+  { id:'pandemic', name:'Pandemic', desc:'Death releases a poison cloud that infects all nearby enemies.', rarity:'legendary', cat:'elemental', effects:{poisonStrength:5, poisonCloud:50}, stacks:null, element:'poison' },
+
+  // MYTHIC
+  { id:'expanded_options', name:'Expanded Options', desc:'See an additional upgrade card when choosing upgrades.', rarity:'mythic', cat:'special', effects:{upgradeChoices:1}, stacks:1 },
+  { id:'fates_favor', name:"Fate's Favor", desc:'When a proc effect fails, roll again. Fortune favors the bold.', rarity:'mythic', cat:'special', effects:{rerollChance:0.30}, stacks:1 },
+  { id:'quill_apotheosis', name:'Quill Apotheosis', desc:'Every 5th volley transcends. All quills auto-crit with every unlocked element.', rarity:'mythic', cat:'special', effects:{apotheosis:1}, stacks:1 },
+];
+
+const EFFECT_LABELS = {
+  damage: { label: 'Damage', fmt: 'pct' },
+  fireRate: { label: 'Fire Rate', fmt: 'pct' },
+  maxQuills: { label: 'Max Quills', fmt: 'flat' },
+  regenRate: { label: 'Regen Rate', fmt: 'pct' },
+  moveSpeed: { label: 'Move Speed', fmt: 'pct' },
+  jumpHeight: { label: 'Jump Height', fmt: 'pct' },
+  projectileCount: { label: 'Projectiles', fmt: 'flat' },
+  projectileSpeed: { label: 'Proj. Speed', fmt: 'pct' },
+  critChance: { label: 'Crit Chance', fmt: 'pct' },
+  critDamage: { label: 'Crit Damage', fmt: 'x' },
+  piercing: { label: 'Pierce', fmt: 'flat' },
+  bouncing: { label: 'Bounces', fmt: 'flat' },
+  maxHealth: { label: 'Max HP', fmt: 'flat' },
+  explosionRadius: { label: 'Explosion', fmt: 'px' },
+  projectileSize: { label: 'Quill Size', fmt: 'pct' },
+  shieldCharges: { label: 'Shields', fmt: 'flat' },
+  companionCount: { label: 'Companions', fmt: 'flat' },
+  homingStrength: { label: 'Homing', fmt: 'pct' },
+  vampirismStrength: { label: 'Vampirism Str', fmt: 'flat' },
+  prosperity: { label: 'Prosperity', fmt: 'flat' },
+  dangerLevel: { label: 'Danger', fmt: 'flat' },
+  eliteDamageBonus: { label: 'Elite Damage', fmt: 'pct' },
+  upgradeChoices: { label: 'Extra Choices', fmt: 'flat' },
+  shockStrength: { label: 'Shock Str', fmt: 'flat', element: 'lightning' },
+  chainLightning: { label: 'Chain Targets', fmt: 'flat', element: 'lightning' },
+  freezeStrength: { label: 'Freeze Str', fmt: 'flat', element: 'ice' },
+  frostSlow: { label: 'Frost Slow', fmt: 'pct', element: 'ice' },
+  shatterDamage: { label: 'Shatter', fmt: 'pct', element: 'ice' },
+  burnStrength: { label: 'Burn Str', fmt: 'flat', element: 'fire' },
+  fireAura: { label: 'Fire Aura', fmt: 'px', element: 'fire' },
+  fireExplosion: { label: 'Fire Explosion', fmt: 'px', element: 'fire' },
+  poisonStrength: { label: 'Poison Str', fmt: 'flat', element: 'poison' },
+  poisonSpread: { label: 'Spread on Death', fmt: 'bool', element: 'poison' },
+  poisonCloud: { label: 'Poison Cloud', fmt: 'px', element: 'poison' },
+  armor: { label: 'Armor', fmt: 'armor' },
+  evasion: { label: 'Evasion', fmt: 'evasion' },
+  thorns: { label: 'Thorns', fmt: 'flat' },
+  knockback: { label: 'Knockback', fmt: 'flat' },
+  distanceDamage: { label: 'Distance Dmg', fmt: 'pct' },
+  rerollChance: { label: 'Proc Reroll', fmt: 'pct' },
+  apotheosis: { label: 'Apotheosis', fmt: 'bool' },
+};
+
+function formatEffect(key, value) {
+  const info = EFFECT_LABELS[key];
+  if (!info) return `${key}: ${value}`;
+  const sign = value >= 0 ? '+' : '';
+  switch (info.fmt) {
+    case 'pct': return `${sign}${Math.round(value * 100)}% ${info.label}`;
+    case 'flat': return `${sign}${value} ${info.label}`;
+    case 'x': return `${sign}${value}x ${info.label}`;
+    case 'px': return `${sign}${value}px ${info.label}`;
+    case 'armor': return `+${Math.round(value*100)} ${info.label}`;
+    case 'evasion': return `+${Math.round(value*100)} ${info.label}`;
+    case 'bool': return info.label;
+    default: return `${value} ${info.label}`;
+  }
+}
+
+function getEffectClass(key, value) {
+  const info = EFFECT_LABELS[key];
+  if (value < 0) return 'negative';
+  if (info?.element === 'lightning') return 'element-lightning';
+  if (info?.element === 'ice') return 'element-ice';
+  if (info?.element === 'fire') return 'element-fire';
+  if (info?.element === 'poison') return 'element-poison';
+  if (key === 'armor' || key === 'evasion' || key === 'thorns' || key === 'shieldCharges' || key === 'maxHealth') return 'defense';
+  if (key === 'knockback' || key === 'distanceDamage') return '';
+  if (key === 'prosperity') return 'prosperity';
+  if (key === 'dangerLevel') return 'danger';
+  if (key === 'companionCount') return 'companion';
+  if (key === 'rerollChance' || key === 'apotheosis' || key === 'upgradeChoices') return 'mythic-tag';
+  if (key === 'vampirismStrength') return 'element-fire';
+  return '';
+}
+
+const CAT_LABELS = { offense:'Offense', defense:'Defense', utility:'Utility', elemental:'Elemental', special:'Special' };
+
+function renderCards() {
+  const grid = document.getElementById('upgrade-grid');
+  grid.innerHTML = '';
+  const rarityOrder = ['common','uncommon','rare','epic','legendary','mythic'];
+  const sorted = [...UPGRADES].sort((a,b) => rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity));
+
+  for (const u of sorted) {
+    const card = document.createElement('div');
+    card.className = 'upgrade-card';
+    card.dataset.rarity = u.rarity;
+    card.dataset.cat = u.cat;
+    card.dataset.name = u.name.toLowerCase();
+    card.dataset.desc = u.desc.toLowerCase();
+    if (u.element) card.dataset.element = u.element;
+
+    const stacksText = u.stacks === 1 ? 'Unique' : u.stacks ? `Max ${u.stacks}` : 'Stackable';
+
+    const effectTags = Object.entries(u.effects).map(([k,v]) => {
+      const cls = getEffectClass(k, v);
+      return `<span class="effect-tag ${cls}">${formatEffect(k, v)}</span>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div class="card-top">
+        <span class="card-name">${u.name}</span>
+        <div class="card-badges">
+          ${u.element ? `<span class="badge badge-cat" style="color:var(--${u.element === 'lightning' ? 'lightning' : u.element === 'ice' ? 'ice' : u.element === 'fire' ? 'fire' : 'poison'});border-color:currentColor">${u.element.charAt(0).toUpperCase()+u.element.slice(1)}</span>` : ''}
+          <span class="badge badge-rarity" data-r="${u.rarity}">${u.rarity}</span>
+          <span class="badge badge-stacks">${stacksText}</span>
+        </div>
+      </div>
+      <div class="card-desc">${u.desc}</div>
+      <div class="card-effects">${effectTags}</div>
+    `;
+    grid.appendChild(card);
+  }
+}
+
+let activeRarity = 'all';
+let activeCat = 'all';
+
+function setRarity(r) {
+  activeRarity = r;
+  document.querySelectorAll('[data-rarity].filter-btn').forEach(b => b.classList.toggle('active', b.dataset.rarity === r));
+  applyFilters();
+}
+function setCat(c) {
+  activeCat = c;
+  document.querySelectorAll('[data-cat].filter-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === c));
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.querySelector('.search-input').value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.upgrade-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const matchRarity = activeRarity === 'all' || card.dataset.rarity === activeRarity;
+    const matchCat = activeCat === 'all' || card.dataset.cat === activeCat;
+    const matchSearch = !search || card.dataset.name.includes(search) || card.dataset.desc.includes(search);
+    const show = matchRarity && matchCat && matchSearch;
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('visible-count').textContent = `${visible} shown`;
+  document.getElementById('no-results').style.display = visible === 0 ? 'block' : 'none';
+}
+
+function toggleSection(el, id) {
+  el.classList.toggle('collapsed');
+  const content = document.getElementById(id);
+  content.style.display = el.classList.contains('collapsed') ? 'none' : '';
+}
+
+renderCards();
+</script>
+</body>
+</html>

@@ -21,6 +21,7 @@ export class Player extends Phaser.GameObjects.Container {
   public health: number = PLAYER_CONFIG.maxHealth;
   public maxHealth: number = PLAYER_CONFIG.maxHealth;
   private _pf: boolean = false;
+  public _lastDodged: boolean = false;
 
   // Performance frame counters
   private _fd: number = 0;
@@ -571,6 +572,7 @@ export class Player extends Phaser.GameObjects.Container {
     const evasion = rawEvasion > 0 ? Math.log(1 + rawEvasion) / (Math.log(1 + rawEvasion) + EVASION_CONFIG.diminishingK) : 0;
     if (evasion > 0 && Math.random() < evasion) {
       this.spawnDodgeText();
+      this._lastDodged = true;
       return false; // Dodged! No damage, no shield consumed
     }
 

@@ -17,6 +17,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 
 ### Adding Features
 - **New upgrades** → See [docs/GAMEPLAY.md#upgrades](docs/GAMEPLAY.md#upgrades), add to `src/data/upgrades.ts`
+- **Upgrade reference & balance** → See [docs/UPGRADES.md](docs/UPGRADES.md) for all 76 upgrades, mechanics, formulas, and tier ratings
 - **New enemy types** → Add to `src/config.ts` ENEMY_CONFIG, implement in `src/entities/Enemy.ts`
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`
@@ -27,6 +28,9 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Danger system** → `src/config.ts` DANGER_CONFIG, upgrades in `src/data/upgrades.ts`
 - **Elemental effects** → See [docs/GAMEPLAY.md#elemental-effects](docs/GAMEPLAY.md#elemental-effects), status system in `src/entities/Enemy.ts`, proc logic in `src/scenes/GameScene.ts`
 - **Defense stats (armor/evasion)** → See [docs/GAMEPLAY.md#defense-stats](docs/GAMEPLAY.md#defense-stats), applied in `src/entities/Player.ts`
+- **Knockback system** → `src/config.ts` KNOCKBACK_CONFIG, applied in `src/entities/Enemy.ts` applyKnockback(), triggered in `src/scenes/GameScene.ts`
+- **Distance damage** → `src/config.ts` DISTANCE_DAMAGE_CONFIG, calculated in `src/entities/Quill.ts` onHitEnemy()
+- **Dodge counter** → `src/config.ts` DODGE_COUNTER_CONFIG, tier lookup in `src/systems/UpgradeManager.ts` getHighestEvasionTier(), handled in `src/scenes/GameScene.ts` handleDodgeCounter()
 - **Infinite swarm balance** → See [docs/INFINITE_SWARM.md](docs/INFINITE_SWARM.md) for full scaling reference
 - **Boss rewards** → See [docs/GAMEPLAY.md#boss-rewards](docs/GAMEPLAY.md#boss-rewards), `src/scenes/BossRewardScene.ts`
 - **Vampirism balance** → See [docs/GAMEPLAY.md#vampirism](docs/GAMEPLAY.md#vampirism), config in `src/config.ts` VAMPIRISM_CONFIG

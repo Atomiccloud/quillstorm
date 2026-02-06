@@ -306,6 +306,26 @@ export const EVASION_CONFIG = {
   diminishingK: 2.0,            // k=2.0: 50 evasion → 17% dodge, 100 evasion → 26% dodge
 };
 
+export const KNOCKBACK_CONFIG = {
+  baseForceMult: 200,           // px/s per knockback point
+  duration: 150,                // ms of knockback push
+};
+
+export const DODGE_COUNTER_CONFIG = {
+  executeChances: {
+    common: 0.30,
+    uncommon: 0.40,
+    rare: 0.60,
+    epic: 0.80,
+    legendary: 0.90,
+  } as Record<string, number>,
+  eliteDamagePercent: 0.25,     // 25% max HP chunk to elites/bosses
+};
+
+export const DISTANCE_DAMAGE_CONFIG = {
+  maxDistance: 400,              // px for full distance bonus
+};
+
 // Level scaling - passive bonuses per level
 export const LEVEL_SCALING_CONFIG = {
   damagePerLevel: 0.05,           // +5% damage per level (applied from level 2+)

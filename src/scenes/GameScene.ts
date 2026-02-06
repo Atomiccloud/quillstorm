@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG, KNOCKBACK_CONFIG, DODGE_COUNTER_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -755,6 +755,17 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // Knockback from quill hit
+    const knockbackMod = this.upgradeManager.getModifier('knockback');
+    if (knockbackMod > 0 && !killed) {
+      const kbForce = knockbackMod * KNOCKBACK_CONFIG.baseForceMult;
+      enemy.applyKnockback(
+        Math.cos(hitAngle) * kbForce,
+        Math.sin(hitAngle) * kbForce,
+        KNOCKBACK_CONFIG.duration
+      );
+    }
+
     // Explosion AOE - damage nearby enemies (capped at maxExplosionRadius)
     const rawExplosionRadius = this.upgradeManager.getModifier('explosionRadius');
     const explosionRadius = Math.min(rawExplosionRadius, QUILL_CONFIG.maxExplosionRadius);
@@ -767,6 +778,16 @@ export class GameScene extends Phaser.Scene {
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, otherEnemy.x, otherEnemy.y);
         if (dist <= explosionRadius) {
           otherEnemy._uf(damage * 0.5); // AOE does 50% damage
+          // Push enemies away from explosion center
+          if (knockbackMod > 0) {
+            const pushAngle = Math.atan2(otherEnemy.y - enemy.y, otherEnemy.x - enemy.x);
+            const kbForce = knockbackMod * KNOCKBACK_CONFIG.baseForceMult;
+            otherEnemy.applyKnockback(
+              Math.cos(pushAngle) * kbForce,
+              Math.sin(pushAngle) * kbForce,
+              KNOCKBACK_CONFIG.duration
+            );
+          }
         }
       });
     }
@@ -777,63 +798,67 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (killed) {
-      if (enemy.isElite) {
-        AudioManager.playEliteKill();
-      } else {
-        AudioManager.playEnemyDeath();
-      }
-
-      // Apply danger score multiplier to points
-      const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
-      const dangerScoreMult = 1 + dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack;
-      const points = Math.floor(enemy.points * dangerScoreMult);
-      this.hud.addScore(points);
-
-      this.spawnDeathParticles(enemy.x, enemy.y);
-      SessionManager._rk(enemy.enemyType, enemy.isElite);
-      this.recordSessionKill(enemy.enemyType, enemy.isElite);
-
-      // Splitter splits into 2 splitlings on death
-      if (enemy.isSplitter()) {
-        AudioManager.playSplit();
-        this.waveManager.spawnSplitlings(enemy.x, enemy.y);
-      }
-
-      // On-death elemental effects
-      this.handleElementalOnDeath(enemy);
-
-      // Chance to drop quill pickup
-      if (Math.random() < 0.3) {
-        this.spawnQuillPickup(enemy.x, enemy.y);
-      }
-
-      // Spawn XP orb (elites give bonus XP)
-      this.spawnXPOrb(enemy.x, enemy.y, enemy.isBoss(), enemy.isElite);
-
-      // Chance to drop treasure chest (affected by prosperity)
-      const chestDropChance = this.progressionManager.getEffectiveChestDropChance();
-      if (Math.random() < chestDropChance) {
-        this.spawnTreasureChest(enemy.x, enemy.y);
-      }
-
-      // Pinecone drops - guaranteed from bosses, chance from regular enemies
-      if (enemy.isBoss()) {
-        const pineconeCount = Phaser.Math.Between(PINECONE_CONFIG.bossDropMin, PINECONE_CONFIG.bossDropMax);
-        for (let i = 0; i < pineconeCount; i++) {
-          this.spawnPinecone(enemy.x + (i - 1) * 20, enemy.y);
-        }
-      } else {
-        const pineconeDropChance = this.progressionManager.getEffectivePineconeDropChance();
-        if (Math.random() < pineconeDropChance) {
-          this.spawnPinecone(enemy.x, enemy.y);
-        }
-      }
+      this.handleEnemyKill(enemy);
     } else {
       AudioManager.playHit();
     }
 
     // Handle quill (may pierce or die)
     quill.onHitEnemy();
+  }
+
+  private handleEnemyKill(enemy: Enemy): void {
+    if (enemy.isElite) {
+      AudioManager.playEliteKill();
+    } else {
+      AudioManager.playEnemyDeath();
+    }
+
+    // Apply danger score multiplier to points
+    const dangerLevel = this.upgradeManager.getModifier('dangerLevel');
+    const dangerScoreMult = 1 + dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack;
+    const points = Math.floor(enemy.points * dangerScoreMult);
+    this.hud.addScore(points);
+
+    this.spawnDeathParticles(enemy.x, enemy.y);
+    SessionManager._rk(enemy.enemyType, enemy.isElite);
+    this.recordSessionKill(enemy.enemyType, enemy.isElite);
+
+    // Splitter splits into 2 splitlings on death
+    if (enemy.isSplitter()) {
+      AudioManager.playSplit();
+      this.waveManager.spawnSplitlings(enemy.x, enemy.y);
+    }
+
+    // On-death elemental effects
+    this.handleElementalOnDeath(enemy);
+
+    // Chance to drop quill pickup
+    if (Math.random() < 0.3) {
+      this.spawnQuillPickup(enemy.x, enemy.y);
+    }
+
+    // Spawn XP orb (elites give bonus XP)
+    this.spawnXPOrb(enemy.x, enemy.y, enemy.isBoss(), enemy.isElite);
+
+    // Chance to drop treasure chest (affected by prosperity)
+    const chestDropChance = this.progressionManager.getEffectiveChestDropChance();
+    if (Math.random() < chestDropChance) {
+      this.spawnTreasureChest(enemy.x, enemy.y);
+    }
+
+    // Pinecone drops - guaranteed from bosses, chance from regular enemies
+    if (enemy.isBoss()) {
+      const pineconeCount = Phaser.Math.Between(PINECONE_CONFIG.bossDropMin, PINECONE_CONFIG.bossDropMax);
+      for (let i = 0; i < pineconeCount; i++) {
+        this.spawnPinecone(enemy.x + (i - 1) * 20, enemy.y);
+      }
+    } else {
+      const pineconeDropChance = this.progressionManager.getEffectivePineconeDropChance();
+      if (Math.random() < pineconeDropChance) {
+        this.spawnPinecone(enemy.x, enemy.y);
+      }
+    }
   }
 
   private onEnemyHitPlayer(_playerObj: Phaser.GameObjects.GameObject, enemyObj: Phaser.GameObjects.GameObject): void {
@@ -857,6 +882,9 @@ export class GameScene extends Phaser.Scene {
         this.cameras.main.shake(100, 0.01);
         // Thorns damage reflection
         this.applyThorns(enemy);
+      } else if (this.player._lastDodged) {
+        this.player._lastDodged = false;
+        this.handleDodgeCounter(enemy);
       }
       return;
     }
@@ -865,7 +893,60 @@ export class GameScene extends Phaser.Scene {
       AudioManager.playPlayerDamage();
       // Thorns damage reflection
       this.applyThorns(enemy);
+    } else if (this.player._lastDodged) {
+      this.player._lastDodged = false;
+      this.handleDodgeCounter(enemy);
     }
+  }
+
+  private handleDodgeCounter(enemy: Enemy): void {
+    const tier = this.upgradeManager.getHighestEvasionTier();
+    if (!tier) return;
+
+    const executeChance = DODGE_COUNTER_CONFIG.executeChances[tier] ?? 0;
+    if (executeChance <= 0 || Math.random() >= executeChance) return;
+
+    const isEliteOrBoss = enemy.isElite || enemy.isBoss();
+
+    if (isEliteOrBoss) {
+      // Chunk elites/bosses for 25% max HP (scales with damage modifier)
+      const damageMod = this.upgradeManager.getModifier('damage');
+      const chunkDamage = Math.floor(enemy.maxHealth * DODGE_COUNTER_CONFIG.eliteDamagePercent * (1 + damageMod));
+      const killed = enemy._uf(chunkDamage);
+      this.spawnCounterText(enemy.x, enemy.y, `COUNTER! ${chunkDamage}`);
+      if (killed) {
+        this.handleEnemyKill(enemy);
+      }
+    } else {
+      // Instant kill normal enemies
+      const killed = enemy._uf(enemy.health + 1);
+      this.spawnCounterText(enemy.x, enemy.y, 'EXECUTE!');
+      if (killed) {
+        this.handleEnemyKill(enemy);
+      }
+    }
+  }
+
+  private spawnCounterText(x: number, y: number, msg: string): void {
+    const opacity = this.effectsOpacity;
+    if (opacity <= 0) return;
+
+    const text = this.add.text(x, y - 30, msg, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#ff4444',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setAlpha(opacity);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 50,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      onComplete: () => text.destroy(),
+    });
   }
 
   private onProjectileHitPlayer(_playerObj: Phaser.GameObjects.GameObject, projectileObj: Phaser.GameObjects.GameObject): void {

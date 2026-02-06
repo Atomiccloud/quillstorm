@@ -136,6 +136,8 @@ export class SessionManager {
       sc: Math.round(um.getRawModifier('shieldCharges') * 1000),
       pi: Math.round(um.getRawModifier('piercing') * 1000),
       bo: Math.round(um.getRawModifier('bouncing') * 1000),
+      kb: Math.round(um.getRawModifier('knockback') * 1000),
+      dd: Math.round(um.getRawModifier('distanceDamage') * 1000),
     };
   }
 

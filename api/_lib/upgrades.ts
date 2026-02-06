@@ -15,17 +15,16 @@ export interface UpgradeEntry {
 export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   // ===== COMMON =====
   damage_1: { effects: { damage: 0.1 } },
-  fire_rate_1: { effects: { fireRate: 0.15 } },
+  fire_rate_1: { effects: { fireRate: 0.10, projectileSpeed: 0.15, distanceDamage: 0.25 } },
   max_quills_1: { effects: { maxQuills: 5 } },
   regen_1: { effects: { regenRate: 0.2 } },
   speed_1: { effects: { moveSpeed: 0.1 } },
-  projectile_speed_1: { effects: { projectileSpeed: 0.2 } },
   health_1: { effects: { maxHealth: 20 } },
-  thick_quills: { effects: { projectileSize: 0.3 } },
+  thick_quills: { effects: { projectileSize: 0.5, knockback: 1, damage: 0.05 } },
   life_leech_1: { effects: { vampirismStrength: 1 } },
   lucky_find: { effects: { prosperity: 5 } },
-  tough_skin: { effects: { armor: 0.05 } },
-  quick_reflexes: { effects: { evasion: 0.05 } },
+  tough_skin: { effects: { armor: 0.08, thorns: 2 } },
+  quick_reflexes: { effects: { evasion: 0.08 } },
 
   // ===== UNCOMMON =====
   damage_2: { effects: { damage: 0.2 } },
@@ -44,8 +43,8 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   frost_tips: { effects: { freezeStrength: 2 } },
   ember_quills: { effects: { burnStrength: 2 } },
   toxic_quills: { effects: { poisonStrength: 2 } },
-  iron_quills: { effects: { armor: 0.10 } },
-  acrobat: { effects: { evasion: 0.10 } },
+  iron_quills: { effects: { armor: 0.12, thorns: 4 } },
+  acrobat: { effects: { evasion: 0.12 } },
 
   // ===== RARE =====
   pierce_1: { effects: { piercing: 1 }, maxStacks: 5 },
@@ -65,8 +64,8 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   icicle_quills: { effects: { freezeStrength: 3 } },
   flame_quills: { effects: { burnStrength: 3 } },
   noxious_spines: { effects: { poisonStrength: 3 } },
-  porcupine_plate: { effects: { armor: 0.15, maxHealth: 20 } },
-  shadow_step: { effects: { evasion: 0.15, moveSpeed: 0.05 } },
+  porcupine_plate: { effects: { armor: 0.18, thorns: 6, maxHealth: 20 } },
+  shadow_step: { effects: { evasion: 0.18, moveSpeed: 0.05 } },
 
   // ===== EPIC =====
   pierce_2: { effects: { piercing: 3 }, maxStacks: 2 },
@@ -85,8 +84,8 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   blizzard_quills: { effects: { freezeStrength: 3, frostSlow: 0.5 } },
   inferno_quills: { effects: { burnStrength: 3, fireAura: 30 } },
   plague_bearer: { effects: { poisonStrength: 3, poisonSpread: 1 } },
-  diamond_hide: { effects: { armor: 0.20, thorns: 10 } },
-  phantom_porcupine: { effects: { evasion: 0.20, moveSpeed: 0.10 } },
+  diamond_hide: { effects: { armor: 0.22, thorns: 12 } },
+  phantom_porcupine: { effects: { evasion: 0.22, moveSpeed: 0.10 } },
 
   // ===== LEGENDARY =====
   machine_gun: { effects: { fireRate: 1.0, projectileCount: 2, damage: -0.1 }, maxStacks: 1 },
@@ -103,8 +102,8 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   absolute_zero: { effects: { freezeStrength: 5, shatterDamage: 0.5 } },
   hellfire: { effects: { burnStrength: 5, fireExplosion: 80 } },
   pandemic: { effects: { poisonStrength: 5, poisonCloud: 50 } },
-  living_bastion: { effects: { armor: 0.40, thorns: 20, maxHealth: 25 } },
-  wraith_form: { effects: { evasion: 0.25, moveSpeed: 0.15 } },
+  living_bastion: { effects: { armor: 0.45, thorns: 24, maxHealth: 25 } },
+  wraith_form: { effects: { evasion: 0.28, moveSpeed: 0.15 } },
 
   // ===== MYTHIC =====
   expanded_options: { effects: { upgradeChoices: 1 }, maxStacks: 1 },
