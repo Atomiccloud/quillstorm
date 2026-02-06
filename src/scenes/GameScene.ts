@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -35,7 +35,7 @@ export class GameScene extends Phaser.Scene {
   private companions: Companion[] = [];
 
   // Track upgrade source for different flows
-  private pendingUpgradeSource: 'wave' | 'chest' | 'levelup' | null = null;
+  private pendingUpgradeSource: 'wave' | 'chest' | 'levelup' | 'bossReward' | null = null;
   private previousMaxShields: number = 0;  // For syncNewShieldCharges bug fix
 
   private waveCompleteTimer: number = 0;
@@ -581,11 +581,14 @@ export class GameScene extends Phaser.Scene {
     }
     const killed = enemy._uf(damage, hitAngle);
 
-    // Vampirism - chance to heal based on damage dealt (uses rollProc for Fate's Favor)
-    const vampirism = this.upgradeManager.getModifier('vampirism');
-    if (vampirism > 0 && this.rollProc(vampirism)) {
-      const healAmount = damage * vampirism;
-      this.player.heal(healAmount);
+    // Vampirism - stack-based proc chance and flat healing (uses rollProc for Fate's Favor)
+    const vampStacks = this.upgradeManager.getModifier('vampirismStrength');
+    if (vampStacks > 0) {
+      const procChance = vampStacks / (vampStacks + VAMPIRISM_CONFIG.procDivisor);
+      if (this.rollProc(procChance)) {
+        const healAmount = VAMPIRISM_CONFIG.healBase + (vampStacks * VAMPIRISM_CONFIG.healPerStack);
+        this.player.heal(healAmount);
+      }
     }
 
     // Explosion AOE - damage nearby enemies (capped at maxExplosionRadius)
@@ -979,6 +982,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleLevelUp(newLevel: number): void {
+    this.upgradeManager.setPlayerLevel(newLevel);
     this.hud.showLevelUp(newLevel);
     AudioManager.playLevelUp();
 
@@ -1072,7 +1076,6 @@ export class GameScene extends Phaser.Scene {
 
   private showUpgradeSelection(): void {
     this.isChoosingUpgrade = true;
-    this.pendingUpgradeSource = 'wave';
     this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
     this.hud.showWaveComplete();
 
@@ -1098,18 +1101,36 @@ export class GameScene extends Phaser.Scene {
     // Clear any remaining enemy projectiles (they shouldn't persist between waves)
     this.enemyProjectiles.clear(true, true);
 
-    // Pause game and show upgrade scene
-    this.scene.pause();
-    this.scene.launch('UpgradeScene', {
-      upgradeManager: this.upgradeManager,
-      progressionManager: this.progressionManager,
-      playerStats: {
-        health: this.player.health,
-        maxHealth: this.player.maxHealth,
-      },
-      wave: this.waveManager.currentWave,
-      source: 'wave',
-    });
+    const currentWave = this.waveManager.currentWave;
+    const isBossWave = currentWave % WAVE_CONFIG.bossWaveInterval === 0;
+
+    if (isBossWave) {
+      // Boss wave: show two-phase boss reward choice first
+      this.pendingUpgradeSource = 'bossReward';
+      this.scene.pause();
+      this.scene.launch('BossRewardScene', {
+        wave: currentWave,
+        playerHealth: this.player.health,
+        playerMaxHealth: this.player.maxHealth,
+        currentQuills: this.quillManager.currentQuills,
+        maxQuills: this.quillManager.maxQuills,
+      });
+    } else {
+      // Normal wave: grant quill bonus, then show upgrade selection
+      this.quillManager.addQuills(BOSS_REWARD_CONFIG.waveQuillBonus);
+      this.pendingUpgradeSource = 'wave';
+      this.scene.pause();
+      this.scene.launch('UpgradeScene', {
+        upgradeManager: this.upgradeManager,
+        progressionManager: this.progressionManager,
+        playerStats: {
+          health: this.player.health,
+          maxHealth: this.player.maxHealth,
+        },
+        wave: currentWave,
+        source: 'wave',
+      });
+    }
   }
 
   private onResumeFromUpgrade(): void {
@@ -1140,6 +1161,52 @@ export class GameScene extends Phaser.Scene {
     this.updateCompanions();
 
     // Handle different upgrade sources
+    if (source === 'bossReward') {
+      // Boss reward: read the player's choice from registry
+      const choice = this.registry.get('bossRewardChoice') as
+        | { type: 'restoration'; option: 'health' | 'quills' | 'balance'; balancePercent?: number }
+        | { type: 'power' }
+        | undefined;
+      this.registry.remove('bossRewardChoice');
+
+      if (choice?.type === 'power') {
+        // Player chose Power: show normal upgrade selection
+        this.isChoosingUpgrade = true;
+        this.pendingUpgradeSource = 'wave';
+        this.scene.pause();
+        this.scene.launch('UpgradeScene', {
+          upgradeManager: this.upgradeManager,
+          progressionManager: this.progressionManager,
+          playerStats: {
+            health: this.player.health,
+            maxHealth: this.player.maxHealth,
+          },
+          wave: this.waveManager.currentWave,
+          source: 'wave',
+        });
+        return;
+      }
+
+      if (choice?.type === 'restoration') {
+        // Apply the chosen restoration
+        if (choice.option === 'health') {
+          this.player.heal(this.player.maxHealth); // Full heal
+        } else if (choice.option === 'quills') {
+          this.quillManager.addQuills(this.quillManager.maxQuills); // Full quills
+        } else if (choice.option === 'balance') {
+          const pct = choice.balancePercent ?? 0.45;
+          this.player.heal(Math.round(this.player.maxHealth * pct));
+          this.quillManager.addQuills(Math.round(this.quillManager.maxQuills * pct));
+        }
+        AudioManager.playPickup();
+      }
+
+      // Proceed to next wave (no upgrade selection)
+      this.player.heal(20); // Standard between-wave heal still applies
+      this.advanceToNextWave();
+      return;
+    }
+
     if (source === 'chest') {
       // Chest: mark as collected for rigged tracking, resume gameplay
       this.progressionManager.collectChest();
@@ -1161,7 +1228,10 @@ export class GameScene extends Phaser.Scene {
 
     // Wave complete: proceed to next wave or infinite swarm
     this.player.heal(20); // Heal between waves
+    this.advanceToNextWave();
+  }
 
+  private advanceToNextWave(): void {
     const currentWave = this.waveManager.currentWave;
 
     // Check for infinite swarm activation after wave 20 (4th boss)
@@ -1182,7 +1252,7 @@ export class GameScene extends Phaser.Scene {
 
     // Check if next wave is a boss wave
     const nextWave = currentWave + 1;
-    const isBossWave = nextWave % 5 === 0;
+    const isBossWave = nextWave % WAVE_CONFIG.bossWaveInterval === 0;
 
     // Start next wave
     this.time.delayedCall(500, () => {

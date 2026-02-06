@@ -28,6 +28,9 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Elemental effects** → See [docs/GAMEPLAY.md#elemental-effects](docs/GAMEPLAY.md#elemental-effects), status system in `src/entities/Enemy.ts`, proc logic in `src/scenes/GameScene.ts`
 - **Defense stats (armor/evasion)** → See [docs/GAMEPLAY.md#defense-stats](docs/GAMEPLAY.md#defense-stats), applied in `src/entities/Player.ts`
 - **Infinite swarm balance** → See [docs/INFINITE_SWARM.md](docs/INFINITE_SWARM.md) for full scaling reference
+- **Boss rewards** → See [docs/GAMEPLAY.md#boss-rewards](docs/GAMEPLAY.md#boss-rewards), `src/scenes/BossRewardScene.ts`
+- **Vampirism balance** → See [docs/GAMEPLAY.md#vampirism](docs/GAMEPLAY.md#vampirism), config in `src/config.ts` VAMPIRISM_CONFIG
+- **Level scaling (per-level bonuses)** → `src/config.ts` LEVEL_SCALING_CONFIG, applied in `src/systems/UpgradeManager.ts`
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 
 ### Understanding Systems
@@ -47,6 +50,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 | Projectile logic | `src/entities/Quill.ts` |
 | XP orb collectible | `src/entities/XPOrb.ts` |
 | Treasure chest | `src/entities/TreasureChest.ts` |
+| Boss reward choice | `src/scenes/BossRewardScene.ts` |
 | Upgrade definitions | `src/data/upgrades.ts` |
 | Wave spawning | `src/systems/WaveManager.ts` |
 | Quill management | `src/systems/QuillManager.ts` |
@@ -93,6 +97,9 @@ Edit `src/config.ts`:
 - `ELITE_CONFIG` - Elite enemy stat multipliers, spawn chance, glow color
 - `DANGER_CONFIG` - Danger level scaling per stack (HP, damage, elite chance, score, XP)
 - `STATUS_EFFECT_CONFIG` - Elemental status effect durations, colors, ranges, stack caps
+- `VAMPIRISM_CONFIG` - Vampirism proc divisor, base heal, heal per stack
+- `BOSS_REWARD_CONFIG` - Boss reward balance percentages, wave quill bonus
+- `LEVEL_SCALING_CONFIG` - Passive per-level bonuses (damage per level)
 - `ARMOR_CONFIG` - Armor damage reduction cap (50%)
 - `EVASION_CONFIG` - Evasion dodge chance cap (40%)
 
@@ -127,6 +134,7 @@ Scenes (Phaser.Scene)
 ├── LoginScene          # Google sign-in / account
 ├── GameScene           # Main gameplay
 ├── UpgradeScene        # Upgrade selection overlay
+├── BossRewardScene     # Boss reward: Restoration vs Power choice
 ├── PauseScene          # Pause menu overlay
 ├── GameOverScene       # End screen + score submission
 ├── LeaderboardScene    # Global/weekly leaderboard view

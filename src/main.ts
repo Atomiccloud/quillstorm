@@ -10,6 +10,7 @@ import { PauseScene } from './scenes/PauseScene';
 import { LeaderboardScene } from './scenes/LeaderboardScene';
 import { ShopScene } from './scenes/ShopScene';
 import { LoginScene } from './scenes/LoginScene';
+import { BossRewardScene } from './scenes/BossRewardScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -24,7 +25,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false, // Set to true to see hitboxes
     },
   },
-  scene: [BootScene, MenuScene, GameScene, UpgradeScene, GameOverScene, PauseScene, LeaderboardScene, ShopScene, LoginScene],
+  scene: [BootScene, MenuScene, GameScene, UpgradeScene, BossRewardScene, GameOverScene, PauseScene, LeaderboardScene, ShopScene, LoginScene],
   pixelArt: false,
   scale: {
     mode: Phaser.Scale.FIT,

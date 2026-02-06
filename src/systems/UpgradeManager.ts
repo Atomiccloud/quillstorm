@@ -1,4 +1,5 @@
 import { Upgrade } from '../data/upgrades';
+import { LEVEL_SCALING_CONFIG } from '../config';
 
 export type ModifierType =
   | 'damage'
@@ -21,7 +22,7 @@ export type ModifierType =
   | 'shieldCharges'
   | 'companionCount'
   | 'homingStrength'
-  | 'vampirism'
+  | 'vampirismStrength'
   | 'prosperity'
   | 'dangerLevel'
   | 'eliteDamageBonus'
@@ -52,6 +53,7 @@ export type ModifierType =
 export class UpgradeManager {
   private upgrades: Upgrade[] = [];
   private modifiers: Map<ModifierType, number> = new Map();
+  private playerLevel: number = 1;
 
   constructor() {
     this.resetModifiers();
@@ -78,7 +80,7 @@ export class UpgradeManager {
     this.modifiers.set('shieldCharges', 0);
     this.modifiers.set('companionCount', 0);
     this.modifiers.set('homingStrength', 0);
-    this.modifiers.set('vampirism', 0);
+    this.modifiers.set('vampirismStrength', 0);
     this.modifiers.set('prosperity', 0);
     this.modifiers.set('dangerLevel', 0);
     this.modifiers.set('eliteDamageBonus', 0);
@@ -177,8 +179,8 @@ export class UpgradeManager {
       if (effects.homingStrength !== undefined) {
         this.addModifier('homingStrength', effects.homingStrength);
       }
-      if (effects.vampirism !== undefined) {
-        this.addModifier('vampirism', effects.vampirism);
+      if (effects.vampirismStrength !== undefined) {
+        this.addModifier('vampirismStrength', effects.vampirismStrength);
       }
       if (effects.prosperity !== undefined) {
         this.addModifier('prosperity', effects.prosperity);
@@ -254,8 +256,20 @@ export class UpgradeManager {
     this.modifiers.set(type, current + value);
   }
 
+  setPlayerLevel(level: number): void {
+    this.playerLevel = level;
+  }
+
+  getLevelDamageBonus(): number {
+    return (this.playerLevel - 1) * LEVEL_SCALING_CONFIG.damagePerLevel;
+  }
+
   getModifier(type: ModifierType): number {
-    return this.modifiers.get(type) || 0;
+    const base = this.modifiers.get(type) || 0;
+    if (type === 'damage') {
+      return base + this.getLevelDamageBonus();
+    }
+    return base;
   }
 
   getUpgrades(): Upgrade[] {
@@ -272,6 +286,7 @@ export class UpgradeManager {
 
   reset(): void {
     this.upgrades = [];
+    this.playerLevel = 1;
     this.resetModifiers();
   }
 
@@ -282,8 +297,13 @@ export class UpgradeManager {
     const formatPercent = (v: number) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
     const formatFlat = (v: number) => `${v >= 0 ? '+' : ''}${v}`;
 
-    if (this.modifiers.get('damage')! !== 0) {
-      summary.push({ name: 'Damage', value: formatPercent(this.modifiers.get('damage')!) });
+    const upgradeDamage = this.modifiers.get('damage')!;
+    if (upgradeDamage !== 0) {
+      summary.push({ name: 'Damage', value: formatPercent(upgradeDamage) });
+    }
+    const levelBonus = this.getLevelDamageBonus();
+    if (levelBonus > 0) {
+      summary.push({ name: 'Level Bonus', value: formatPercent(levelBonus) });
     }
     if (this.modifiers.get('fireRate')! !== 0) {
       summary.push({ name: 'Fire Rate', value: formatPercent(this.modifiers.get('fireRate')!) });
@@ -325,8 +345,11 @@ export class UpgradeManager {
     if (this.modifiers.get('homingStrength')! !== 0) {
       summary.push({ name: 'Homing', value: formatPercent(this.modifiers.get('homingStrength')!) });
     }
-    if (this.modifiers.get('vampirism')! !== 0) {
-      summary.push({ name: 'Lifesteal', value: formatPercent(this.modifiers.get('vampirism')!) });
+    if (this.modifiers.get('vampirismStrength')! !== 0) {
+      const vampStr = this.modifiers.get('vampirismStrength')!;
+      const chance = Math.round((vampStr / (vampStr + 20)) * 100);
+      const heal = 8 + vampStr * 3;
+      summary.push({ name: 'Vampirism', value: `${chance}% / ${heal} HP` });
     }
     if (this.modifiers.get('prosperity')! !== 0) {
       summary.push({ name: 'Prosperity', value: formatFlat(this.modifiers.get('prosperity')!) });

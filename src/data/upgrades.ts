@@ -25,7 +25,7 @@ export interface UpgradeEffects {
   shieldCharges?: number;    // Absorbs N hits before breaking
   companionCount?: number;   // Baby porcupine companions
   homingStrength?: number;   // Projectile tracking (0-1)
-  vampirism?: number;        // Chance to heal 1 HP on hit
+  vampirismStrength?: number; // Vampirism strength stacks (proc & heal scale with stacks)
   prosperity?: number;       // Luck stat: chest drops, rarity, crit
   dangerLevel?: number;      // Opt-in difficulty stacks (+enemy stats, +rewards)
   eliteDamageBonus?: number; // Bonus damage vs elite enemies (multiplier)
@@ -322,9 +322,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'life_leech_1',
     name: 'Life Leech',
-    description: '5% chance to heal on hit.',
+    description: 'Chance to heal when dealing damage. Stacks increase proc rate and healing.',
     rarity: 'common',
-    effects: { vampirism: 0.05 },
+    effects: { vampirismStrength: 1 },
   },
 
   // UNCOMMON - New
@@ -419,9 +419,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'vampire_lord',
     name: 'Vampire Lord',
-    description: '15% chance to heal on hit, plus bonus damage.',
+    description: 'Major vampirism boost plus bonus damage.',
     rarity: 'legendary',
-    effects: { vampirism: 0.15, damage: 0.3 },
+    effects: { vampirismStrength: 3, damage: 0.3 },
     maxStacks: 1,
   },
   {
