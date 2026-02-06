@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.1';
+export const GAME_VERSION = '0.5.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.2',
+    date: '2026-02-06',
+    changes: [
+      // Spawn reorder
+      'Rebalanced enemy spawn order for smoother difficulty curve',
+      'Swoopers now appear at wave 2, spitters at wave 4, shellbacks at wave 6',
+      'Burrowers moved to wave 9, splitters to wave 11',
+      // Burrower improvements
+      'Burrower HP reduced (50 → 38) to compensate for underground invulnerability',
+      'Burrower warning phase extended with exclamation mark and repeating dirt particles',
+      // Bomber
+      'New enemy: Bomber — flying crow that drops AoE danger zones',
+      'Bomber replaces healer at wave 15, creating area denial mechanics',
+      // Spawn pacing
+      'Slightly increased breathing room between enemy spawns in later waves',
+    ],
+  },
   {
     version: '0.5.1',
     date: '2026-02-06',

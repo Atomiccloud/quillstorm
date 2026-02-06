@@ -45,6 +45,19 @@ export class GameScene extends Phaser.Scene {
   private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
   private effectsOpacity: number = 1;
 
+  // Burrower exclamation mark containers
+  private burrowerExclamations: Map<Enemy, Phaser.GameObjects.Container> = new Map();
+
+  // Bomber danger zones
+  private bombZones: Array<{
+    x: number;
+    y: number;
+    timer: number;
+    phase: 'warning' | 'active';
+    warningVisual: Phaser.GameObjects.Graphics;
+    damageDealt: boolean;
+  }> = [];
+
   // Cumulative session stats (for game over display)
   private sessionKills: number = 0;
   private sessionKillsByType: Record<string, number> = {};
@@ -499,7 +512,40 @@ export class GameScene extends Phaser.Scene {
         enemy._justHealed = false;
         AudioManager.playHeal();
       }
+
+      // Burrower exclamation mark management
+      if (enemy.isBurrower()) {
+        if (enemy._showingExclamation && !this.burrowerExclamations.has(enemy)) {
+          const excl = this.createExclamationMark(enemy.x, enemy.y - 20);
+          this.burrowerExclamations.set(enemy, excl);
+        } else if (!enemy._showingExclamation && this.burrowerExclamations.has(enemy)) {
+          this.burrowerExclamations.get(enemy)!.destroy();
+          this.burrowerExclamations.delete(enemy);
+        }
+        // Update position if still showing
+        const excl = this.burrowerExclamations.get(enemy);
+        if (excl) {
+          excl.setPosition(enemy.x, enemy.y - 20);
+        }
+      }
+
+      // Bomber bomb drop
+      if (enemy._droppingBomb) {
+        enemy._droppingBomb = false;
+        this.createBombZone(enemy._bombDropX, enemy._bombDropY);
+      }
     });
+
+    // Clean up exclamation marks for dead/destroyed enemies
+    this.burrowerExclamations.forEach((excl, enemy) => {
+      if (enemy.isDead() || !enemy.active) {
+        excl.destroy();
+        this.burrowerExclamations.delete(enemy);
+      }
+    });
+
+    // Update bomb zones
+    this.updateBombZones();
   }
 
   private spawnBurrowEffect(x: number, y: number, radius: number): void {
@@ -561,6 +607,123 @@ export class GameScene extends Phaser.Scene {
       duration: 150,
       onComplete: () => rumble.destroy(),
     });
+  }
+
+  private createExclamationMark(x: number, y: number): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    const gfx = this.add.graphics();
+
+    // Red exclamation mark: vertical bar + dot
+    gfx.fillStyle(0xff2222);
+    gfx.fillRect(-3, -18, 6, 14);
+    gfx.fillCircle(0, 2, 4);
+
+    // White outline for visibility
+    gfx.lineStyle(1.5, 0xffffff, 0.7);
+    gfx.strokeRect(-3, -18, 6, 14);
+    gfx.strokeCircle(0, 2, 4);
+
+    container.add(gfx);
+
+    // Pulse animation
+    this.tweens.add({
+      targets: container,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      yoyo: true,
+      repeat: -1,
+      duration: 250,
+      ease: 'Sine.easeInOut',
+    });
+
+    return container;
+  }
+
+  private createBombZone(x: number, y: number): void {
+    const gfx = this.add.graphics();
+
+    this.bombZones.push({
+      x,
+      y,
+      timer: 0,
+      phase: 'warning',
+      warningVisual: gfx,
+      damageDealt: false,
+    });
+  }
+
+  private updateBombZones(): void {
+    const config = ENEMY_CONFIG.bomber;
+    const delta = this.game.loop.delta;
+
+    for (let i = this.bombZones.length - 1; i >= 0; i--) {
+      const zone = this.bombZones[i];
+      zone.timer += delta;
+
+      if (zone.phase === 'warning') {
+        // Warning phase: pulsing red circle outline
+        zone.warningVisual.clear();
+        const pulse = 0.3 + 0.3 * Math.sin(zone.timer * 0.015);
+        zone.warningVisual.lineStyle(2, 0xff4400, pulse);
+        zone.warningVisual.strokeCircle(zone.x, zone.y, config.bombRadius);
+        // Inner dashed effect
+        const innerPulse = 0.15 + 0.15 * Math.sin(zone.timer * 0.02);
+        zone.warningVisual.fillStyle(0xff4400, innerPulse);
+        zone.warningVisual.fillCircle(zone.x, zone.y, config.bombRadius * 0.3);
+
+        if (zone.timer >= config.bombWarningDuration) {
+          zone.phase = 'active';
+          zone.timer = 0;
+        }
+      } else if (zone.phase === 'active') {
+        // Active phase: filled danger zone
+        zone.warningVisual.clear();
+        const fade = 1 - (zone.timer / config.bombActiveDuration);
+        zone.warningVisual.fillStyle(0xff4400, 0.35 * fade);
+        zone.warningVisual.fillCircle(zone.x, zone.y, config.bombRadius);
+        zone.warningVisual.lineStyle(2, 0xff6600, 0.6 * fade);
+        zone.warningVisual.strokeCircle(zone.x, zone.y, config.bombRadius);
+
+        // Deal damage once on activation
+        if (!zone.damageDealt) {
+          zone.damageDealt = true;
+          const dist = Phaser.Math.Distance.Between(zone.x, zone.y, this.player.x, this.player.y);
+          if (dist <= config.bombRadius) {
+            if (this.player._uf(config.bombDamage)) {
+              AudioManager.playPlayerDamage();
+            }
+          }
+          // Burst ring effect
+          const ring = this.add.circle(zone.x, zone.y, 10, 0xff4400, 0);
+          ring.setStrokeStyle(3, 0xff6600);
+          this.tweens.add({
+            targets: ring,
+            scale: config.bombRadius / 10,
+            alpha: 0,
+            duration: 300,
+            ease: 'Power1',
+            onComplete: () => ring.destroy(),
+          });
+        }
+
+        if (zone.timer >= config.bombActiveDuration) {
+          zone.warningVisual.destroy();
+          this.bombZones.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  private cleanupBomberAndBurrowerEffects(): void {
+    // Clean up burrower exclamation marks
+    this.burrowerExclamations.forEach((excl) => excl.destroy());
+    this.burrowerExclamations.clear();
+
+    // Clean up bomb zones
+    for (const zone of this.bombZones) {
+      zone.warningVisual.destroy();
+    }
+    this.bombZones = [];
   }
 
   private onQuillHitEnemy(quillObj: Phaser.GameObjects.GameObject, enemyObj: Phaser.GameObjects.GameObject): void {
@@ -1308,6 +1471,7 @@ export class GameScene extends Phaser.Scene {
   private onPlayerDeath(): void {
     this.gameOver = true;
     AudioManager.playGameOver();
+    this.cleanupBomberAndBurrowerEffects();
 
     // Snapshot score and wave at time of death so they don't change during the delay
     const finalScore = this.hud.score;
@@ -1798,5 +1962,6 @@ export class GameScene extends Phaser.Scene {
 
   shutdown(): void {
     this.events.off('resume', this.onResumeFromUpgrade, this);
+    this.cleanupBomberAndBurrowerEffects();
   }
 }

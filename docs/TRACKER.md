@@ -9,7 +9,7 @@ Single source of truth for all completed and planned work.
 ### Core Gameplay
 - [x] Player movement, jumping, quill shooting
 - [x] Quill state system (full/patchy/sparse/naked) + regeneration
-- [x] 8 enemy types with unique AI (scurrier, spitter, swooper, shellback, burrower, splitter, healer + splitlings)
+- [x] 8 enemy types with unique AI (scurrier, spitter, swooper, shellback, burrower, splitter, bomber + splitlings)
 - [x] Wave-based progression (20 waves)
 - [x] Boss waves every 5 waves (ground boss + flying boss)
 - [x] Boss health phases (3-phase fire rate escalation)
@@ -143,7 +143,7 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 
 ---
 
-## In Progress (v0.5.1 - Boss Rewards, Vampirism Rework & Anti-Cheat)
+## Completed (v0.5.1 - Boss Rewards, Vampirism Rework & Anti-Cheat)
 
 - [x] Boss reward choice: Restoration vs Power after boss waves — `src/scenes/BossRewardScene.ts`
 - [x] Vampirism rework: stack-based proc chance and healing — `src/config.ts`, `src/scenes/GameScene.ts`
@@ -162,6 +162,30 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 - [x] Client: report upgrade picks from UpgradeScene — `src/scenes/UpgradeScene.ts`
 - [x] Client: send modifier snapshot + quills fired + wave time per wave — `src/systems/SessionManager.ts`
 - [x] Client: track quills fired in QuillManager — `src/systems/QuillManager.ts`
+
+---
+
+## Completed (v0.5.2 - Wave Balance & Bomber Enemy)
+
+### Spawn Order Rebalance
+- [x] Reordered enemy introductions: Swooper wave 2, Spitter wave 4, Shellback wave 6, Burrower wave 9, Splitter wave 11
+- [x] Adjusted spawn weights for smoother difficulty curve
+- [x] New Bomber enemy replaces Healer at wave 15
+
+### Burrower Improvements
+- [x] Reduced burrower HP from 50 → 38 (compensates for underground invulnerability)
+- [x] Extended warning phase from 600ms → 900ms with repeating dirt particle pulses
+- [x] Added red exclamation mark above emerge position during warning phase
+
+### Spawn Pacing
+- [x] Increased within-wave spawn interval floor from 300 → 375ms (end of wave)
+- [x] Raised late-wave start interval floor from 400 → 500ms (wave 17+)
+
+### New Enemy: Bomber
+- [x] Flying crow/raven enemy that hovers high above player
+- [x] Drops bomb zones every 3 seconds creating ground danger areas
+- [x] Warning phase (800ms red pulsing circle) → Active phase (1000ms, 20 damage)
+- [x] Area denial mechanic forces player movement
 
 ---
 

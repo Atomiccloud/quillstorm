@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG } from '../config';
 import { SaveManager } from '../systems/SaveManager';
 
-export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss';
+export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss' | 'bomber';
 
 export class Enemy extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
@@ -52,6 +52,9 @@ export class Enemy extends Phaser.GameObjects.Container {
   // Healer state
   private lastHealTime: number = 0;
   public healTarget: Enemy | null = null;
+
+  // Bomber state
+  private lastBombTime: number = 0;
 
   // Status effects
   private shockTimer: number = 0;
@@ -146,7 +149,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.body.setOffset(-bodyW / 2, -bodyH / 2);
 
     // Flying enemies don't have gravity
-    if (type === 'swooper' || type === 'healer' || type === 'flyingBoss') {
+    if (type === 'swooper' || type === 'healer' || type === 'flyingBoss' || type === 'bomber') {
       this.body.setAllowGravity(false);
     } else {
       this.body.setCollideWorldBounds(true);
@@ -212,6 +215,9 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
       case 'flyingBoss':
         this.updateFlyingBoss(time);
+        break;
+      case 'bomber':
+        this.updateBomber(time);
         break;
     }
 
@@ -466,6 +472,7 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.body.setVelocityY(0);
         this.burrowPhase = 'underground';
         this.burrowTimer = 0;
+        this._showingExclamation = false;
         break;
 
       case 'underground':
@@ -498,7 +505,7 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
 
       case 'warning':
-        // Brief warning phase - dirt particles show where burrower will emerge
+        // Warning phase - dirt particles + exclamation mark show where burrower will emerge
         {
           // Move to surface position
           this.x = this.surfaceTarget!.x;
@@ -507,16 +514,21 @@ export class Enemy extends Phaser.GameObjects.Container {
 
           this.burrowTimer += this.scene.game.loop.delta;
 
-          // Flag for GameScene to spawn dirt particles
-          if (this.burrowTimer < 100) {
+          // Show exclamation mark during entire warning phase
+          this._showingExclamation = true;
+
+          // Pulse dirt particles every ~200ms throughout warning
+          const delta = this.scene.game.loop.delta;
+          if (Math.floor(this.burrowTimer / 200) !== Math.floor((this.burrowTimer - delta) / 200)) {
             this._showingWarning = true;
           }
 
           // After warning duration, surface
-          if (this.burrowTimer >= 600) { // 600ms warning
+          if (this.burrowTimer >= 900) { // 900ms warning (was 600ms)
             this.burrowPhase = 'surfacing';
             this.burrowTimer = 0;
             this._showingWarning = false;
+            this._showingExclamation = false;
           }
         }
         break;
@@ -531,6 +543,7 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.burrowPhase = 'above';
         this.burrowTimer = 0;
         this.surfaceTarget = null;
+        this._showingExclamation = false;
         // Flag that we just surfaced (GameScene checks this)
         this._justSurfaced = true;
         break;
@@ -541,6 +554,8 @@ export class Enemy extends Phaser.GameObjects.Container {
   public _justSurfaced: boolean = false;
   // Flag for warning dirt particles
   public _showingWarning: boolean = false;
+  // Flag for exclamation mark during warning phase
+  public _showingExclamation: boolean = false;
 
   private updateSplitter(): void {
     // Slower scurrier behavior - chase player
@@ -617,6 +632,36 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   // Flag for GameScene to detect heal event
   public _justHealed: boolean = false;
+
+  // Flag for GameScene to create bomb zone
+  public _droppingBomb: boolean = false;
+  public _bombDropX: number = 0;
+  public _bombDropY: number = 0;
+
+  private updateBomber(time: number): void {
+    const config = ENEMY_CONFIG.bomber;
+
+    // Hover high above player
+    const targetY = this.target!.y - 200;
+    const hoverOffset = Math.sin(time / 1000) * 120;
+    const targetX = this.target!.x + hoverOffset;
+
+    // Drift toward hover position
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+    this.body.setVelocity(
+      Phaser.Math.Clamp(dx * 1.5, -this.speed, this.speed),
+      Phaser.Math.Clamp(dy * 1.5, -this.speed, this.speed)
+    );
+
+    // Drop bombs on cooldown
+    if (time - this.lastBombTime >= config.bombCooldown) {
+      this.lastBombTime = time;
+      this._droppingBomb = true;
+      this._bombDropX = this.x;
+      this._bombDropY = this.target!.y + 20; // Target ground near player
+    }
+  }
 
   private updateFlyingBoss(time: number): void {
     const config = ENEMY_CONFIG.flyingBoss;
@@ -734,6 +779,9 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
       case 'flyingBoss':
         this.drawFlyingBoss(w, h, dir, config.color);
+        break;
+      case 'bomber':
+        this.drawBomber(w, h, dir, config.color);
         break;
     }
 
@@ -978,6 +1026,42 @@ export class Enemy extends Phaser.GameObjects.Container {
         this.healTarget = null;
       }
     }
+  }
+
+  private drawBomber(w: number, h: number, _dir: number, color: number): void {
+    // Crow/raven body - bulkier than swooper
+    this.graphics.fillStyle(color);
+    this.graphics.fillEllipse(0, 0, w * 0.6, h);
+
+    // Wings - wider spread than swooper
+    this.graphics.fillStyle(color + 0x111111);
+    this.graphics.fillTriangle(
+      -w * 0.55, -h * 0.35,
+      -w * 0.1, -h * 0.1,
+      -w * 0.55, h * 0.2
+    );
+    this.graphics.fillTriangle(
+      w * 0.55, -h * 0.35,
+      w * 0.1, -h * 0.1,
+      w * 0.55, h * 0.2
+    );
+
+    // Orange-red belly (bomb pouch)
+    this.graphics.fillStyle(0xcc4400, 0.8);
+    this.graphics.fillEllipse(0, h * 0.15, w * 0.35, h * 0.4);
+
+    // Beak
+    this.graphics.fillStyle(0x333333);
+    this.graphics.fillTriangle(
+      w * 0.25 * (_dir || 1), -h * 0.1,
+      w * 0.4 * (_dir || 1), 0,
+      w * 0.2 * (_dir || 1), h * 0.05
+    );
+
+    // Orange eyes
+    this.graphics.fillStyle(0xff6600);
+    this.graphics.fillCircle(-5, -h * 0.2, 3);
+    this.graphics.fillCircle(5, -h * 0.2, 3);
   }
 
   private drawBoss(w: number, h: number, dir: number, color: number): void {
@@ -1503,6 +1587,10 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   isHealer(): boolean {
     return this.enemyType === 'healer';
+  }
+
+  isBomber(): boolean {
+    return this.enemyType === 'bomber';
   }
 
   getRollDamage(): number {

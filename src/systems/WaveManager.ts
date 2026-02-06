@@ -148,13 +148,13 @@ export class WaveManager {
     const types: EnemyType[] = ['scurrier'];
     const weights: number[] = [30];
 
-    // Unlock enemy types based on wave
-    if (this.currentWave >= 2) { types.push('spitter'); weights.push(20); }
-    if (this.currentWave >= 3) { types.push('swooper'); weights.push(15); }
-    if (this.currentWave >= 5) { types.push('shellback'); weights.push(12); }
-    if (this.currentWave >= 8) { types.push('burrower'); weights.push(10); }
-    if (this.currentWave >= 12) { types.push('splitter'); weights.push(8); }
-    if (this.currentWave >= 15) { types.push('healer'); weights.push(5); }
+    // Unlock enemy types based on wave (v0.5.2 reorder)
+    if (this.currentWave >= 2) { types.push('swooper'); weights.push(12); }
+    if (this.currentWave >= 4) { types.push('spitter'); weights.push(18); }
+    if (this.currentWave >= 6) { types.push('shellback'); weights.push(12); }
+    if (this.currentWave >= 9) { types.push('burrower'); weights.push(10); }
+    if (this.currentWave >= 11) { types.push('splitter'); weights.push(8); }
+    if (this.currentWave >= 15) { types.push('bomber'); weights.push(7); }
 
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     let roll = Math.random() * totalWeight;
@@ -289,7 +289,7 @@ export class WaveManager {
     } else {
       const side = Math.random() < 0.5 ? 'left' : 'right';
       x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
-      y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
+      y = (type === 'swooper' || type === 'bomber') ? 100 : GAME_CONFIG.height - 100;
     }
 
     // Wave 20 for type unlocking; pass 1.0 as legacy multiplier (overrides used instead)
@@ -321,8 +321,8 @@ export class WaveManager {
       // Regular enemies spawn at random edge
       const side = Math.random() < 0.5 ? 'left' : 'right';
       x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
-      // Flying enemies (swooper, healer) spawn at top
-      y = (type === 'swooper' || type === 'healer') ? 100 : GAME_CONFIG.height - 100;
+      // Flying enemies (swooper, bomber) spawn at top
+      y = (type === 'swooper' || type === 'bomber') ? 100 : GAME_CONFIG.height - 100;
     }
 
     // Roll for elite (non-boss only)

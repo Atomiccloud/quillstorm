@@ -31,6 +31,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Boss rewards** → See [docs/GAMEPLAY.md#boss-rewards](docs/GAMEPLAY.md#boss-rewards), `src/scenes/BossRewardScene.ts`
 - **Vampirism balance** → See [docs/GAMEPLAY.md#vampirism](docs/GAMEPLAY.md#vampirism), config in `src/config.ts` VAMPIRISM_CONFIG
 - **Level scaling (per-level bonuses)** → `src/config.ts` LEVEL_SCALING_CONFIG, applied in `src/systems/UpgradeManager.ts`
+- **Bomber enemy / bomb zones** → `src/config.ts` ENEMY_CONFIG.bomber, AI in `src/entities/Enemy.ts`, zone rendering in `src/scenes/GameScene.ts`
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 - **Anti-cheat system** → See [docs/ANTI_CHEAT.md](docs/ANTI_CHEAT.md) for full architecture. Server: `api/_lib/session.ts`, Client: `src/systems/SessionManager.ts`, Upgrade lookup: `api/_lib/upgrades.ts`
 - **Anti-cheat upgrade ledger** → `api/session/upgrade.ts` (endpoint), tracks all upgrade picks server-side for modifier reconstruction
@@ -87,25 +88,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 ## Common Tasks
 
 ### Adjusting Game Balance
-Edit `src/config.ts`:
-- `PLAYER_CONFIG` - Movement speed, jump force, health
-- `QUILL_CONFIG` - Fire rate, damage, regeneration
-- `ENEMY_CONFIG` - Stats for each enemy type
-- `ENEMY_SCALING` - How stats increase per wave
-- `WAVE_CONFIG` - Enemy count scaling, boss intervals
-- `UPGRADE_CONFIG` - Rarity weights
-- `XP_CONFIG` - XP requirements, level scaling, infinite swarm trigger
-- `CHEST_CONFIG` - Chest drop rates, despawn time, rarity weights
-- `PROSPERITY_CONFIG` - Prosperity effects on drops/rarity/crit
-- `INFINITE_SWARM_CONFIG` - Endless mode spawn decay, split HP/damage scaling, damage caps, boss spawn config
-- `ELITE_CONFIG` - Elite enemy stat multipliers, spawn chance, glow color
-- `DANGER_CONFIG` - Danger level scaling per stack (HP, damage, elite chance, score, XP)
-- `STATUS_EFFECT_CONFIG` - Elemental status effect durations, colors, ranges, stack caps
-- `VAMPIRISM_CONFIG` - Vampirism proc divisor, base heal, heal per stack
-- `BOSS_REWARD_CONFIG` - Boss reward balance percentages, wave quill bonus
-- `LEVEL_SCALING_CONFIG` - Passive per-level bonuses (damage per level)
-- `ARMOR_CONFIG` - Armor damage reduction cap (50%)
-- `EVASION_CONFIG` - Evasion dodge chance cap (40%)
+All balance constants live in `src/config.ts` — search for the relevant `*_CONFIG` export. See Quick Links above for specific systems.
 
 ### Adding a New Enemy Type
 1. Add config to `ENEMY_CONFIG` in `src/config.ts`
@@ -131,73 +114,7 @@ Edit `src/config.ts`:
 
 ## Architecture Overview
 
-```
-Scenes (Phaser.Scene)
-├── BootScene           # Loading
-├── MenuScene           # Main menu
-├── LoginScene          # Google sign-in / account
-├── GameScene           # Main gameplay
-├── UpgradeScene        # Upgrade selection overlay
-├── BossRewardScene     # Boss reward: Restoration vs Power choice
-├── PauseScene          # Pause menu overlay
-├── GameOverScene       # End screen + score submission
-├── LeaderboardScene    # Global/weekly leaderboard view
-└── ShopScene           # Cosmetic shop (skins, hats, quills, trails)
-
-Entities (Phaser.GameObjects.Container)
-├── Player              # Porcupine character
-├── Enemy               # 8 enemy types + 2 boss types
-├── Quill               # Projectile
-├── Companion           # Baby porcupine helper
-├── XPOrb               # Collectible XP drop
-├── TreasureChest       # Rare upgrade chest
-└── Pinecone            # Currency drop
-
-UI Components
-├── HUD                 # Health bar, quill bar, XP bar, wave info
-├── StatsPanel          # Tab-toggleable modifier display
-├── LeaderboardPanel    # Scrollable leaderboard table
-├── NameInputModal      # DOM-based name input
-└── ChangelogModal      # Version changelog popup
-
-Systems (Singleton/Manager classes)
-├── QuillManager        # Shooting, regeneration
-├── WaveManager         # Spawning, wave progression, infinite swarm
-├── UpgradeManager      # Modifier tracking
-├── ProgressionManager  # XP, levels, prosperity, infinite swarm
-├── CosmeticManager     # Cosmetic state, purchases, equip
-├── PlayerDataManager   # Server sync, offline queue, auth-gated persistence
-├── AuthManager         # Firebase Auth, Google Sign-In
-├── SessionManager      # Anti-cheat session tracking (wave-by-wave kills)
-├── SaveManager         # High score + player name persistence
-├── AudioManager        # Procedural sounds
-├── LevelGenerator      # Platform layouts
-└── LeaderboardManager  # API client, offline queue
-
-API (Vercel Edge Functions)
-├── api/leaderboard/submit.ts   # Score submission + shadow honeypot
-├── api/leaderboard/global.ts   # Global top 100 + shadow merge
-├── api/leaderboard/weekly.ts   # Weekly top 100 + shadow merge
-├── api/session/start.ts        # Anti-cheat session creation
-├── api/session/wave.ts         # Wave kill report validation
-├── api/session/gameover.ts     # Game over report
-├── api/player/sync.ts          # Player data sync (pinecones, cosmetics)
-├── api/player/purchase.ts      # Server-side purchase validation
-├── api/_lib/validation.ts      # Checksum + input validation
-├── api/_lib/session.ts         # Session types + kill validation
-└── api/_lib/ratelimit.ts       # Rate limiting
-```
-
-## Tech Notes
-
-- **Framework**: Phaser 3.80.1 with Arcade Physics
-- **Build**: Vite + TypeScript
-- **Hosting**: Vercel (auto-deploys on merge to master)
-- **Backend**: Vercel Edge Functions + Vercel KV (Upstash Redis)
-- **Audio**: Web Audio API (procedural, no files)
-- **Graphics**: All procedural (no image assets)
-- **Auth**: Firebase Authentication (Google Sign-In)
-- **Storage**: LocalStorage for saves/cosmetics, Vercel KV for leaderboards + player data
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for full project structure, system descriptions, and backend schema.
 
 ## Running the Game
 
