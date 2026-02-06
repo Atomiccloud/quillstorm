@@ -32,7 +32,7 @@ When completing features, check off items in TRACKER.md and update this file if 
 - **Vampirism balance** → See [docs/GAMEPLAY.md#vampirism](docs/GAMEPLAY.md#vampirism), config in `src/config.ts` VAMPIRISM_CONFIG
 - **Level scaling (per-level bonuses)** → `src/config.ts` LEVEL_SCALING_CONFIG, applied in `src/systems/UpgradeManager.ts`
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
-- **Anti-cheat validation** → `api/_lib/session.ts` (server validation), `src/systems/SessionManager.ts` (client reporting), `api/_lib/upgrades.ts` (server-side upgrade lookup)
+- **Anti-cheat system** → See [docs/ANTI_CHEAT.md](docs/ANTI_CHEAT.md) for full architecture. Server: `api/_lib/session.ts`, Client: `src/systems/SessionManager.ts`, Upgrade lookup: `api/_lib/upgrades.ts`
 - **Anti-cheat upgrade ledger** → `api/session/upgrade.ts` (endpoint), tracks all upgrade picks server-side for modifier reconstruction
 
 ### Understanding Systems
