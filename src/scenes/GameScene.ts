@@ -68,7 +68,6 @@ export class GameScene extends Phaser.Scene {
 
     this.effectsOpacity = SaveManager.getEffectsOpacity();
 
-    // Start anti-cheat session (don't block game start)
     SessionManager.startSession();
 
     // Create XP orbs, treasure chest, and pinecone groups
@@ -124,6 +123,8 @@ export class GameScene extends Phaser.Scene {
       this.player.resetShieldsForWave();
       this.player.resetPerf();
       this.updateCompanions();
+      SessionManager._mw();
+      SessionManager._sw(1);
       this.waveManager.startWave();
     });
 
@@ -626,7 +627,7 @@ export class GameScene extends Phaser.Scene {
       this.hud.addScore(points);
 
       this.spawnDeathParticles(enemy.x, enemy.y);
-      SessionManager.recordKill(enemy.enemyType, enemy.isElite);
+      SessionManager._rk(enemy.enemyType, enemy.isElite);
       this.recordSessionKill(enemy.enemyType, enemy.isElite);
 
       // Splitter splits into 2 splitlings on death
@@ -1079,20 +1080,20 @@ export class GameScene extends Phaser.Scene {
     this.previousMaxShields = this.upgradeManager.getModifier('shieldCharges');
     this.hud.showWaveComplete();
 
-    // Report wave completion for anti-cheat
     const wavePerf = this.player.getPerf();
-    SessionManager.setPerf(wavePerf);
-    SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
-    SessionManager.setStatMetrics(
+    SessionManager._sp(wavePerf);
+    SessionManager._dl(this.upgradeManager.getModifier('dangerLevel'));
+    SessionManager._ss(
       this.player.maxHealth,
       this.quillManager.maxQuills,
       this.upgradeManager.getModifier('prosperity')
     );
-    SessionManager.setDefenseStats(
+    SessionManager._dd(
       this.upgradeManager.getModifier('armor'),
       this.upgradeManager.getModifier('evasion')
     );
-    SessionManager.reportWaveComplete(this.waveManager.currentWave, this.hud.score);
+    SessionManager._ms(this.upgradeManager);
+    SessionManager._rw(this.waveManager.currentWave, this.hud.score);
 
     // Accumulate session damage stats
     this.totalDamageTaken += wavePerf.d;
@@ -1259,6 +1260,8 @@ export class GameScene extends Phaser.Scene {
       this.player.resetShieldsForWave();
       this.player.resetPerf();
       this.updateCompanions();
+      SessionManager._mw();
+      SessionManager._sw(nextWave);
       if (isBossWave) {
         this.hud.showBossWarning();
         this.time.delayedCall(1500, () => {
@@ -1310,20 +1313,20 @@ export class GameScene extends Phaser.Scene {
     const finalScore = this.hud.score;
     const finalWave = this.waveManager.currentWave;
 
-    // Report game over for anti-cheat
     const deathPerf = this.player.getPerf();
-    SessionManager.setPerf(deathPerf);
-    SessionManager.setDangerLevel(this.upgradeManager.getModifier('dangerLevel'));
-    SessionManager.setStatMetrics(
+    SessionManager._sp(deathPerf);
+    SessionManager._dl(this.upgradeManager.getModifier('dangerLevel'));
+    SessionManager._ss(
       this.player.maxHealth,
       this.quillManager.maxQuills,
       this.upgradeManager.getModifier('prosperity')
     );
-    SessionManager.setDefenseStats(
+    SessionManager._dd(
       this.upgradeManager.getModifier('armor'),
       this.upgradeManager.getModifier('evasion')
     );
-    SessionManager.reportGameOver(finalWave, finalScore);
+    SessionManager._ms(this.upgradeManager);
+    SessionManager._rg(finalWave, finalScore);
 
     // Accumulate final wave's damage stats
     this.totalDamageTaken += deathPerf.d;
@@ -1431,7 +1434,7 @@ export class GameScene extends Phaser.Scene {
           const dangerScoreMult = 1 + dangerLevel * DANGER_CONFIG.scoreMultiplierPerStack;
           this.hud.addScore(Math.floor(enemy.points * dangerScoreMult));
           this.spawnDeathParticles(enemy.x, enemy.y);
-          SessionManager.recordKill(enemy.enemyType, enemy.isElite);
+          SessionManager._rk(enemy.enemyType, enemy.isElite);
           this.recordSessionKill(enemy.enemyType, enemy.isElite);
           // Splitter splits on death from companion quills too
           if (enemy.isSplitter()) {

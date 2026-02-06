@@ -8,9 +8,14 @@ import {
   WaveRecord,
   StatMetrics,
   DefenseStats,
+  ModifierSnapshot,
   validateWaveReport,
   validateStatMetrics,
   validateDefenseStats,
+  validateModifierSnapshot,
+  validateQuillEfficiency,
+  validateWaveTiming,
+  validateDamagePatterns,
 } from '../_lib/session';
 
 export const config = {
@@ -27,6 +32,9 @@ interface WaveRequest {
   pm?: { d: number; t: number; b: number };
   sm?: StatMetrics;
   ds?: DefenseStats;
+  um?: ModifierSnapshot;  // v0.5.1: Modifier snapshot
+  qf?: number;            // v0.5.1: Quills fired this wave
+  wt?: number;            // v0.5.1: Wave duration in ms
 }
 
 interface WaveResponse {
@@ -171,6 +179,9 @@ export default async function handler(req: Request): Promise<Response> {
       ...(body.pm && typeof body.pm === 'object' ? { pm: body.pm } : {}),
       ...(body.sm && typeof body.sm === 'object' ? { sm: body.sm } : {}),
       ...(body.ds && typeof body.ds === 'object' ? { ds: body.ds } : {}),
+      ...(body.um && typeof body.um === 'object' ? { um: body.um } : {}),
+      ...(typeof body.qf === 'number' ? { qf: body.qf } : {}),
+      ...(typeof body.wt === 'number' ? { wt: body.wt } : {}),
     };
     session.waves.push(waveRecord);
 
@@ -185,6 +196,35 @@ export default async function handler(req: Request): Promise<Response> {
         },
       });
     }
+
+    // v0.5.1: Validate modifier snapshot against upgrade ledger
+    const modValidation = validateModifierSnapshot(session, body.um);
+    if (!modValidation.valid) {
+      return new Response(JSON.stringify({ success: false, error: 'Invalid request' }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+    if (modValidation.flagged) {
+      session.modifiersFlagged = true;
+      if (!session.heuristicFlags) session.heuristicFlags = [];
+      session.heuristicFlags.push(...modValidation.flags);
+    }
+
+    // v0.5.1: Behavioral heuristics (flag but don't reject)
+    if (!session.heuristicFlags) session.heuristicFlags = [];
+
+    const quillEffFlags = validateQuillEfficiency(body.kills, body.eliteKills, body.qf, body.um);
+    session.heuristicFlags.push(...quillEffFlags.flags);
+
+    const waveTimeFlags = validateWaveTiming(body.wave, body.wt);
+    session.heuristicFlags.push(...waveTimeFlags.flags);
+
+    const dmgFlags = validateDamagePatterns(session, body.wave, body.pm, body.um);
+    session.heuristicFlags.push(...dmgFlags.flags);
 
     // Update session in Redis
     await kv.set(sessionKey, JSON.stringify(session), { ex: SESSION_TTL_SECONDS });

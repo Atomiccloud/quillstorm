@@ -1,37 +1,22 @@
-// Record game over for anti-cheat tracking
+// Record upgrade selection for anti-cheat tracking
+// Builds a server-side ledger of all upgrades picked during a session
 
 import {
   getSessionKey,
+  SESSION_TTL_SECONDS,
   GameSession,
-  KillCounts,
-  StatMetrics,
-  DefenseStats,
-  ModifierSnapshot,
-  validateStatMetrics,
 } from '../_lib/session';
+import { UPGRADE_LOOKUP } from '../_lib/upgrades';
 
 export const config = {
   runtime: 'edge',
 };
 
-interface GameOverRequest {
+interface UpgradeRequest {
   token: string;
-  finalWave: number;
-  finalScore: number;
-  kills?: KillCounts;
-  eliteKills?: KillCounts;
-  dangerLevel?: number;
-  pm?: { d: number; t: number; b: number };
-  sm?: StatMetrics;
-  ds?: DefenseStats;
-  um?: ModifierSnapshot;  // v0.5.1: Final modifier snapshot
-  qf?: number;            // v0.5.1: Quills fired in final wave
-  wt?: number;            // v0.5.1: Final wave duration
-}
-
-interface GameOverResponse {
-  success: boolean;
-  error?: string;
+  upgradeId: string;
+  source: string; // 'wave' | 'chest' | 'levelup' | 'bossReward'
+  wave: number;
 }
 
 // Check if KV is configured
@@ -52,7 +37,6 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  // Only allow POST
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ success: false, error: 'Method not allowed' }), {
       status: 405,
@@ -60,7 +44,6 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  // Skip validation if KV isn't configured
   if (!isKVConfigured()) {
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -71,7 +54,7 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  let body: GameOverRequest;
+  let body: UpgradeRequest;
   try {
     body = await req.json();
   } catch {
@@ -89,15 +72,15 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  if (typeof body.finalWave !== 'number' || body.finalWave < 1) {
-    return new Response(JSON.stringify({ success: false, error: 'Invalid wave' }), {
+  if (!body.upgradeId || typeof body.upgradeId !== 'string') {
+    return new Response(JSON.stringify({ success: false, error: 'Invalid upgrade' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  if (typeof body.finalScore !== 'number' || body.finalScore < 0) {
-    return new Response(JSON.stringify({ success: false, error: 'Invalid score' }), {
+  if (typeof body.wave !== 'number' || body.wave < 1) {
+    return new Response(JSON.stringify({ success: false, error: 'Invalid wave' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -106,7 +89,6 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const { kv } = await import('@vercel/kv');
 
-    // Get existing session
     const sessionKey = getSessionKey(body.token);
     const sessionData = await kv.get<string>(sessionKey);
 
@@ -124,7 +106,6 @@ export default async function handler(req: Request): Promise<Response> {
       ? JSON.parse(sessionData)
       : sessionData;
 
-    // Check if already ended
     if (session.gameOver) {
       return new Response(JSON.stringify({ success: false, error: 'Invalid session' }), {
         status: 400,
@@ -135,50 +116,25 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // Mark game as over and store unreported kills from current/infinite wave
-    session.gameOver = true;
-    session.finalWave = body.finalWave;
-    session.finalScore = body.finalScore;
-    if (body.kills && typeof body.kills === 'object') {
-      session.finalKills = body.kills;
-    }
-    if (body.eliteKills && typeof body.eliteKills === 'object') {
-      session.finalEliteKills = body.eliteKills;
-    }
-    if (typeof body.dangerLevel === 'number') {
-      session.finalDangerLevel = body.dangerLevel;
-    }
-    if (body.pm && typeof body.pm === 'object') {
-      session.finalPm = body.pm;
-    }
-    if (body.sm && typeof body.sm === 'object') {
-      session.finalSm = body.sm;
-      // Validate stat metrics - silently flag if suspicious
-      const statValidation = validateStatMetrics(body.finalWave, body.sm);
-      if (!statValidation.valid) {
-        session.statsFlagged = true;
-      }
-    }
-    if (body.ds && typeof body.ds === 'object') {
-      session.finalDs = body.ds;
-    }
-    // v0.5.1: Store final modifier snapshot and behavioral data
-    if (body.um && typeof body.um === 'object') {
-      (session as Record<string, unknown>).finalUm = body.um;
-    }
-    if (typeof body.qf === 'number') {
-      (session as Record<string, unknown>).finalQf = body.qf;
-    }
-    if (typeof body.wt === 'number') {
-      (session as Record<string, unknown>).finalWt = body.wt;
+    // Validate upgrade ID exists in our lookup
+    const isKnownUpgrade = !!UPGRADE_LOOKUP[body.upgradeId];
+
+    // Initialize ledger if needed
+    if (!session.upgradeLedger) {
+      session.upgradeLedger = [];
     }
 
-    // Update session in Redis (shorter TTL since game is over)
-    await kv.set(sessionKey, JSON.stringify(session), { ex: 300 }); // 5 minutes to submit
+    // Record the upgrade pick (even if unknown - we'll flag it during validation)
+    session.upgradeLedger.push({
+      id: body.upgradeId,
+      source: body.source || 'wave',
+      wave: body.wave,
+      known: isKnownUpgrade,
+    });
 
-    const response: GameOverResponse = { success: true };
+    await kv.set(sessionKey, JSON.stringify(session), { ex: SESSION_TTL_SECONDS });
 
-    return new Response(JSON.stringify(response), {
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -186,7 +142,7 @@ export default async function handler(req: Request): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error('Game over record error:', error);
+    console.error('Upgrade record error:', error);
     return new Response(JSON.stringify({ success: false, error: 'Server error' }), {
       status: 500,
       headers: {

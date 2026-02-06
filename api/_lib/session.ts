@@ -2,6 +2,7 @@
 // Tracks game progress server-side to validate score submissions
 
 import { nanoid } from 'nanoid';
+import { reconstructModifiers, UPGRADE_LOOKUP } from './upgrades';
 
 // Elite and danger constants - must match client config
 export const ELITE_POINTS_MULTIPLIER = 2.5;
@@ -55,6 +56,34 @@ export interface DefenseStats {
   e: number; // evasion (e.g., 40 = 0.40 raw = 40 evasion displayed)
 }
 
+// Modifier snapshot for anti-cheat (obfuscated keys, values * 1000 for integer transmission)
+export interface ModifierSnapshot {
+  d: number;   // damage
+  fr: number;  // fireRate
+  rr: number;  // regenRate
+  ps: number;  // projectileSpeed
+  pc: number;  // projectileCount
+  mh: number;  // maxHealth
+  mq: number;  // maxQuills
+  pr: number;  // prosperity
+  dl: number;  // dangerLevel
+  cc: number;  // critChance
+  ar: number;  // armor
+  ev: number;  // evasion
+  vs: number;  // vampirismStrength
+  sc: number;  // shieldCharges
+  pi: number;  // piercing
+  bo: number;  // bouncing
+}
+
+// Upgrade ledger entry
+export interface UpgradeLedgerEntry {
+  id: string;
+  source: string;
+  wave: number;
+  known: boolean;
+}
+
 // Wave data recorded during gameplay
 export interface WaveRecord {
   wave: number;
@@ -66,6 +95,9 @@ export interface WaveRecord {
   pm?: PerfMetrics;
   sm?: StatMetrics;
   ds?: DefenseStats;      // Defense stats at end of wave
+  um?: ModifierSnapshot;  // Modifier snapshot at end of wave
+  qf?: number;            // Quills fired this wave
+  wt?: number;            // Wave duration in milliseconds
 }
 
 // Full session data stored in Redis
@@ -82,8 +114,12 @@ export interface GameSession {
   finalDangerLevel?: number;
   finalPm?: PerfMetrics;
   finalSm?: StatMetrics;
-  statsFlagged?: boolean;  // True if HP/quills/prosperity values were suspicious
+  statsFlagged?: boolean;    // True if HP/quills/prosperity values were suspicious
   finalDs?: DefenseStats;
+  // v0.5.1: Enhanced anti-cheat
+  upgradeLedger?: UpgradeLedgerEntry[];  // Server-side record of all upgrade picks
+  modifiersFlagged?: boolean;  // True if modifier snapshot didn't match upgrade ledger
+  heuristicFlags?: string[];   // List of triggered heuristic checks
 }
 
 // Session validation result
@@ -304,16 +340,12 @@ export function validateStatMetrics(
 export const MAX_ARMOR_PER_WAVE = 20;   // Max 20 armor per wave
 export const MAX_EVASION_PER_WAVE = 15; // Max 15 evasion per wave
 
-// Validate defense stats for waves 1-19 (early game anti-cheat)
+// Validate defense stats for all waves (anti-cheat)
 // Returns invalid if armor/evasion values are impossibly high for the wave number
 export function validateDefenseStats(
   session: GameSession,
   wave: number
 ): { valid: boolean; error?: string } {
-  // Only check waves 1-19 (early game where defense stats matter most)
-  if (wave > 19) {
-    return { valid: true };
-  }
 
   // Get the most recent wave record with defense stats
   const lastWaveWithDs = [...session.waves].reverse().find(w => w.ds);
@@ -335,6 +367,197 @@ export function validateDefenseStats(
   }
 
   if (evasion > maxEvasion) {
+    return { valid: false, error: 'Invalid session' };
+  }
+
+  return { valid: true };
+}
+
+// ===== v0.5.1: Enhanced Anti-Cheat Validation =====
+
+// Modifier key mapping: snapshot key → upgrade effect key
+const MODIFIER_KEY_MAP: Record<string, string> = {
+  d: 'damage', fr: 'fireRate', rr: 'regenRate', ps: 'projectileSpeed',
+  pc: 'projectileCount', mh: 'maxHealth', mq: 'maxQuills', pr: 'prosperity',
+  dl: 'dangerLevel', cc: 'critChance', ar: 'armor', ev: 'evasion',
+  vs: 'vampirismStrength', sc: 'shieldCharges', pi: 'piercing', bo: 'bouncing',
+};
+
+// Validate modifier snapshot against upgrade ledger
+// Returns flagged=true if modifiers don't match expected values from upgrades picked
+export function validateModifierSnapshot(
+  session: GameSession,
+  um?: ModifierSnapshot
+): { valid: boolean; flagged: boolean; flags: string[] } {
+  if (!um || !session.upgradeLedger || session.upgradeLedger.length === 0) {
+    return { valid: true, flagged: false, flags: [] };
+  }
+
+  const expected = reconstructModifiers(session.upgradeLedger);
+  const flags: string[] = [];
+
+  for (const [snapshotKey, effectKey] of Object.entries(MODIFIER_KEY_MAP)) {
+    const reportedRaw = (um as Record<string, number>)[snapshotKey];
+    if (reportedRaw === undefined) continue;
+
+    // Reported values are * 1000 for integer transmission
+    const reported = reportedRaw / 1000;
+    const expectedVal = expected[effectKey] || 0;
+
+    // Tolerance: ±5% of expected value or ±0.05 absolute, whichever is larger
+    const tolerance = Math.max(Math.abs(expectedVal) * 0.05, 0.05);
+    const diff = reported - expectedVal;
+
+    if (Math.abs(diff) > tolerance) {
+      // Modifier doesn't match upgrade ledger
+      if (Math.abs(diff) > Math.max(Math.abs(expectedVal) * 1.0, 1.0)) {
+        // >2x expected or >1 absolute difference: hard flag
+        flags.push(`${effectKey}:${reported.toFixed(2)}vs${expectedVal.toFixed(2)}`);
+      } else {
+        // Moderate mismatch: soft flag
+        flags.push(`~${effectKey}`);
+      }
+    }
+  }
+
+  // Hard reject if 3+ major flags (clear tampering across multiple modifiers)
+  const majorFlags = flags.filter(f => !f.startsWith('~'));
+  if (majorFlags.length >= 3) {
+    return { valid: false, flagged: true, flags };
+  }
+
+  return { valid: true, flagged: flags.length > 0, flags };
+}
+
+// Validate quill efficiency: kills vs quills fired
+// Detects impossibly high damage (many kills with very few quills)
+export function validateQuillEfficiency(
+  kills: KillCounts,
+  eliteKills: KillCounts | undefined,
+  quillsFired: number | undefined,
+  um: ModifierSnapshot | undefined
+): { flags: string[] } {
+  const flags: string[] = [];
+
+  if (quillsFired === undefined || quillsFired <= 0) {
+    return { flags };
+  }
+
+  // Count total kills
+  let totalKills = 0;
+  for (const count of Object.values(kills)) {
+    if (count) totalKills += count;
+  }
+  if (eliteKills) {
+    for (const count of Object.values(eliteKills)) {
+      if (count) totalKills += count;
+    }
+  }
+
+  if (totalKills === 0) return { flags };
+
+  // Get piercing and projectile count from snapshot (if available)
+  const piercing = um ? (um.pi / 1000) : 0;
+  const projCount = um ? Math.max(1, 1 + Math.floor(um.pc / 1000)) : 1;
+
+  // Each shot fires projCount quills, each can hit (1 + piercing) enemies
+  // So max kills per quill fired = projCount * (1 + piercing) / projCount = 1 + piercing
+  // But also factor in bouncing, AOE, companions, etc. - be generous
+  const maxKillsPerQuill = (1 + piercing) * 3; // 3x multiplier for AOE/bouncing/companions
+  const maxPossibleKills = quillsFired * maxKillsPerQuill;
+
+  if (totalKills > maxPossibleKills && totalKills > 10) {
+    flags.push(`quillEff:${totalKills}k/${quillsFired}q`);
+  }
+
+  return { flags };
+}
+
+// Validate wave timing: waves shouldn't complete impossibly fast
+export function validateWaveTiming(
+  wave: number,
+  waveTime: number | undefined
+): { flags: string[] } {
+  const flags: string[] = [];
+
+  if (waveTime === undefined || waveTime <= 0) {
+    return { flags };
+  }
+
+  // Minimum wave time: enemies need to spawn and be killed
+  // Even with insane builds, first enemies spawn at ~600ms intervals
+  // Wave 1 has ~8 enemies, later waves have 20+
+  const minTime = wave <= 3 ? 2000 : 4000; // 2s early, 4s later
+
+  if (waveTime < minTime) {
+    flags.push(`waveTime:${wave}w/${Math.round(waveTime)}ms`);
+  }
+
+  return { flags };
+}
+
+// Validate damage patterns: detect reduced enemy stats
+// If player has no armor/evasion/shields but takes zero damage in mid-late waves, suspicious
+export function validateDamagePatterns(
+  session: GameSession,
+  wave: number,
+  pm: PerfMetrics | undefined,
+  um: ModifierSnapshot | undefined
+): { flags: string[] } {
+  const flags: string[] = [];
+
+  if (!pm || wave < 8) {
+    return { flags };
+  }
+
+  // Check if player has no defensive stats but takes zero damage
+  const hasDefense = um && (
+    um.ar > 50 ||  // >0.05 armor
+    um.ev > 50 ||  // >0.05 evasion
+    um.sc > 0      // has shields
+  );
+
+  if (!hasDefense && pm.d === 0 && pm.t === 0 && pm.b === 0) {
+    // No armor, no evasion, no shields, and took zero damage in wave 8+
+    // Check if this is a consistent pattern (3+ consecutive zero-damage waves)
+    const recentWaves = session.waves.slice(-3);
+    const allZero = recentWaves.length >= 3 && recentWaves.every(w =>
+      w.pm && w.pm.d === 0 && w.pm.t === 0 && w.pm.b === 0
+    );
+
+    if (allZero) {
+      flags.push(`zeroDmg:${wave}w/noDef`);
+    }
+  }
+
+  return { flags };
+}
+
+// Enhanced performance validation with lower thresholds
+export function validatePerfEnhanced(
+  session: GameSession,
+  score: number,
+  wave: number
+): { valid: boolean; error?: string } {
+  // Lower threshold: 25k+ at wave 15+
+  if (wave < 15 || score < 25000) {
+    return { valid: true };
+  }
+
+  // Check waves 15-20 for engagement (broader range than before)
+  const checkWaves = session.waves.filter(w => w.wave >= 15 && w.wave <= 20 && w.pm);
+
+  if (checkWaves.length === 0) {
+    return { valid: true };
+  }
+
+  // All checked waves show zero engagement = suspicious
+  const allZero = checkWaves.every(w => {
+    const pm = w.pm!;
+    return pm.d === 0 && pm.t === 0 && pm.b === 0;
+  });
+
+  if (allZero) {
     return { valid: false, error: 'Invalid session' };
   }
 

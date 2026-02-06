@@ -272,6 +272,11 @@ export class UpgradeManager {
     return base;
   }
 
+  // Get raw modifier value without level bonuses
+  getRawModifier(type: ModifierType): number {
+    return this.modifiers.get(type) || 0;
+  }
+
   getUpgrades(): Upgrade[] {
     return [...this.upgrades];
   }
