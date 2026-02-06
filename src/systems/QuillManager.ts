@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { QUILL_CONFIG } from '../config';
 import { Quill } from '../entities/Quill';
 import { UpgradeManager } from './UpgradeManager';
+import { SessionManager } from './SessionManager';
 import { getCosmeticManager } from './CosmeticManager';
 
 export class QuillManager {
@@ -95,6 +96,8 @@ export class QuillManager {
 
     // Consume quill
     this.currentQuills -= 1;
+
+    SessionManager._rf();
 
     // Apotheosis - every 5th shot is empowered
     this.shotCount++;

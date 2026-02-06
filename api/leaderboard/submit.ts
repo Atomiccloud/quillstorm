@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { validateSubmission, getISOWeek, getNextMondayTimestamp } from '../_lib/validation';
 import { checkRateLimit, checkSubmissionCooldown, getClientIP } from '../_lib/ratelimit';
-import { getSessionKey, GameSession, validateSubmission as validateSessionSubmission, validatePerf } from '../_lib/session';
+import { getSessionKey, GameSession, validateSubmission as validateSessionSubmission, validatePerf, validatePerfEnhanced } from '../_lib/session';
 
 export const config = {
   runtime: 'edge',
@@ -179,7 +179,8 @@ export default async function handler(req: Request): Promise<Response> {
           const sessionValidation = validateSessionSubmission(session, wave, score);
           if (sessionValidation.valid) {
             const perfCheck = validatePerf(session, score, wave);
-            if (perfCheck.valid && !session.statsFlagged) {
+            const perfEnhanced = validatePerfEnhanced(session, score, wave);
+            if (perfCheck.valid && perfEnhanced.valid && !session.statsFlagged && !session.modifiersFlagged) {
               isValidSession = true;
             }
           }

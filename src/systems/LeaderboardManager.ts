@@ -121,7 +121,7 @@ export class LeaderboardManager {
     wave: number,
     sessionToken?: string | null
   ): Promise<SubmissionResult> {
-    // Generate timestamp and fingerprint for anti-cheat
+    // Generate timestamp and fingerprint for submission
     const timestamp = Date.now();
     const fingerprint = getBrowserFingerprint();
 

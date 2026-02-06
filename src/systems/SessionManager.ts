@@ -1,7 +1,5 @@
-// Client-side session manager for anti-cheat tracking
-// Tracks game progress and sends updates to server
+import { UpgradeManager } from './UpgradeManager';
 
-// Kill counts by enemy type - must match server expectations
 export interface KillCounts {
   scurrier?: number;
   spitter?: number;
@@ -15,7 +13,6 @@ export interface KillCounts {
   flyingBoss?: number;
 }
 
-// Get or create a persistent unique ID per browser profile
 function getPersistentId(): string {
   try {
     let pid = localStorage.getItem('quillstorm_fp_id');
@@ -29,7 +26,6 @@ function getPersistentId(): string {
   }
 }
 
-// Generate browser fingerprint combining canvas hash + persistent ID (same as LeaderboardManager)
 function getBrowserFingerprint(): string {
   const pid = getPersistentId();
 
@@ -64,31 +60,35 @@ function getBrowserFingerprint(): string {
 }
 
 export class SessionManager {
-  private static API_BASE = '/api/session';
+  private static _ab = '/api/session';
   private static currentToken: string | null = null;
   private static fingerprint: string = getBrowserFingerprint();
-  private static waveKills: KillCounts = {};
-  private static eliteWaveKills: KillCounts = {};
-  private static dangerLevel: number = 0;
+  private static _wk: KillCounts = {};
+  private static _ek: KillCounts = {};
+  private static _dg: number = 0;
   private static _wpm = { d: 0, t: 0, b: 0 };
-  private static _sm = { m: 0, c: 0, p: 0 }; // stat metrics: m=maxHealth, c=maxQuills, p=prosperity
+  private static _sm = { m: 0, c: 0, p: 0 };
   private static _ds = { a: 0, e: 0 };
+  private static _um: Record<string, number> | null = null;
+  private static _qf: number = 0;
+  private static _wst: number = 0;
+  private static _cw: number = 0;
 
-  // Start a new game session
   static async startSession(): Promise<boolean> {
-    this.resetKills();
+    this._rst();
+    this._qf = 0;
+    this._wst = Date.now();
+    this._cw = 0;
+    this._um = null;
 
     try {
-      const response = await fetch(`${this.API_BASE}/start`, {
+      const response = await fetch(`${this._ab}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fingerprint: this.fingerprint }),
       });
 
-      if (!response.ok) {
-        console.error('Failed to start session');
-        return false;
-      }
+      if (!response.ok) return false;
 
       const data = await response.json();
       if (data.success && data.token) {
@@ -97,140 +97,182 @@ export class SessionManager {
       }
 
       return false;
-    } catch (error) {
-      console.error('Session start error:', error);
-      // Don't block gameplay if session fails
+    } catch {
       return false;
     }
   }
 
-  static setPerf(data: { d: number; t: number; b: number }): void {
+  static _sp(data: { d: number; t: number; b: number }): void {
     this._wpm = { ...data };
   }
 
-  static setDangerLevel(level: number): void {
-    this.dangerLevel = level;
+  static _dl(level: number): void {
+    this._dg = level;
   }
 
-  static setStatMetrics(maxHealth: number, maxQuills: number, prosperity: number): void {
-    this._sm = { m: maxHealth, c: maxQuills, p: prosperity };
+  static _ss(a: number, b: number, c: number): void {
+    this._sm = { m: a, c: b, p: c };
   }
 
-  static setDefenseStats(armor: number, evasion: number): void {
-    this._ds = { a: Math.round(armor * 100), e: Math.round(evasion * 100) };
+  static _dd(a: number, b: number): void {
+    this._ds = { a: Math.round(a * 100), e: Math.round(b * 100) };
   }
 
-  // Record an enemy kill (accumulates until wave ends)
-  static recordKill(enemyType: string, isElite: boolean = false): void {
-    const key = enemyType as keyof KillCounts;
-    if (isElite) {
-      this.eliteWaveKills[key] = (this.eliteWaveKills[key] || 0) + 1;
-    } else {
-      this.waveKills[key] = (this.waveKills[key] || 0) + 1;
-    }
+  static _ms(um: UpgradeManager): void {
+    this._um = {
+      d: Math.round(um.getRawModifier('damage') * 1000),
+      fr: Math.round(um.getRawModifier('fireRate') * 1000),
+      rr: Math.round(um.getRawModifier('regenRate') * 1000),
+      ps: Math.round(um.getRawModifier('projectileSpeed') * 1000),
+      pc: Math.round(um.getRawModifier('projectileCount') * 1000),
+      mh: Math.round(um.getRawModifier('maxHealth') * 1000),
+      mq: Math.round(um.getRawModifier('maxQuills') * 1000),
+      pr: Math.round(um.getRawModifier('prosperity') * 1000),
+      dl: Math.round(um.getRawModifier('dangerLevel') * 1000),
+      cc: Math.round(um.getRawModifier('critChance') * 1000),
+      ar: Math.round(um.getRawModifier('armor') * 1000),
+      ev: Math.round(um.getRawModifier('evasion') * 1000),
+      vs: Math.round(um.getRawModifier('vampirismStrength') * 1000),
+      sc: Math.round(um.getRawModifier('shieldCharges') * 1000),
+      pi: Math.round(um.getRawModifier('piercing') * 1000),
+      bo: Math.round(um.getRawModifier('bouncing') * 1000),
+    };
   }
 
-  // Report wave completion to server
-  static async reportWaveComplete(wave: number, score: number): Promise<boolean> {
-    if (!this.currentToken) {
-      return false;
-    }
+  static _rf(): void {
+    this._qf++;
+  }
+
+  static _mw(): void {
+    this._wst = Date.now();
+  }
+
+  static _sw(w: number): void {
+    this._cw = w;
+  }
+
+  static async _rp(id: string, s: string): Promise<void> {
+    if (!this.currentToken) return;
 
     try {
-      const response = await fetch(`${this.API_BASE}/wave`, {
+      await fetch(`${this._ab}/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: this.currentToken,
+          upgradeId: id,
+          source: s,
+          wave: this._cw,
+        }),
+      });
+    } catch {
+      // silent
+    }
+  }
+
+  static _rk(t: string, e: boolean = false): void {
+    const key = t as keyof KillCounts;
+    if (e) {
+      this._ek[key] = (this._ek[key] || 0) + 1;
+    } else {
+      this._wk[key] = (this._wk[key] || 0) + 1;
+    }
+  }
+
+  static async _rw(wave: number, score: number): Promise<boolean> {
+    if (!this.currentToken) return false;
+
+    const wt = this._wst > 0 ? Date.now() - this._wst : undefined;
+
+    try {
+      const response = await fetch(`${this._ab}/wave`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: this.currentToken,
           wave,
-          kills: { ...this.waveKills },
-          eliteKills: { ...this.eliteWaveKills },
-          dangerLevel: this.dangerLevel,
+          kills: { ...this._wk },
+          eliteKills: { ...this._ek },
+          dangerLevel: this._dg,
           score,
           pm: { ...this._wpm },
           sm: { ...this._sm },
           ds: { ...this._ds },
+          ...(this._um ? { um: { ...this._um } } : {}),
+          qf: this._qf,
+          ...(wt !== undefined ? { wt } : {}),
         }),
       });
 
-      // Reset kills for next wave regardless of response
-      this.resetKills();
+      this._rst();
 
-      if (!response.ok) {
-        const data = await response.json();
-        console.error('Wave report failed:', data.error);
-        return false;
-      }
+      if (!response.ok) return false;
 
       return true;
-    } catch (error) {
-      console.error('Wave report error:', error);
-      this.resetKills();
+    } catch {
+      this._rst();
       return false;
     }
   }
 
-  // Report game over to server (includes any unreported kills from current wave)
-  static async reportGameOver(finalWave: number, finalScore: number): Promise<boolean> {
-    if (!this.currentToken) {
-      return false;
-    }
+  static async _rg(finalWave: number, finalScore: number): Promise<boolean> {
+    if (!this.currentToken) return false;
+
+    const wt = this._wst > 0 ? Date.now() - this._wst : undefined;
 
     try {
-      const response = await fetch(`${this.API_BASE}/gameover`, {
+      const response = await fetch(`${this._ab}/gameover`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: this.currentToken,
           finalWave,
           finalScore,
-          kills: { ...this.waveKills },
-          eliteKills: { ...this.eliteWaveKills },
-          dangerLevel: this.dangerLevel,
+          kills: { ...this._wk },
+          eliteKills: { ...this._ek },
+          dangerLevel: this._dg,
           pm: { ...this._wpm },
           sm: { ...this._sm },
           ds: { ...this._ds },
+          ...(this._um ? { um: { ...this._um } } : {}),
+          qf: this._qf,
+          ...(wt !== undefined ? { wt } : {}),
         }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        console.error('Game over report failed:', data.error);
-        return false;
-      }
+      if (!response.ok) return false;
 
       return true;
-    } catch (error) {
-      console.error('Game over report error:', error);
+    } catch {
       return false;
     }
   }
 
-  // Get current session token (for score submission)
   static getToken(): string | null {
     return this.currentToken;
   }
 
-  // Get fingerprint (for score submission)
   static getFingerprint(): string {
     return this.fingerprint;
   }
 
-  // Clear session (on game restart or menu)
   static clearSession(): void {
     this.currentToken = null;
-    this.resetKills();
+    this._rst();
     this._sm = { m: 0, c: 0, p: 0 };
     this._ds = { a: 0, e: 0 };
+    this._um = null;
+    this._cw = 0;
   }
 
-  private static resetKills(): void {
-    this.waveKills = {};
-    this.eliteWaveKills = {};
+  private static _rst(): void {
+    this._wk = {};
+    this._ek = {};
     this._wpm = { d: 0, t: 0, b: 0 };
+    this._qf = 0;
+    this._um = null;
   }
 
-  // Check if session is active
   static hasActiveSession(): boolean {
     return this.currentToken !== null;
   }

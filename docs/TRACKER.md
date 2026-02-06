@@ -143,12 +143,25 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 
 ---
 
-## In Progress (v0.5.1 - Boss Rewards, Vampirism Rework & QoL)
+## In Progress (v0.5.1 - Boss Rewards, Vampirism Rework & Anti-Cheat)
 
 - [x] Boss reward choice: Restoration vs Power after boss waves — `src/scenes/BossRewardScene.ts`
 - [x] Vampirism rework: stack-based proc chance and healing — `src/config.ts`, `src/scenes/GameScene.ts`
 - [x] +5 quills restored on normal wave completion — `src/scenes/GameScene.ts`
 - [x] +5% damage per level (passive scaling) — `src/config.ts`, `src/systems/UpgradeManager.ts`
+
+### Enhanced Anti-Cheat (v0.5.1)
+- [x] Upgrade ledger: server tracks every upgrade picked — `api/session/upgrade.ts`, `api/_lib/upgrades.ts`
+- [x] Modifier snapshot validation: server reconstructs expected modifiers from ledger — `api/_lib/session.ts`
+- [x] Quill efficiency heuristic: validates kills vs quills fired ratio — `api/_lib/session.ts`
+- [x] Wave timing heuristic: flags impossibly fast wave completions — `api/_lib/session.ts`
+- [x] Damage pattern heuristic: flags zero-damage runs with no defenses — `api/_lib/session.ts`
+- [x] Enhanced perf check: lowered threshold to 25k+ at wave 15+ — `api/_lib/session.ts`
+- [x] Defense stat validation extended to all waves (was only 1-19) — `api/_lib/session.ts`
+- [x] `modifiersFlagged` check in submission validation — `api/leaderboard/submit.ts`
+- [x] Client: report upgrade picks from UpgradeScene — `src/scenes/UpgradeScene.ts`
+- [x] Client: send modifier snapshot + quills fired + wave time per wave — `src/systems/SessionManager.ts`
+- [x] Client: track quills fired in QuillManager — `src/systems/QuillManager.ts`
 
 ---
 

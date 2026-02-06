@@ -4,6 +4,7 @@ import { Upgrade, getRandomUpgrades, RarityWeights, UpgradeSelectionOptions } fr
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { ProgressionManager } from '../systems/ProgressionManager';
 import { AudioManager } from '../systems/AudioManager';
+import { SessionManager } from '../systems/SessionManager';
 import { StatsPanel } from '../ui/StatsPanel';
 
 interface UpgradeSceneData {
@@ -20,6 +21,7 @@ export class UpgradeScene extends Phaser.Scene {
   private upgradeManager!: UpgradeManager;
   private inputEnabled: boolean = false;
   private statsPanel: StatsPanel | null = null;
+  private upgradeSource: 'wave' | 'chest' | 'levelup' = 'wave';
   private static readonly INPUT_DELAY = 400; // ms before cards become clickable
 
   constructor() {
@@ -30,6 +32,7 @@ export class UpgradeScene extends Phaser.Scene {
     this.upgradeManager = data.upgradeManager;
     this.inputEnabled = false;
     const source = data.source || 'wave';
+    this.upgradeSource = source;
 
     // Delay before enabling input to prevent accidental clicks
     this.time.delayedCall(UpgradeScene.INPUT_DELAY, () => {
@@ -374,6 +377,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     AudioManager.playUpgradeSelect();
     this.upgradeManager.addUpgrade(upgrade);
+    SessionManager._rp(upgrade.id, this.upgradeSource);
     if (this.statsPanel) {
       this.statsPanel.destroy();
       this.statsPanel = null;
