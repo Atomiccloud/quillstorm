@@ -17,6 +17,16 @@ interface PlayerStats {
   totalBossKills: number;
 }
 
+interface AchievementData {
+  totalKills: number;
+  totalBossKills: number;
+  totalEliteKills: number;
+  totalRuns: number;
+  totalWavesSurvived: number;
+  totalPerfectWaves: number;
+  earnedAchievements: string[];
+}
+
 interface PlayerData {
   uid: string;
   displayName: string;
@@ -25,6 +35,12 @@ interface PlayerData {
   unlockedIds: string[];
   equipped: Record<string, string>;
   stats: PlayerStats;
+  achievements?: {
+    earned: string[];
+    totalEliteKills: number;
+    totalWavesSurvived: number;
+    totalPerfectWaves: number;
+  };
   lastSyncAt: number;
   createdAt: number;
 }
@@ -32,6 +48,7 @@ interface PlayerData {
 interface SyncRequest {
   localState: CosmeticState;
   localStats: PlayerStats;
+  achievementData?: AchievementData;
   lastSyncAt: number;
 }
 
@@ -141,6 +158,22 @@ export default async function handler(req: Request): Promise<Response> {
         new Set([...existingData.unlockedIds, ...body.localState.unlockedIds])
       );
 
+      // Merge achievement data
+      const existingAch = existingData.achievements;
+      const localAch = body.achievementData;
+      let mergedAchievements: PlayerData['achievements'] | undefined;
+
+      if (localAch || existingAch) {
+        const existEarned = existingAch?.earned || [];
+        const localEarned = localAch?.earnedAchievements || [];
+        mergedAchievements = {
+          earned: Array.from(new Set([...existEarned, ...localEarned])),
+          totalEliteKills: Math.max(existingAch?.totalEliteKills || 0, localAch?.totalEliteKills || 0),
+          totalWavesSurvived: Math.max(existingAch?.totalWavesSurvived || 0, localAch?.totalWavesSurvived || 0),
+          totalPerfectWaves: Math.max(existingAch?.totalPerfectWaves || 0, localAch?.totalPerfectWaves || 0),
+        };
+      }
+
       mergedData = {
         uid: user.uid,
         displayName: user.name || existingData.displayName || 'Player',
@@ -158,6 +191,7 @@ export default async function handler(req: Request): Promise<Response> {
           totalKills: Math.max(existingData.stats.totalKills, body.localStats.totalKills),
           totalBossKills: Math.max(existingData.stats.totalBossKills, body.localStats.totalBossKills),
         },
+        achievements: mergedAchievements,
         lastSyncAt: now,
         createdAt: existingData.createdAt,
       };
@@ -173,6 +207,12 @@ export default async function handler(req: Request): Promise<Response> {
         unlockedIds: body.localState.unlockedIds,
         equipped: body.localState.equipped,
         stats: body.localStats,
+        achievements: body.achievementData ? {
+          earned: body.achievementData.earnedAchievements,
+          totalEliteKills: body.achievementData.totalEliteKills,
+          totalWavesSurvived: body.achievementData.totalWavesSurvived,
+          totalPerfectWaves: body.achievementData.totalPerfectWaves,
+        } : undefined,
         lastSyncAt: now,
         createdAt: now,
       };

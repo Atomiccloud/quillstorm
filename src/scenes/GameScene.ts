@@ -18,6 +18,8 @@ import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
 import { StatsPanel } from '../ui/StatsPanel';
 import { SessionManager } from '../systems/SessionManager';
+import { AchievementManager } from '../systems/AchievementManager';
+import { Achievement } from '../data/achievements';
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -83,6 +85,7 @@ export class GameScene extends Phaser.Scene {
     this.effectsOpacity = SaveManager.getEffectsOpacity();
 
     SessionManager.startSession();
+    AchievementManager.startRun();
 
     // Create XP orbs, treasure chest, and pinecone groups
     this.xpOrbs = this.add.group({ runChildUpdate: true });
@@ -835,6 +838,7 @@ export class GameScene extends Phaser.Scene {
     this.spawnDeathParticles(enemy.x, enemy.y);
     SessionManager._rk(enemy.enemyType, enemy.isElite);
     this.recordSessionKill(enemy.enemyType, enemy.isElite);
+    AchievementManager.recordKill(enemy.isBoss(), enemy.isElite);
 
     // Splitter splits into 2 splitlings on death
     if (enemy.isSplitter()) {
@@ -1262,6 +1266,8 @@ export class GameScene extends Phaser.Scene {
     this.player.resetShieldsForWave();
     this.player._es();
 
+    AchievementManager.onInfiniteSwarmStart();
+
     // Initialize stage tracking
     this.lastSwarmStage = 0;
   }
@@ -1269,6 +1275,11 @@ export class GameScene extends Phaser.Scene {
   private onSwarmStageChange(newStage: number): void {
     const stage = INFINITE_SWARM_CONFIG.stages[newStage];
     if (!stage) return;
+
+    // Track Frenzy stage for achievements (index 2 = Frenzy)
+    if (newStage >= 2) {
+      AchievementManager.onFrenzyReached();
+    }
 
     // Brief screen flash in stage color (subtle - 200ms)
     if (stage.tint !== null) {
@@ -1353,6 +1364,12 @@ export class GameScene extends Phaser.Scene {
     // Accumulate session damage stats
     this.totalDamageTaken += wavePerf.d;
     this.totalShieldsUsed += wavePerf.b;
+
+    // Check wave-timing achievements (e.g., perfect wave)
+    const waveAchievements = AchievementManager.onWaveComplete(wavePerf.d, this.waveManager.currentWave);
+    if (waveAchievements.length > 0) {
+      this.showAchievementUnlocks(waveAchievements);
+    }
 
     // Clear any remaining enemy projectiles (they shouldn't persist between waves)
     this.enemyProjectiles.clear(true, true);
@@ -1591,6 +1608,16 @@ export class GameScene extends Phaser.Scene {
     // Submit score
     const isNewHighScore = SaveManager.submitRun(finalScore, finalWave);
 
+    // Set final upgrade stats for achievement checking
+    const allUpgrades = this.upgradeManager.getUpgrades();
+    AchievementManager.setFinalUpgradeStats(
+      allUpgrades.length,
+      allUpgrades.some(u => u.effects.armor !== undefined && u.effects.armor > 0)
+    );
+
+    // Check run-end achievements
+    const runAchievements = AchievementManager.onGameOver(finalScore, finalWave);
+
     // Get session pinecones before transitioning
     const sessionPinecones = this.progressionManager.getSessionPinecones();
 
@@ -1604,6 +1631,7 @@ export class GameScene extends Phaser.Scene {
         highScore: SaveManager.getHighScore(),
         highestWave: SaveManager.getHighestWave(),
         sessionPinecones,
+        newAchievements: runAchievements,
         upgradeManager: this.upgradeManager,
         sessionStats: {
           totalKills: this.sessionKills,
@@ -2237,6 +2265,36 @@ export class GameScene extends Phaser.Scene {
       if (killed) {
         this.handleEnemyKill(enemy);
       }
+    }
+  }
+
+  private showAchievementUnlocks(newAchievements: Achievement[]): void {
+    const centerX = GAME_CONFIG.width / 2;
+    let startY = 120;
+
+    for (const achievement of newAchievements) {
+      const y = startY;
+      startY += 40;
+
+      const text = this.add.text(centerX, y, `ACHIEVEMENT: ${achievement.name}`, {
+        fontSize: '18px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#ffdd00',
+        stroke: '#000000',
+        strokeThickness: 4,
+      }).setOrigin(0.5).setDepth(1000);
+
+      this.tweens.add({
+        targets: text,
+        y: y - 30,
+        alpha: 0,
+        duration: 3000,
+        delay: 1000,
+        ease: 'Power2',
+        onComplete: () => text.destroy(),
+      });
+
+      AudioManager.playWaveComplete();
     }
   }
 

@@ -204,20 +204,52 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 
 ---
 
-## Planned: Achievements & Challenges
+## Done: Achievement System (v0.6.0)
 
-### Achievement System
-Track milestones during natural play, award exclusive cosmetics on completion.
+Achievement system with 18 achievements across 4 categories (combat, survival, score, style).
 
-**Files to create:**
-- `src/systems/AchievementManager.ts` — Track and persist achievements
-- `src/data/achievements.ts` — Achievement definitions
+**Files created:**
+- `src/systems/AchievementManager.ts` — Tracks cumulative + per-run stats, evaluates conditions, persists to localStorage + server sync
+- `src/data/achievements.ts` — Achievement definitions with declarative condition checking
 
-**Achievement cosmetics already defined in `cosmetics.ts`:**
-- Spectral skin — `survive_50_waves`
-- Inferno skin — `defeat_100_bosses`
-- Warrior hat — `complete_10_runs`
-- Champion crown — `perfect_wave`
+**Features:**
+- Cumulative stats tracked: totalKills, totalBossKills, totalEliteKills, totalRuns, totalWavesSurvived, totalPerfectWaves
+- Per-run stats: score, wave, kills, upgrade count, infinite swarm survival, elemental strength, flags (perfect wave, no armor, frenzy)
+- Wave-timing achievements (e.g., perfect_wave) checked mid-run with in-game notification
+- Run-end achievements checked at game over with display on GameOverScene
+- Cosmetic rewards auto-unlock via existing `CosmeticManager.unlockByAchievement()`
+- Server sync via `api/player/sync.ts` with max-merge for cumulative stats and union-merge for earned achievements
+- Achievement counter shown on game over screen
+
+**Cosmetic-linked achievements:**
+- Spectral skin — `survive_50_waves` (50 total waves survived)
+- Inferno skin — `defeat_100_bosses` (100 boss kills)
+- Party hat — `complete_10_runs` (10 runs)
+- Halo hat — `perfect_wave` (complete any wave damageless)
+
+**Additional achievements:** Bronze/Silver/Gold/Diamond Quill (score thresholds), Exterminator (10k kills), Elite Slayer (100 elite kills), Full Clear (wave 20), Infinite Warrior (enter swarm), Endurance (5min swarm), Into the Frenzy (reach Frenzy stage), Minimalist (wave 20 with <8 upgrades), Glass Cannon (wave 20 with no armor)
+
+## In Progress: Stage System (Phase 2)
+
+Full design doc: [docs/META_PROGRESSION.md](META_PROGRESSION.md)
+
+### Phase 2 Scope
+- [ ] Stage data config (`src/data/stages.ts`) — stage definitions, unlock conditions, enemy modifiers
+- [ ] Stage progress persistence (`src/systems/StageManager.ts`) — unlocked stages, per-stage best scores, mastery progress
+- [ ] Stage Select scene (`src/scenes/StageSelectScene.ts`) — replace PLAY button with stage select, locked/unlocked states
+- [ ] 3 new arena layouts for Stage 2: The Canopy (Canopy, Treetops, Hollow)
+- [ ] Enemy modifier system — stage-based HP/speed/damage multipliers applied in WaveManager
+- [ ] Wind gust mechanic for Stage 2 (periodic quill drift)
+- [ ] Mastery track for Stage 2 (5 levels with per-stage buffs)
+- [ ] Wire stage selection through to GameScene
+- [ ] Per-stage stats in SaveManager (best score, highest wave per stage)
+
+### Future Phases
+- **Phase 3: Mutators** — Toggleable gameplay modifiers with score multipliers. Unlocked via achievements.
+- **Phase 4: Starting Loadouts** — Lateral perk choices unlocked through cross-stage milestones.
+- **Phase 5: Stages 3-5** — Additional arena layouts, unique mechanics (darkness, wind, crumbling platforms).
+
+## Planned: Challenges
 
 ### Challenge Packs (Purchasable with Pinecones)
 
