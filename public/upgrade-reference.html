@@ -593,7 +593,7 @@
   <h1>Quillstorm Upgrade Reference</h1>
   <p>Complete guide to all upgrades, rarities, and mechanics</p>
   <div class="stats-row">
-    <div class="stat-badge"><strong>73</strong> upgrades total</div>
+    <div class="stat-badge"><strong>74</strong> upgrades total</div>
     <div class="stat-badge"><strong>6</strong> rarity tiers</div>
     <div class="stat-badge"><strong>4</strong> elements</div>
     <div class="stat-badge"><strong>3</strong> mythics</div>
@@ -721,16 +721,16 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-armor)"></span>Armor (Damage Reduction)</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + armor/100) / (ln(1 + armor/100) + 1.5)</code>
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + armor/100) / (ln(1 + armor/100) + 0.5)</code>
         </p>
         <table class="info-table">
           <tr><th>Armor</th><th>Reduction</th></tr>
-          <tr><td>5</td><td>3.2%</td></tr>
-          <tr><td>15</td><td>9.0%</td></tr>
-          <tr><td>30</td><td>16.0%</td></tr>
-          <tr><td>50</td><td>21.3%</td></tr>
-          <tr><td>100</td><td>31.6%</td></tr>
-          <tr><td>200</td><td>42.3%</td></tr>
+          <tr><td>8</td><td>13%</td></tr>
+          <tr><td>20</td><td>27%</td></tr>
+          <tr><td>50</td><td>45%</td></tr>
+          <tr><td>100</td><td>58%</td></tr>
+          <tr><td>200</td><td>69%</td></tr>
+          <tr><td>500</td><td>78%</td></tr>
         </table>
       </div>
 
@@ -738,16 +738,16 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-evasion)"></span>Evasion (Dodge Chance)</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + evasion/100) / (ln(1 + evasion/100) + 2.0)</code>
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + evasion/100) / (ln(1 + evasion/100) + 0.7)</code>
         </p>
         <table class="info-table">
           <tr><th>Evasion</th><th>Dodge</th></tr>
-          <tr><td>5</td><td>2.4%</td></tr>
-          <tr><td>15</td><td>6.9%</td></tr>
-          <tr><td>30</td><td>11.6%</td></tr>
-          <tr><td>50</td><td>16.8%</td></tr>
-          <tr><td>100</td><td>25.7%</td></tr>
-          <tr><td>200</td><td>35.5%</td></tr>
+          <tr><td>8</td><td>10%</td></tr>
+          <tr><td>20</td><td>21%</td></tr>
+          <tr><td>50</td><td>37%</td></tr>
+          <tr><td>100</td><td>50%</td></tr>
+          <tr><td>200</td><td>61%</td></tr>
+          <tr><td>500</td><td>72%</td></tr>
         </table>
       </div>
 
@@ -1048,6 +1048,7 @@ const UPGRADES = [
   { id:'living_bastion', name:'Living Bastion', desc:'Become an unstoppable fortress. +45 Armor, +24 Thorns, +25 HP.', rarity:'legendary', cat:'defense', effects:{armor:0.45, thorns:24, maxHealth:25}, stacks:null },
   { id:'wraith_form', name:'Wraith Form', desc:'Become intangible. +28 Evasion, +15% Speed.', rarity:'legendary', cat:'defense', effects:{evasion:0.28, moveSpeed:0.15}, stacks:null },
   { id:'elemental_convergence', name:'Elemental Convergence', desc:'All elements converge. +3 to every element. Procs have 20% chance to trigger a second random element.', rarity:'legendary', cat:'elemental', effects:{shockStrength:3, freezeStrength:3, burnStrength:3, poisonStrength:3}, stacks:1 },
+  { id:'lodestone', name:'Lodestone', desc:'Periodically emit a magnetic pulse that draws all nearby resources toward you.', rarity:'legendary', cat:'utility', effects:{magnetPulse:1}, stacks:1 },
 
   // MYTHIC
   { id:'expanded_options', name:'Expanded Options', desc:'See an additional upgrade card when choosing upgrades.', rarity:'mythic', cat:'special', effects:{upgradeChoices:1}, stacks:1 },
@@ -1090,6 +1091,7 @@ const EFFECT_LABELS = {
   distanceDamage: { label: 'Distance Dmg', fmt: 'pct' },
   rerollChance: { label: 'Proc Reroll', fmt: 'pct' },
   apotheosis: { label: 'Apotheosis', fmt: 'bool' },
+  magnetPulse: { label: 'Magnet Pulse', fmt: 'bool' },
 };
 
 function formatEffect(key, value) {

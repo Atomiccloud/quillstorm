@@ -350,12 +350,20 @@ export const STATUS_EFFECT_CONFIG = {
 
 // Armor configuration - logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
 export const ARMOR_CONFIG = {
-  diminishingK: 1.5,            // k=1.5: 50 armor → 21% reduction, 100 armor → 32% reduction
+  diminishingK: 0.5,            // k=0.5: raw 0.5 → 45%, raw 1.0 → 58%, raw 2.0 → 69%
 };
 
 // Evasion configuration - logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
 export const EVASION_CONFIG = {
-  diminishingK: 2.0,            // k=2.0: 50 evasion → 17% dodge, 100 evasion → 26% dodge
+  diminishingK: 0.7,            // k=0.7: raw 0.5 → 37%, raw 1.0 → 50%, raw 2.0 → 61%
+};
+
+export const MAGNET_PULSE_CONFIG = {
+  cooldown: 12000,              // 12s between pulses
+  duration: 2000,               // 2s active pull
+  pullSpeed: 450,               // px/s toward player during pulse
+  chestMagnetRange: 120,        // passive chest magnet range (px)
+  chestMagnetSpeed: 300,        // passive chest pull speed (px/s)
 };
 
 export const KNOCKBACK_CONFIG = {
@@ -461,8 +469,8 @@ export const XP_CONFIG = {
 // Treasure chest drops
 export const CHEST_CONFIG = {
   baseDropChance: 0.01,      // 1% base drop rate
-  despawnTime: 9000,         // 9 seconds before despawn (increased from 7)
-  warningTime: 7000,         // Start flashing at 7 seconds (2 sec warning)
+  despawnTime: 15000,        // 15 seconds before despawn
+  warningTime: 12000,        // Start flashing at 12 seconds (3 sec warning)
   riggedChestCount: 3,       // First N chests guarantee rare+
   width: 32,
   height: 24,
@@ -503,7 +511,7 @@ export const PINECONE_CONFIG = {
   bossDropMax: 3,              // Max pinecones from boss
   chestBonus: 1,               // Bonus pinecones from treasure chests
   waveCompletionBonus: 0,      // Pinecones for completing a wave (0 for now)
-  despawnTime: 12000,          // 12 seconds before despawn
+  despawnTime: 15000,          // 15 seconds before despawn
   warningTime: 3000,           // Start flashing 3 seconds before despawn
   magnetRange: 80,             // Same as XP orbs
   prosperityBonusPerPoint: 0.001, // +0.1% drop chance per prosperity

@@ -343,6 +343,9 @@ export class UpgradeScene extends Phaser.Scene {
     if (upgrade.effects.apotheosis) {
       effects.push(`Every 5th volley auto-crits`);
     }
+    if (upgrade.effects.magnetPulse) {
+      effects.push(`Magnetic pulse every 12s`);
+    }
 
     return effects.join('\n') || 'Special effect';
   }

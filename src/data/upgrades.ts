@@ -36,12 +36,14 @@ export interface UpgradeEffects {
   burnStrength?: number;     // Fire strength (DoT → spread → explosion)
   poisonStrength?: number;   // Poison strength (amp → growth → execute)
   // Defense (logarithmic diminishing returns, no cap, infinitely stackable)
-  armor?: number;            // Raw armor value (effective = ln(1+raw) / (ln(1+raw)+1.5))
-  evasion?: number;          // Raw evasion value (effective = ln(1+raw) / (ln(1+raw)+2.0))
+  armor?: number;            // Raw armor value (effective = ln(1+raw) / (ln(1+raw)+0.5))
+  evasion?: number;          // Raw evasion value (effective = ln(1+raw) / (ln(1+raw)+0.7))
   thorns?: number;           // Base damage reflected to attacker (scales with damage modifier)
   // Knockback & Distance
   knockback?: number;        // Knockback force multiplier (force = value * 200 px/s)
   distanceDamage?: number;   // Distance damage bonus (max at 400px travel)
+  // Utility
+  magnetPulse?: number;      // Flag (1 = periodic magnetic pulse pulls all pickups)
   // Mythic
   rerollChance?: number;     // Probability to reroll failed procs (0.3 = 30%)
   apotheosis?: number;       // Flag (1 = every 5th volley auto-crits with all elements)
@@ -673,6 +675,14 @@ export const UPGRADES: Upgrade[] = [
     description: 'Become intangible. +28 Evasion, +15% Speed.',
     rarity: 'legendary',
     effects: { evasion: 0.28, moveSpeed: 0.15 },
+  },
+  {
+    id: 'lodestone',
+    name: 'Lodestone',
+    description: 'Periodically emit a magnetic pulse that draws all nearby resources toward you.',
+    rarity: 'legendary',
+    effects: { magnetPulse: 1 },
+    maxStacks: 1,
   },
 
   // === MYTHIC UPGRADES ===

@@ -135,8 +135,8 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 
 ### Config & Infrastructure
 - [x] `STATUS_EFFECT_CONFIG` — status effect durations, colors, ranges, max stacks
-- [x] `ARMOR_CONFIG` — armor logarithmic diminishing returns (k=1.5)
-- [x] `EVASION_CONFIG` — evasion logarithmic diminishing returns (k=2.0)
+- [x] `ARMOR_CONFIG` — armor logarithmic diminishing returns (k=0.5)
+- [x] `EVASION_CONFIG` — evasion logarithmic diminishing returns (k=0.7)
 - [x] `SHIELD_CONFIG` — shield cap and iframe diminishing settings
 - [x] 26 new upgrades total (82 total upgrades)
 - [x] Version bump to 0.5.0 + changelog entry
@@ -244,6 +244,13 @@ Achievement system with 18 achievements across 4 categories (combat, survival, s
 ### Flying Enemy Spawn Spread
 - [x] Swoopers and bombers now spawn across the full top of the screen (was edge-only)
 - [x] ~200px center exclusion zone prevents spawns directly above where player is focused
+
+### Lodestone Upgrade & Balance
+- [x] New legendary upgrade: Lodestone — magnetic pulse every 12s pulls all pickups toward player, passive chest magnet at 120px
+- [x] Treasure chest despawn time increased (9s → 15s, warning at 12s)
+- [x] Pinecone despawn time increased (12s → 15s)
+- [x] Armor diminishing returns rescaled (k: 1.5 → 0.5) — single pick ~13%, heavy investment ~69%
+- [x] Evasion diminishing returns rescaled (k: 2.0 → 0.7) — single pick ~10%, heavy investment ~61%
 
 ---
 
