@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS } from '../config';
+import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
 import { SettingsModal } from '../ui/SettingsModal';
@@ -134,116 +134,13 @@ export class PauseScene extends Phaser.Scene {
 
     // Stats panel on the right side
     if (this.upgradeManager) {
-      this.createStatsDisplay();
+      this.statsPanel = new StatsPanel(this, this.upgradeManager);
+      this.statsPanel.show();
     }
-  }
-
-  private createStatsDisplay(): void {
-    if (!this.upgradeManager) return;
-
-    const panelX = GAME_CONFIG.width - 300;
-    const panelY = 60;
-    const panelWidth = 260;
-    const lineHeight = 22;
-
-    // Panel background
-    const bg = this.add.graphics();
-    bg.fillStyle(0x1a1a2e, 0.95);
-    bg.fillRoundedRect(panelX, panelY, panelWidth, 500, 8);
-    bg.lineStyle(2, COLORS.rarity.legendary, 0.8);
-    bg.strokeRoundedRect(panelX, panelY, panelWidth, 500, 8);
-
-    // Title
-    this.add.text(panelX + panelWidth / 2, panelY + 16, 'CURRENT STATS', {
-      fontSize: '18px',
-      fontFamily: 'Arial Black, sans-serif',
-      color: '#ffd700',
-    }).setOrigin(0.5, 0);
-
-    let y = panelY + 50;
-
-    const formatPercent = (v: number) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
-    const formatFlat = (v: number) => `${v >= 0 ? '+' : ''}${v}`;
-
-    const addStat = (name: string, value: string, isPositive: boolean = true) => {
-      this.add.text(panelX + 16, y, name, {
-        fontSize: '14px',
-        color: '#cccccc',
-      });
-      this.add.text(panelX + panelWidth - 16, y, value, {
-        fontSize: '14px',
-        color: isPositive ? '#66ff66' : '#ff6666',
-      }).setOrigin(1, 0);
-      y += lineHeight;
-    };
-
-    const addHeader = (name: string) => {
-      this.add.text(panelX + 16, y, name, {
-        fontSize: '12px',
-        color: '#888888',
-      });
-      y += lineHeight;
-    };
-
-    // Combat stats
-    addHeader('COMBAT');
-    const damage = this.upgradeManager.getModifier('damage');
-    if (damage !== 0) addStat('Damage', formatPercent(damage));
-    const fireRate = this.upgradeManager.getModifier('fireRate');
-    if (fireRate !== 0) addStat('Fire Rate', formatPercent(fireRate));
-    // v0.5.0: Crit uses diminishing returns: effective = raw / (raw + 1)
-    const rawCrit = this.upgradeManager.getModifier('critChance');
-    if (rawCrit > 0) {
-      const effectiveCrit = rawCrit / (rawCrit + 1);
-      const rawDisplay = Math.round(rawCrit * 100);
-      const effectiveDisplay = Math.round(effectiveCrit * 100);
-      addStat('Crit', `+${rawDisplay} (${effectiveDisplay}%)`);
-    }
-    const critDamage = this.upgradeManager.getModifier('critDamage');
-    if (critDamage !== 0) addStat('Crit Damage', `+${critDamage.toFixed(1)}x`);
-    const piercing = this.upgradeManager.getModifier('piercing');
-    if (piercing !== 0) addStat('Pierce', formatFlat(piercing));
-    const explosionRadius = this.upgradeManager.getModifier('explosionRadius');
-    if (explosionRadius !== 0) addStat('Explosion', `${explosionRadius}px`);
-    const projectileCount = this.upgradeManager.getModifier('projectileCount');
-    if (projectileCount !== 0) addStat('Multi-shot', formatFlat(projectileCount));
-    y += 8;
-
-    // Defense stats
-    addHeader('DEFENSE');
-    const maxHealth = this.upgradeManager.getModifier('maxHealth');
-    if (maxHealth !== 0) addStat('Max Health', formatFlat(maxHealth));
-    const shieldCharges = this.upgradeManager.getModifier('shieldCharges');
-    if (shieldCharges !== 0) addStat('Shields', `${shieldCharges} charges`);
-    const vampStr = this.upgradeManager.getModifier('vampirismStrength');
-    if (vampStr > 0) {
-      const vampChance = Math.round((vampStr / (vampStr + 20)) * 100);
-      const vampHeal = 8 + vampStr * 3;
-      addStat('Vampirism', `${vampChance}% / ${vampHeal} HP`);
-    }
-    y += 8;
-
-    // Movement stats
-    addHeader('MOVEMENT');
-    const moveSpeed = this.upgradeManager.getModifier('moveSpeed');
-    if (moveSpeed !== 0) addStat('Speed', formatPercent(moveSpeed));
-    const jumpHeight = this.upgradeManager.getModifier('jumpHeight');
-    if (jumpHeight !== 0) addStat('Jump', formatPercent(jumpHeight));
-    y += 8;
-
-    // Special stats
-    addHeader('SPECIAL');
-    const prosperity = this.upgradeManager.getModifier('prosperity');
-    if (prosperity !== 0) addStat('Prosperity', formatFlat(prosperity));
-    const companionCount = this.upgradeManager.getModifier('companionCount');
-    if (companionCount !== 0) addStat('Companions', formatFlat(companionCount));
-    const maxQuills = this.upgradeManager.getModifier('maxQuills');
-    if (maxQuills !== 0) addStat('Max Quills', formatFlat(maxQuills));
-    const regenRate = this.upgradeManager.getModifier('regenRate');
-    if (regenRate !== 0) addStat('Regen Rate', formatPercent(regenRate));
   }
 
   private resumeGame(): void {
+    this.statsPanel?.destroy();
     this.scene.stop();
     this.scene.resume('GameScene');
   }
