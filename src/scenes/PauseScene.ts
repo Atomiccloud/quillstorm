@@ -1,28 +1,18 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS } from '../config';
 import { AudioManager } from '../systems/AudioManager';
-import { SaveManager } from '../systems/SaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
-import { GraphicsSettings, QualityPreset } from '../systems/GraphicsSettings';
+import { SettingsModal } from '../ui/SettingsModal';
+import { StatsPanel } from '../ui/StatsPanel';
 
 interface PauseSceneData {
   upgradeManager?: UpgradeManager;
 }
 
 export class PauseScene extends Phaser.Scene {
-  private volumeFill!: Phaser.GameObjects.Rectangle;
-  private volumeText!: Phaser.GameObjects.Text;
-  private muteButton!: Phaser.GameObjects.Rectangle;
-  private muteText!: Phaser.GameObjects.Text;
-  private effectsFill!: Phaser.GameObjects.Rectangle;
-  private effectsText!: Phaser.GameObjects.Text;
   private upgradeManager: UpgradeManager | null = null;
-
-  // Slider drag tracking
-  private isDraggingVolume: boolean = false;
-  private isDraggingEffects: boolean = false;
-  private volumeBarX: number = 0;
-  private volumeBarWidth: number = 0;
+  private settingsModal!: SettingsModal;
+  private statsPanel: StatsPanel | null = null;
 
   constructor() {
     super({ key: 'PauseScene' });
@@ -60,123 +50,19 @@ export class PauseScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    // Volume section
-    this.add.text(centerX, centerY + 20, 'Volume', {
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    // Volume bar background
-    const barWidth = 180;
-    const barHeight = 12;
-    const barY = centerY + 50;
-    this.volumeBarX = centerX;
-    this.volumeBarWidth = barWidth;
-
-    const volumeBarBg = this.add.rectangle(centerX, barY, barWidth, barHeight, 0x333333);
-    volumeBarBg.setInteractive({ useHandCursor: true });
-
-    // Volume bar fill
-    const currentVolume = AudioManager.getVolume();
-    this.volumeFill = this.add.rectangle(
-      centerX - barWidth / 2,
-      barY,
-      currentVolume * barWidth,
-      barHeight,
-      0x4a6741
-    ).setOrigin(0, 0.5);
-
-    // Volume percentage text
-    this.volumeText = this.add.text(centerX + barWidth / 2 + 15, barY, `${Math.round(currentVolume * 100)}%`, {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0, 0.5);
-
-    // Mute button
-    const isMuted = AudioManager.getMuted();
-    this.muteButton = this.add.rectangle(centerX - barWidth / 2 - 25, barY, 30, 20, isMuted ? 0x884444 : 0x448844);
-    this.muteButton.setInteractive({ useHandCursor: true });
-    this.muteText = this.add.text(centerX - barWidth / 2 - 25, barY, isMuted ? 'OFF' : 'ON', {
-      fontSize: '10px',
+    // Settings button
+    const settingsButton = this.add.rectangle(centerX, centerY + 20, 200, 50, 0x555555);
+    settingsButton.setInteractive({ useHandCursor: true });
+    this.add.text(centerX, centerY + 20, 'Settings', {
+      fontSize: '24px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
-
-    // Start dragging on volume bar
-    volumeBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDraggingVolume = true;
-      this.updateVolumeFromPointer(pointer);
-    });
-
-    // Track dragging at scene level (allows dragging outside the bar)
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDraggingVolume) {
-        this.updateVolumeFromPointer(pointer);
-      }
-      if (this.isDraggingEffects) {
-        this.updateEffectsFromPointer(pointer);
-      }
-    });
-
-    // Stop dragging when mouse is released anywhere
-    this.input.on('pointerup', () => {
-      this.isDraggingVolume = false;
-      this.isDraggingEffects = false;
-    });
-
-    // Mute button click
-    this.muteButton.on('pointerdown', () => {
-      AudioManager.playButtonClick();
-      const muted = AudioManager.toggleMute();
-      this.updateMuteDisplay(muted);
-    });
-
-    // Effects opacity section
-    this.add.text(centerX, centerY + 80, 'Effects Opacity', {
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    const effectsBarY = centerY + 110;
-    const effectsBarBg = this.add.rectangle(centerX, effectsBarY, barWidth, barHeight, 0x333333);
-    effectsBarBg.setInteractive({ useHandCursor: true });
-
-    const currentEffects = SaveManager.getEffectsOpacity();
-    this.effectsFill = this.add.rectangle(
-      centerX - barWidth / 2,
-      effectsBarY,
-      currentEffects * barWidth,
-      barHeight,
-      0x4a6741
-    ).setOrigin(0, 0.5);
-
-    this.effectsText = this.add.text(centerX + barWidth / 2 + 15, effectsBarY, `${Math.round(currentEffects * 100)}%`, {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0, 0.5);
-
-    effectsBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDraggingEffects = true;
-      this.updateEffectsFromPointer(pointer);
-    });
-
-    // Graphics Quality section
-    this.add.text(centerX, centerY + 140, 'Graphics Quality', {
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    this.createQualityButtons(centerX, centerY + 170);
 
     // Restart and Main Menu buttons side by side
     const buttonWidth = 160;
     const buttonGap = 20;
-    const buttonY = centerY + 230;
+    const buttonY = centerY + 90;
 
     const restartButton = this.add.rectangle(centerX - buttonWidth / 2 - buttonGap / 2, buttonY, buttonWidth, 50, 0x555555);
     restartButton.setInteractive({ useHandCursor: true });
@@ -202,6 +88,13 @@ export class PauseScene extends Phaser.Scene {
       this.resumeGame();
     });
 
+    settingsButton.on('pointerover', () => settingsButton.setFillStyle(0x666666));
+    settingsButton.on('pointerout', () => settingsButton.setFillStyle(0x555555));
+    settingsButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.settingsModal.show();
+    });
+
     restartButton.on('pointerover', () => restartButton.setFillStyle(0x666666));
     restartButton.on('pointerout', () => restartButton.setFillStyle(0x555555));
     restartButton.on('pointerdown', () => {
@@ -225,16 +118,19 @@ export class PauseScene extends Phaser.Scene {
 
     // M to toggle mute
     this.input.keyboard?.on('keydown-M', () => {
-      const muted = AudioManager.toggleMute();
-      this.updateMuteDisplay(muted);
+      AudioManager.toggleMute();
     });
 
     // Instructions
-    this.add.text(centerX, centerY + 290, 'Press ESC to resume | M to toggle mute', {
+    this.add.text(centerX, centerY + 150, 'Press ESC to resume | M to toggle mute', {
       fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#888888',
     }).setOrigin(0.5);
+
+    // Settings modal
+    this.settingsModal = new SettingsModal(this, () => { });
+    this.add.existing(this.settingsModal);
 
     // Stats panel on the right side
     if (this.upgradeManager) {
@@ -345,71 +241,6 @@ export class PauseScene extends Phaser.Scene {
     if (maxQuills !== 0) addStat('Max Quills', formatFlat(maxQuills));
     const regenRate = this.upgradeManager.getModifier('regenRate');
     if (regenRate !== 0) addStat('Regen Rate', formatPercent(regenRate));
-  }
-
-  private createQualityButtons(centerX: number, y: number): void {
-    const presets: { label: string; value: QualityPreset }[] = [
-      { label: 'AUTO', value: 'auto' },
-      { label: 'HIGH', value: 'high' },
-      { label: 'MED', value: 'medium' },
-      { label: 'LOW', value: 'low' },
-    ];
-    const btnWidth = 56;
-    const btnHeight = 26;
-    const gap = 8;
-    const totalWidth = presets.length * btnWidth + (presets.length - 1) * gap;
-    const startX = centerX - totalWidth / 2 + btnWidth / 2;
-
-    const buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; preset: QualityPreset }[] = [];
-
-    const currentPreset = GraphicsSettings.getPreset();
-
-    presets.forEach((p, i) => {
-      const bx = startX + i * (btnWidth + gap);
-      const isActive = p.value === currentPreset;
-      const bg = this.add.rectangle(bx, y, btnWidth, btnHeight, isActive ? 0x4a6741 : 0x333333);
-      bg.setInteractive({ useHandCursor: true });
-      const text = this.add.text(bx, y, p.label, {
-        fontSize: '12px',
-        fontFamily: 'Arial Black, sans-serif',
-        color: isActive ? '#ffffff' : '#888888',
-      }).setOrigin(0.5);
-
-      buttons.push({ bg, text, preset: p.value });
-
-      bg.on('pointerover', () => { if (GraphicsSettings.getPreset() !== p.value) bg.setFillStyle(0x444444); });
-      bg.on('pointerout', () => { bg.setFillStyle(GraphicsSettings.getPreset() === p.value ? 0x4a6741 : 0x333333); });
-      bg.on('pointerdown', () => {
-        AudioManager.playButtonClick();
-        GraphicsSettings.setPreset(p.value);
-        buttons.forEach(b => {
-          const active = b.preset === p.value;
-          b.bg.setFillStyle(active ? 0x4a6741 : 0x333333);
-          b.text.setColor(active ? '#ffffff' : '#888888');
-        });
-      });
-    });
-  }
-
-  private updateVolumeFromPointer(pointer: Phaser.Input.Pointer): void {
-    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
-    const newVolume = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
-    AudioManager.setVolume(newVolume);
-    this.volumeFill.width = newVolume * this.volumeBarWidth;
-    this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
-  }
-
-  private updateEffectsFromPointer(pointer: Phaser.Input.Pointer): void {
-    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
-    const newOpacity = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
-    SaveManager.setEffectsOpacity(newOpacity);
-    this.effectsFill.width = newOpacity * this.volumeBarWidth;
-    this.effectsText.setText(`${Math.round(newOpacity * 100)}%`);
-  }
-
-  private updateMuteDisplay(muted: boolean): void {
-    this.muteButton.setFillStyle(muted ? 0x884444 : 0x448844);
-    this.muteText.setText(muted ? 'OFF' : 'ON');
   }
 
   private resumeGame(): void {
