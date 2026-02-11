@@ -15,6 +15,7 @@ Instructions for managing leaderboard scores via the Upstash Redis REST API.
 | `leaderboard:weekly:<year>:<week>` | Sorted Set | Weekly top 100 scores |
 | `shadow:leaderboard:global` | Sorted Set | Honeypot (failed validation scores) |
 | `shadow:leaderboard:weekly:<year>:<week>` | Sorted Set | Honeypot weekly |
+| `shadow:diagnostic:<id>` | String (JSON) | Why a shadow score was flagged (7-day TTL) |
 
 ### Weekly Key Format
 
@@ -131,3 +132,70 @@ curl -s -X POST "$URL" \
   -H "Authorization: Bearer $TOKEN" \
   -d '["ZRANGE", "shadow:leaderboard:global", "0", "99", "REV", "WITHSCORES"]'
 ```
+
+## Investigating Flagged Scores
+
+Every shadow-routed score stores a diagnostic record at `shadow:diagnostic:<id>` with a 7-day TTL. The `<id>` is the first pipe-delimited field in the shadow member string.
+
+### Get Diagnostic for a Shadow Entry
+
+Extract the ID from the shadow member string (first field before `|`), then:
+
+```bash
+curl -s -X POST "$URL" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '["GET", "shadow:diagnostic:ENTRY_ID"]' | node -e "
+const r = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).result;
+if (!r) { console.log('No diagnostic found (expired after 7 days)'); process.exit(); }
+const d = JSON.parse(r);
+console.log('Player:', d.playerName, '| Score:', d.score, '| Wave:', d.wave);
+console.log('Reasons:', d.failureReasons.join(', '));
+if (d.session) {
+  console.log('Waves recorded:', d.session.waveCount, '| Upgrades:', d.session.upgradeLedgerCount);
+  console.log('Stats flagged:', d.session.statsFlagged, '| Modifiers flagged:', d.session.modifiersFlagged);
+  if (d.session.heuristicFlags.length) console.log('Heuristic flags:', d.session.heuristicFlags.join(', '));
+  if (d.session.lastModifierSnapshot && d.session.expectedModifiers) {
+    console.log('\\nModifier comparison (reported vs expected):');
+    const keyMap = {d:'damage',fr:'fireRate',ps:'projSpeed',pc:'projCount',mh:'maxHP',mq:'maxQuills',
+      pr:'prosperity',cc:'critChance',ar:'armor',ev:'evasion',pi:'piercing',bo:'bouncing',kb:'knockback',dd:'distDmg'};
+    const um = d.session.lastModifierSnapshot;
+    const ex = d.session.expectedModifiers;
+    for (const [k,name] of Object.entries(keyMap)) {
+      const reported = (um[k] || 0) / 1000;
+      const expected = ex[name] || 0;
+      if (reported !== 0 || expected !== 0) {
+        const match = Math.abs(reported - expected) < 0.06 ? '' : ' *** MISMATCH';
+        console.log('  ' + name + ': ' + reported.toFixed(3) + ' vs ' + expected.toFixed(3) + match);
+      }
+    }
+  }
+}
+"
+```
+
+### Quick Triage: List Shadow Entries with IDs
+
+```bash
+curl -s -X POST "$URL" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '["ZRANGE", "shadow:leaderboard:global", "0", "19", "REV", "WITHSCORES"]' | node -e "
+const r = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).result;
+for (let i = 0; i < r.length; i += 2) {
+  const p = r[i].split('|');
+  console.log('#' + (i/2+1) + ' | ID: ' + p[0] + ' | ' + p[1] + ' | score:' + r[i+1] + ' | wave:' + p[2]);
+}
+"
+```
+
+### Failure Reason Codes
+
+| Code | Meaning |
+|------|---------|
+| `no_session_token` | No anti-cheat token provided |
+| `session_not_found` | Session expired or token invalid |
+| `fingerprint_mismatch` | Browser fingerprint changed mid-game |
+| `session_validation_failed` | Wave/score consistency check failed |
+| `perf_check_failed` | Zero engagement in waves 18-20 (40k+ score) |
+| `perf_enhanced_failed` | Zero engagement in waves 15-20 (25k+ score) |
+| `stats_flagged` | HP/quills/prosperity exceeded wave-based bounds |
+| `modifiers_flagged` | Modifier snapshot didn't match upgrade ledger |

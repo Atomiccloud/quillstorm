@@ -400,7 +400,7 @@ export function validateModifierSnapshot(
   const flags: string[] = [];
 
   for (const [snapshotKey, effectKey] of Object.entries(MODIFIER_KEY_MAP)) {
-    const reportedRaw = (um as Record<string, number>)[snapshotKey];
+    const reportedRaw = (um as unknown as Record<string, number>)[snapshotKey];
     if (reportedRaw === undefined) continue;
 
     // Reported values are * 1000 for integer transmission
@@ -534,6 +534,95 @@ export function validateDamagePatterns(
   }
 
   return { flags };
+}
+
+// ===== Shadow Leaderboard Diagnostics =====
+
+// Diagnostic record stored when a score is shadow-routed
+export interface ShadowDiagnostic {
+  id: string;
+  fingerprint: string;
+  playerName: string;
+  score: number;
+  wave: number;
+  timestamp: number;
+  failureReasons: string[];
+  session?: {
+    startTime: number;
+    stageId?: string;
+    activeMutators?: string[];
+    activePerks?: Record<string, string>;
+    statsFlagged: boolean;
+    modifiersFlagged: boolean;
+    heuristicFlags: string[];
+    waveCount: number;
+    upgradeLedgerCount: number;
+    finalScore?: number;
+    finalWave?: number;
+    gameOver: boolean;
+    lastModifierSnapshot?: ModifierSnapshot;
+    expectedModifiers?: Record<string, number>;
+    waveSummary: Array<{ w: number; s: number }>;
+    upgradeLedger?: UpgradeLedgerEntry[];
+  };
+}
+
+// Build a diagnostic record from session data and failure reasons
+export function buildShadowDiagnostic(
+  id: string,
+  fingerprint: string,
+  playerName: string,
+  score: number,
+  wave: number,
+  failureReasons: string[],
+  session: GameSession | null
+): ShadowDiagnostic {
+  const diagnostic: ShadowDiagnostic = {
+    id,
+    fingerprint,
+    playerName,
+    score,
+    wave,
+    timestamp: Date.now(),
+    failureReasons,
+  };
+
+  if (session) {
+    // Access extra fields that may exist on the session object
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = session as any;
+
+    // Find the last modifier snapshot (from final data or most recent wave)
+    const lastWaveWithUm = [...session.waves].reverse().find(w => w.um);
+    const lastUm: ModifierSnapshot | undefined = s.finalUm || lastWaveWithUm?.um;
+
+    // Reconstruct expected modifiers from upgrade ledger
+    let expectedMods: Record<string, number> | undefined;
+    if (session.upgradeLedger && session.upgradeLedger.length > 0) {
+      expectedMods = reconstructModifiers(session.upgradeLedger);
+    }
+
+    diagnostic.session = {
+      startTime: session.startTime,
+      stageId: s.stageId,
+      activeMutators: s.activeMutators,
+      activePerks: s.activePerks,
+      statsFlagged: !!session.statsFlagged,
+      modifiersFlagged: !!session.modifiersFlagged,
+      heuristicFlags: session.heuristicFlags || [],
+      waveCount: session.waves.length,
+      upgradeLedgerCount: session.upgradeLedger?.length || 0,
+      finalScore: session.finalScore,
+      finalWave: session.finalWave,
+      gameOver: !!session.gameOver,
+      lastModifierSnapshot: lastUm,
+      expectedModifiers: expectedMods,
+      waveSummary: session.waves.map(w => ({ w: w.wave, s: w.score })),
+      upgradeLedger: session.upgradeLedger,
+    };
+  }
+
+  return diagnostic;
 }
 
 // Enhanced performance validation with lower thresholds

@@ -1,6 +1,7 @@
 import { AuthManager, AuthUser } from './AuthManager';
 import { CosmeticState, getCosmeticManager } from './CosmeticManager';
 import { SaveManager } from './SaveManager';
+import { AchievementManager } from './AchievementManager';
 
 export interface PlayerData {
   uid: string;
@@ -15,6 +16,12 @@ export interface PlayerData {
     totalRuns: number;
     totalKills: number;
     totalBossKills: number;
+  };
+  achievements?: {
+    earned: string[];
+    totalEliteKills: number;
+    totalWavesSurvived: number;
+    totalPerfectWaves: number;
   };
   lastSyncAt: number;
   createdAt: number;
@@ -140,13 +147,15 @@ class PlayerDataManagerClass {
 
       const cosmeticManager = getCosmeticManager();
       const localState = cosmeticManager.getState();
+      const cumulative = AchievementManager.getCumulativeStats();
       const localStats = {
         highScore: SaveManager.getHighScore(),
         highestWave: SaveManager.getHighestWave(),
-        totalRuns: 0,
-        totalKills: 0,
-        totalBossKills: 0,
+        totalRuns: cumulative.totalRuns,
+        totalKills: cumulative.totalKills,
+        totalBossKills: cumulative.totalBossKills,
       };
+      const achievementData = AchievementManager.getStatsForSync();
 
       const response = await fetch('/api/player/sync', {
         method: 'POST',
@@ -157,6 +166,7 @@ class PlayerDataManagerClass {
         body: JSON.stringify({
           localState,
           localStats,
+          achievementData,
           lastSyncAt: this.lastSyncTime,
         }),
       });
@@ -216,6 +226,19 @@ class PlayerDataManagerClass {
     // Update local stats if server has higher values
     if (data.stats.highScore > SaveManager.getHighScore()) {
       SaveManager.submitRun(data.stats.highScore, data.stats.highestWave);
+    }
+
+    // Merge achievement data from server
+    if (data.achievements) {
+      AchievementManager.mergeServerData({
+        totalKills: data.stats.totalKills,
+        totalBossKills: data.stats.totalBossKills,
+        totalRuns: data.stats.totalRuns,
+        totalEliteKills: data.achievements.totalEliteKills,
+        totalWavesSurvived: data.achievements.totalWavesSurvived,
+        totalPerfectWaves: data.achievements.totalPerfectWaves,
+        earnedAchievements: data.achievements.earned,
+      });
     }
   }
 

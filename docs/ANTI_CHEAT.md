@@ -279,6 +279,20 @@ When a player views the leaderboard, their fingerprint is sent as a query parame
 
 This means cheaters see their own fake scores mixed in with real scores, but no one else sees them. Legitimate players see only real entries.
 
+### Diagnostic Records
+
+When a score is shadow-routed, a diagnostic record is stored at `shadow:diagnostic:<id>` with a 7-day TTL. The `<id>` matches the first field in the shadow member string.
+
+The record captures:
+- Which specific validation checks failed (`failureReasons` array)
+- Session metadata (stage, mutators, perks, score multiplier)
+- All heuristic flags accumulated during the session
+- Last modifier snapshot vs expected values from the upgrade ledger
+- Wave-by-wave score progression
+- Full upgrade ledger
+
+See `docs/LEADERBOARD_ADMIN.md` for commands to query diagnostic records.
+
 ### Shadow Leaderboard Limits
 
 - Max 500 entries in shadow global (vs 100 in real)

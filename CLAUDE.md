@@ -40,6 +40,8 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 - **Obfuscated variable names** → See `docs/OBFUSCATION_REFERENCE.md` for mapping (gitignored, local only)
 - **Anti-cheat system** → See [docs/ANTI_CHEAT.md](docs/ANTI_CHEAT.md) for full architecture. Server: `api/_lib/session.ts`, Client: `src/systems/SessionManager.ts`, Upgrade lookup: `api/_lib/upgrades.ts`
 - **Anti-cheat upgrade ledger** → `api/session/upgrade.ts` (endpoint), tracks all upgrade picks server-side for modifier reconstruction
+- **Achievement system** → Definitions in `src/data/achievements.ts`, tracking in `src/systems/AchievementManager.ts`, synced via `api/player/sync.ts`
+- **Meta-progression (planned)** → Stages, mutators, and perk slots tracked in `docs/TRACKER.md` and plan file
 
 ### Understanding Systems
 - **Overall architecture** → See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -73,6 +75,8 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 | Pinecone collectible | `src/entities/Pinecone.ts` |
 | Companion helper | `src/entities/Companion.ts` |
 | Companion modifier proxy | `src/systems/CompanionUpgradeProxy.ts` |
+| Achievement definitions | `src/data/achievements.ts` |
+| Achievement tracking | `src/systems/AchievementManager.ts` |
 | Cosmetic definitions | `src/data/cosmetics.ts` |
 | Cosmetic state | `src/systems/CosmeticManager.ts` |
 | Player data sync | `src/systems/PlayerDataManager.ts` |

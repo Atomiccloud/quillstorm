@@ -7,6 +7,8 @@ import { SessionManager } from '../systems/SessionManager';
 import { getCosmeticManager } from '../systems/CosmeticManager';
 import { PlayerDataManager } from '../systems/PlayerDataManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { AchievementManager } from '../systems/AchievementManager';
+import { Achievement } from '../data/achievements';
 import { NameInputModal } from '../ui/NameInputModal';
 import { StatsPanel } from '../ui/StatsPanel';
 
@@ -26,6 +28,7 @@ interface GameOverData {
   highScore?: number;
   highestWave?: number;
   sessionPinecones?: number;
+  newAchievements?: Achievement[];
   upgradeManager?: UpgradeManager;
   sessionStats?: SessionStats;
   isReturn?: boolean;
@@ -219,8 +222,38 @@ export class GameOverScene extends Phaser.Scene {
       }).setOrigin(0, 0.5);
     }
 
+    // Achievement unlocks
+    let achievementOffset = 0;
+    if (data.newAchievements && data.newAchievements.length > 0 && !data.isReturn) {
+      const achBaseY = panelY + panelHeight + (data.sessionPinecones ? 55 : 25);
+      achievementOffset = data.newAchievements.length * 28 + 10;
+
+      for (let i = 0; i < data.newAchievements.length; i++) {
+        const ach = data.newAchievements[i];
+        const achY = achBaseY + i * 28;
+
+        const achText = this.add.text(centerX, achY, `ACHIEVEMENT: ${ach.name}`, {
+          fontSize: '15px',
+          fontFamily: 'Arial Black, sans-serif',
+          color: '#ffdd00',
+          stroke: '#000000',
+          strokeThickness: 3,
+        }).setOrigin(0.5);
+
+        // Pulse animation
+        this.tweens.add({
+          targets: achText,
+          scale: 1.05,
+          duration: 600,
+          yoyo: true,
+          repeat: 2,
+          delay: i * 200,
+        });
+      }
+    }
+
     // Rank display (hidden initially)
-    const rankY = panelY + panelHeight + (data.sessionPinecones ? 50 : 20);
+    const rankY = panelY + panelHeight + (data.sessionPinecones ? 50 : 20) + achievementOffset;
     this.rankText = this.add.text(centerX, rankY, '', {
       fontSize: '18px',
       fontFamily: 'Arial',
@@ -274,6 +307,15 @@ export class GameOverScene extends Phaser.Scene {
       () => this.onNameSkipped()
     );
     this.add.existing(this.nameModal);
+
+    // Achievement progress counter
+    const achCount = AchievementManager.getEarnedCount();
+    const achTotal = AchievementManager.getTotalCount();
+    this.add.text(GAME_CONFIG.width - 16, 16, `Achievements: ${achCount}/${achTotal}`, {
+      fontSize: '13px',
+      fontFamily: 'Arial',
+      color: '#888888',
+    }).setOrigin(1, 0);
 
     // Hints at bottom (combined into one line)
     const hintsY = GAME_CONFIG.height - 40;
