@@ -27,6 +27,7 @@ export class HUD {
   private stateText!: Phaser.GameObjects.Text;
   private aimLine!: Phaser.GameObjects.Graphics;
   private infiniteSwarmText!: Phaser.GameObjects.Text;
+  private swarmTimerText!: Phaser.GameObjects.Text;
   private pineconeText!: Phaser.GameObjects.Text;
   private quillText!: Phaser.GameObjects.Text;
 
@@ -143,6 +144,15 @@ export class HUD {
       color: '#ff0000',
       stroke: '#000000',
       strokeThickness: 4,
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100).setVisible(false);
+
+    // Swarm survival timer (hidden by default, shown during infinite swarm)
+    this.swarmTimerText = this.scene.add.text(GAME_CONFIG.width / 2, 52, '', {
+      fontSize: '20px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100).setVisible(false);
 
     // Quill count (directly beneath quill bar)
@@ -319,6 +329,24 @@ export class HUD {
       const pulse = Math.sin(this.scene.time.now / 200) * 0.2 + 0.8;
       this.infiniteSwarmText.setAlpha(pulse);
 
+      // Survival timer
+      this.swarmTimerText.setVisible(true);
+      const elapsedMs = this.progressionManager.getSwarmDuration(this.scene.time.now);
+      const totalSec = Math.floor(elapsedMs / 1000);
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      this.setTextIfChanged(this.swarmTimerText, `${mins}:${secs.toString().padStart(2, '0')}`);
+      // Timer color matches stage tint
+      if (stageTint !== null) {
+        const tr = (stageTint >> 16) & 0xff;
+        const tg = (stageTint >> 8) & 0xff;
+        const tb = stageTint & 0xff;
+        this.swarmTimerText.setColor(`rgb(${tr}, ${tg}, ${tb})`);
+      } else {
+        this.swarmTimerText.setColor('#ffffff');
+      }
+      this.swarmTimerText.setAlpha(pulse);
+
       // Show split HP/DMG difficulty multipliers
       const hpMult = this.progressionManager.getSwarmHPMultiplier();
       const dmgMult = this.progressionManager.getSwarmDamageMultiplier();
@@ -327,6 +355,7 @@ export class HUD {
       // Normal wave display
       this.waveText.setVisible(true);
       this.infiniteSwarmText.setVisible(false);
+      this.swarmTimerText.setVisible(false);
 
       if (this.waveManager.currentWave > 0 && this.waveManager.isBossWave()) {
         this.setTextIfChanged(this.waveText, `BOSS - Wave ${this.waveManager.currentWave}`);
@@ -622,6 +651,7 @@ export class HUD {
     this.stateText.destroy();
     this.aimLine.destroy();
     this.infiniteSwarmText.destroy();
+    this.swarmTimerText.destroy();
     this.pineconeText.destroy();
     this.quillText.destroy();
   }

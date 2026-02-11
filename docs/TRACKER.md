@@ -229,6 +229,24 @@ Achievement system with 18 achievements across 4 categories (combat, survival, s
 
 **Additional achievements:** Bronze/Silver/Gold/Diamond Quill (score thresholds), Exterminator (10k kills), Elite Slayer (100 elite kills), Full Clear (wave 20), Infinite Warrior (enter swarm), Endurance (5min swarm), Into the Frenzy (reach Frenzy stage), Minimalist (wave 20 with <8 upgrades), Glass Cannon (wave 20 with no armor)
 
+## Completed (v0.5.5 - Death Tracking & QoL)
+
+### Death Tracking
+- [x] "Killed By" banner on game over screen — shows exact enemy and attack type
+- [x] Death recap panel — last 5 hits with wave number, damage, and timing (killing blow highlighted red)
+- [x] Run duration (TIME) added to game over THIS RUN panel
+- [x] Hit logging in GameScene — ring buffer of last 5 `player._uf()` hits with source categorization
+
+### Infinite Swarm Timer
+- [x] Live survival timer during infinite swarm — `mm:ss` counter in HUD
+- [x] Timer color shifts through all 4 stages: white (Swarm) → orange (Surge) → red (Frenzy) → purple (Apocalypse)
+
+### Flying Enemy Spawn Spread
+- [x] Swoopers and bombers now spawn across the full top of the screen (was edge-only)
+- [x] ~200px center exclusion zone prevents spawns directly above where player is focused
+
+---
+
 ## In Progress: Stage System (Phase 2)
 
 Full design doc: [docs/META_PROGRESSION.md](META_PROGRESSION.md)
@@ -299,7 +317,7 @@ Full design doc: [docs/META_PROGRESSION.md](META_PROGRESSION.md)
 
 ## Planned: Quality of Life
 
-- [ ] Run statistics on game over
+- [x] Run statistics on game over (v0.5.5 — death tracking, killed by, run duration)
 - [ ] Tutorial/help overlay
 
 ---

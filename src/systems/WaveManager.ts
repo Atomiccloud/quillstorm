@@ -291,10 +291,19 @@ export class WaveManager {
         x = side === 'left' ? 80 : GAME_CONFIG.width - 80;
         y = GAME_CONFIG.height - 150;
       }
+    } else if (type === 'swooper' || type === 'bomber') {
+      // Flying enemies spawn across the top, excluding a center gap
+      const cx = GAME_CONFIG.width / 2;
+      const gap = 100;
+      const side = Math.random() < 0.5;
+      x = side
+        ? 60 + Math.random() * (cx - gap - 60)
+        : (cx + gap) + Math.random() * (GAME_CONFIG.width - 60 - cx - gap);
+      y = 100;
     } else {
       const side = Math.random() < 0.5 ? 'left' : 'right';
       x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
-      y = (type === 'swooper' || type === 'bomber') ? 100 : GAME_CONFIG.height - 100;
+      y = GAME_CONFIG.height - 100;
     }
 
     // Wave 20 for type unlocking; pass 1.0 as legacy multiplier (overrides used instead)
@@ -322,12 +331,20 @@ export class WaveManager {
       // Flying boss spawns at top center area
       x = GAME_CONFIG.width / 2 + (Math.random() - 0.5) * 200;
       y = 100;
+    } else if (type === 'swooper' || type === 'bomber') {
+      // Flying enemies spawn across the top, excluding a center gap
+      const cx = GAME_CONFIG.width / 2;
+      const gap = 100;
+      const side = Math.random() < 0.5;
+      x = side
+        ? 60 + Math.random() * (cx - gap - 60)
+        : (cx + gap) + Math.random() * (GAME_CONFIG.width - 60 - cx - gap);
+      y = 100;
     } else {
-      // Regular enemies spawn at random edge
+      // Ground enemies spawn at random edge
       const side = Math.random() < 0.5 ? 'left' : 'right';
       x = side === 'left' ? 50 : GAME_CONFIG.width - 50;
-      // Flying enemies (swooper, bomber) spawn at top
-      y = (type === 'swooper' || type === 'bomber') ? 100 : GAME_CONFIG.height - 100;
+      y = GAME_CONFIG.height - 100;
     }
 
     // Roll for elite (non-boss only)
