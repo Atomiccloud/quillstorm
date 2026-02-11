@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { CHEST_CONFIG, COLORS } from '../config';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 
 export class TreasureChest extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
 
   private graphics!: Phaser.GameObjects.Graphics;
-  private glow!: Phaser.GameObjects.Graphics;
+  private glow!: Phaser.GameObjects.Graphics; // May not be created at low quality
   private despawnTime: number;
   private remainingDespawnTime: number;
   private warningStarted: boolean = false;
@@ -16,6 +17,8 @@ export class TreasureChest extends Phaser.GameObjects.Container {
   private pulsePhase: number = 0;
   private readonly chestWidth = CHEST_CONFIG.width;
   private readonly chestHeight = CHEST_CONFIG.height;
+  private _drawFrameCounter: number = 0;
+  private _hasGlow: boolean = true;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     super(scene, x, y);
@@ -23,9 +26,12 @@ export class TreasureChest extends Phaser.GameObjects.Container {
     this.despawnTime = scene.time.now + CHEST_CONFIG.despawnTime;
     this.remainingDespawnTime = CHEST_CONFIG.despawnTime;
 
-    // Create glow behind chest
-    this.glow = scene.add.graphics();
-    this.add(this.glow);
+    // Create glow behind chest (skip at low quality)
+    this._hasGlow = GraphicsSettings.glowEffects;
+    if (this._hasGlow) {
+      this.glow = scene.add.graphics();
+      this.add(this.glow);
+    }
 
     // Create chest graphics
     this.graphics = scene.add.graphics();
@@ -94,23 +100,33 @@ export class TreasureChest extends Phaser.GameObjects.Container {
       return;
     }
 
+    this._drawFrameCounter++;
+
+    // Low quality: no glow, no pulse — draw once at construction, skip updates
+    if (!this._hasGlow && !GraphicsSettings.pulseEffects) return;
+
+    // Medium quality: redraw every 3rd frame
+    if (GraphicsSettings.getEffectiveQuality() === 'medium' && this._drawFrameCounter % 3 !== 0) return;
+
     this.draw();
   }
 
   private draw(): void {
     this.graphics.clear();
-    this.glow.clear();
 
     const w = this.chestWidth;
     const h = this.chestHeight;
 
-    // Pulsing golden glow
-    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.15;
-    const glowSize = Math.max(w, h) * 1.5 * pulseScale;
-    const glowAlpha = 0.35 + Math.sin(this.pulsePhase) * 0.1;
+    // Pulsing golden glow (if enabled)
+    if (this._hasGlow) {
+      this.glow.clear();
+      const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.15;
+      const glowSize = Math.max(w, h) * 1.5 * pulseScale;
+      const glowAlpha = 0.35 + Math.sin(this.pulsePhase) * 0.1;
 
-    this.glow.fillStyle(COLORS.chest, glowAlpha);
-    this.glow.fillCircle(0, 0, glowSize / 2);
+      this.glow.fillStyle(COLORS.chest, glowAlpha);
+      this.glow.fillCircle(0, 0, glowSize / 2);
+    }
 
     // Chest base (dark gold)
     this.graphics.fillStyle(0xb8860b);

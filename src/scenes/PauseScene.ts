@@ -3,6 +3,7 @@ import { GAME_CONFIG, COLORS } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { GraphicsSettings, QualityPreset } from '../systems/GraphicsSettings';
 
 interface PauseSceneData {
   upgradeManager?: UpgradeManager;
@@ -163,10 +164,19 @@ export class PauseScene extends Phaser.Scene {
       this.updateEffectsFromPointer(pointer);
     });
 
+    // Graphics Quality section
+    this.add.text(centerX, centerY + 140, 'Graphics Quality', {
+      fontSize: '18px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    this.createQualityButtons(centerX, centerY + 170);
+
     // Restart and Main Menu buttons side by side
     const buttonWidth = 160;
     const buttonGap = 20;
-    const buttonY = centerY + 175;
+    const buttonY = centerY + 230;
 
     const restartButton = this.add.rectangle(centerX - buttonWidth / 2 - buttonGap / 2, buttonY, buttonWidth, 50, 0x555555);
     restartButton.setInteractive({ useHandCursor: true });
@@ -220,7 +230,7 @@ export class PauseScene extends Phaser.Scene {
     });
 
     // Instructions
-    this.add.text(centerX, centerY + 240, 'Press ESC to resume | M to toggle mute', {
+    this.add.text(centerX, centerY + 290, 'Press ESC to resume | M to toggle mute', {
       fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#888888',
@@ -335,6 +345,50 @@ export class PauseScene extends Phaser.Scene {
     if (maxQuills !== 0) addStat('Max Quills', formatFlat(maxQuills));
     const regenRate = this.upgradeManager.getModifier('regenRate');
     if (regenRate !== 0) addStat('Regen Rate', formatPercent(regenRate));
+  }
+
+  private createQualityButtons(centerX: number, y: number): void {
+    const presets: { label: string; value: QualityPreset }[] = [
+      { label: 'AUTO', value: 'auto' },
+      { label: 'HIGH', value: 'high' },
+      { label: 'MED', value: 'medium' },
+      { label: 'LOW', value: 'low' },
+    ];
+    const btnWidth = 56;
+    const btnHeight = 26;
+    const gap = 8;
+    const totalWidth = presets.length * btnWidth + (presets.length - 1) * gap;
+    const startX = centerX - totalWidth / 2 + btnWidth / 2;
+
+    const buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; preset: QualityPreset }[] = [];
+
+    const currentPreset = GraphicsSettings.getPreset();
+
+    presets.forEach((p, i) => {
+      const bx = startX + i * (btnWidth + gap);
+      const isActive = p.value === currentPreset;
+      const bg = this.add.rectangle(bx, y, btnWidth, btnHeight, isActive ? 0x4a6741 : 0x333333);
+      bg.setInteractive({ useHandCursor: true });
+      const text = this.add.text(bx, y, p.label, {
+        fontSize: '12px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: isActive ? '#ffffff' : '#888888',
+      }).setOrigin(0.5);
+
+      buttons.push({ bg, text, preset: p.value });
+
+      bg.on('pointerover', () => { if (GraphicsSettings.getPreset() !== p.value) bg.setFillStyle(0x444444); });
+      bg.on('pointerout', () => { bg.setFillStyle(GraphicsSettings.getPreset() === p.value ? 0x4a6741 : 0x333333); });
+      bg.on('pointerdown', () => {
+        AudioManager.playButtonClick();
+        GraphicsSettings.setPreset(p.value);
+        buttons.forEach(b => {
+          const active = b.preset === p.value;
+          b.bg.setFillStyle(active ? 0x4a6741 : 0x333333);
+          b.text.setColor(active ? '#ffffff' : '#888888');
+        });
+      });
+    });
   }
 
   private updateVolumeFromPointer(pointer: Phaser.Input.Pointer): void {

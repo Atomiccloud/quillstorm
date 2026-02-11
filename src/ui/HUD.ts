@@ -7,6 +7,7 @@ import { UpgradeManager } from '../systems/UpgradeManager';
 import { ProgressionManager } from '../systems/ProgressionManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -31,6 +32,14 @@ export class HUD {
 
   private progressionManager: ProgressionManager | null = null;
   public score: number = 0;
+
+  // Dirty-flag caches to avoid unnecessary redraws
+  private _cachedHealthPercent: number = -1;
+  private _cachedHealthColor: number = -1;
+  private _cachedQuillPercent: number = -1;
+  private _cachedQuillState: string = '';
+  private _cachedXPPercent: number = -1;
+  private _cachedTexts: Map<Phaser.GameObjects.Text, string> = new Map();
 
   constructor(
     scene: Phaser.Scene,
@@ -150,6 +159,13 @@ export class HUD {
     this.progressionManager = manager;
   }
 
+  private setTextIfChanged(obj: Phaser.GameObjects.Text, text: string): void {
+    if (this._cachedTexts.get(obj) !== text) {
+      this._cachedTexts.set(obj, text);
+      obj.setText(text);
+    }
+  }
+
   update(): void {
     this.drawHealthBar();
     this.drawQuillBar();
@@ -159,105 +175,121 @@ export class HUD {
   }
 
   private drawHealthBar(): void {
-    this.healthBar.clear();
-
-    const x = 20;
-    const y = 20;
-    const width = 200;
-    const height = 20;
-
-    // Background
-    this.healthBar.fillStyle(0x333333);
-    this.healthBar.fillRect(x, y, width, height);
-
-    // Health
     const healthPercent = this.player.health / this.player.maxHealth;
     const healthColor = healthPercent > 0.5 ? 0x44ff44 : healthPercent > 0.25 ? 0xffff44 : 0xff4444;
-    this.healthBar.fillStyle(healthColor);
-    this.healthBar.fillRect(x, y, width * healthPercent, height);
 
-    // Border
-    this.healthBar.lineStyle(2, 0xffffff);
-    this.healthBar.strokeRect(x, y, width, height);
+    // Only redraw bar if percent or color changed
+    if (Math.abs(healthPercent - this._cachedHealthPercent) > 0.005 || healthColor !== this._cachedHealthColor) {
+      this._cachedHealthPercent = healthPercent;
+      this._cachedHealthColor = healthColor;
 
-    // Update HP text
+      this.healthBar.clear();
+      const x = 20;
+      const y = 20;
+      const width = 200;
+      const height = 20;
+
+      // Background
+      this.healthBar.fillStyle(0x333333);
+      this.healthBar.fillRect(x, y, width, height);
+
+      // Health
+      this.healthBar.fillStyle(healthColor);
+      this.healthBar.fillRect(x, y, width * healthPercent, height);
+
+      // Border
+      this.healthBar.lineStyle(2, 0xffffff);
+      this.healthBar.strokeRect(x, y, width, height);
+    }
+
+    // Update HP text only when changed
     const currentHP = Math.ceil(this.player.health);
     const maxHP = Math.ceil(this.player.maxHealth);
-    this.healthText.setText(`${currentHP}/${maxHP}`);
+    this.setTextIfChanged(this.healthText, `${currentHP}/${maxHP}`);
   }
 
   private drawQuillBar(): void {
-    this.quillBar.clear();
-
-    const x = 20;
-    const y = 50;
-    const width = 200;
-    const height = 16;
-
-    // Background
-    this.quillBar.fillStyle(COLORS.ui.quillBarBg);
-    this.quillBar.fillRect(x, y, width, height);
-
-    // Quills
     const quillPercent = this.quillManager.getQuillPercent();
     const state = this.player.getQuillState();
-    let quillColor = COLORS.ui.quillBar;
 
-    if (state === 'naked') {
-      quillColor = 0xff4444;
-    } else if (state === 'sparse') {
-      quillColor = 0xffaa44;
+    // Only redraw if percent or state changed
+    if (Math.abs(quillPercent - this._cachedQuillPercent) > 0.005 || state !== this._cachedQuillState) {
+      this._cachedQuillPercent = quillPercent;
+      this._cachedQuillState = state;
+
+      this.quillBar.clear();
+      const x = 20;
+      const y = 50;
+      const width = 200;
+      const height = 16;
+
+      // Background
+      this.quillBar.fillStyle(COLORS.ui.quillBarBg);
+      this.quillBar.fillRect(x, y, width, height);
+
+      // Quills
+      let quillColor = COLORS.ui.quillBar;
+      if (state === 'naked') {
+        quillColor = 0xff4444;
+      } else if (state === 'sparse') {
+        quillColor = 0xffaa44;
+      }
+
+      this.quillBar.fillStyle(quillColor);
+      this.quillBar.fillRect(x, y, width * quillPercent, height);
+
+      // Individual quill marks
+      const maxQuills = this.quillManager.maxQuills;
+      const quillWidth = width / maxQuills;
+      this.quillBar.lineStyle(1, 0x555555);
+      for (let i = 1; i < maxQuills; i++) {
+        this.quillBar.beginPath();
+        this.quillBar.moveTo(x + i * quillWidth, y);
+        this.quillBar.lineTo(x + i * quillWidth, y + height);
+        this.quillBar.strokePath();
+      }
+
+      // Border
+      this.quillBar.lineStyle(2, 0xffffff);
+      this.quillBar.strokeRect(x, y, width, height);
+
+      // Draw quill icon
+      this.quillBar.fillStyle(0xffffff);
+      this.quillBar.fillTriangle(x - 15, y + height / 2, x - 5, y + 2, x - 5, y + height - 2);
     }
-
-    this.quillBar.fillStyle(quillColor);
-    this.quillBar.fillRect(x, y, width * quillPercent, height);
-
-    // Individual quill marks
-    const maxQuills = this.quillManager.maxQuills;
-    const quillWidth = width / maxQuills;
-    this.quillBar.lineStyle(1, 0x555555);
-    for (let i = 1; i < maxQuills; i++) {
-      this.quillBar.beginPath();
-      this.quillBar.moveTo(x + i * quillWidth, y);
-      this.quillBar.lineTo(x + i * quillWidth, y + height);
-      this.quillBar.strokePath();
-    }
-
-    // Border
-    this.quillBar.lineStyle(2, 0xffffff);
-    this.quillBar.strokeRect(x, y, width, height);
-
-    // Draw quill icon
-    this.quillBar.fillStyle(0xffffff);
-    this.quillBar.fillTriangle(x - 15, y + height / 2, x - 5, y + 2, x - 5, y + height - 2);
   }
 
   private drawXPBar(): void {
-    this.xpBar.clear();
-
     if (!this.progressionManager) return;
 
-    const x = 20;
-    const y = 90;
-    const width = 200;
-    const height = 8;
-
-    // Background
-    this.xpBar.fillStyle(0x222244);
-    this.xpBar.fillRect(x, y, width, height);
-
-    // XP progress
     const progress = this.progressionManager.getXPProgress();
-    this.xpBar.fillStyle(COLORS.xpOrb);
-    this.xpBar.fillRect(x, y, width * progress.percent, height);
 
-    // Border
-    this.xpBar.lineStyle(1, 0x4444aa);
-    this.xpBar.strokeRect(x, y, width, height);
+    // Only redraw if XP percent changed
+    if (Math.abs(progress.percent - this._cachedXPPercent) > 0.005) {
+      this._cachedXPPercent = progress.percent;
 
-    // XP icon (small star)
-    this.xpBar.fillStyle(COLORS.xpOrb);
-    this.xpBar.fillCircle(x - 10, y + height / 2, 4);
+      this.xpBar.clear();
+      const x = 20;
+      const y = 90;
+      const width = 200;
+      const height = 8;
+
+      // Background
+      this.xpBar.fillStyle(0x222244);
+      this.xpBar.fillRect(x, y, width, height);
+
+      // XP progress
+      this.xpBar.fillStyle(COLORS.xpOrb);
+      this.xpBar.fillRect(x, y, width * progress.percent, height);
+
+      // Border
+      this.xpBar.lineStyle(1, 0x4444aa);
+      this.xpBar.strokeRect(x, y, width, height);
+
+      // XP icon (small star)
+      this.xpBar.fillStyle(COLORS.xpOrb);
+      this.xpBar.fillCircle(x - 10, y + height / 2, 4);
+    }
   }
 
   private updateTexts(): void {
@@ -271,8 +303,7 @@ export class HUD {
       const stageName = this.progressionManager.getStageName();
       const stageTint = this.progressionManager.getStageTint();
       if (stageName !== 'Swarm') {
-        this.infiniteSwarmText.setText(`INFINITE SWARM - ${stageName.toUpperCase()}`);
-        // Color based on stage tint
+        this.setTextIfChanged(this.infiniteSwarmText, `INFINITE SWARM - ${stageName.toUpperCase()}`);
         if (stageTint !== null) {
           const r = (stageTint >> 16) & 0xff;
           const g = (stageTint >> 8) & 0xff;
@@ -280,44 +311,44 @@ export class HUD {
           this.infiniteSwarmText.setColor(`rgb(${r}, ${g}, ${b})`);
         }
       } else {
-        this.infiniteSwarmText.setText('INFINITE SWARM');
+        this.setTextIfChanged(this.infiniteSwarmText, 'INFINITE SWARM');
         this.infiniteSwarmText.setColor('#ff0000');
       }
 
-      // Pulsing effect
+      // Pulsing effect (alpha is cheap, no setText needed)
       const pulse = Math.sin(this.scene.time.now / 200) * 0.2 + 0.8;
       this.infiniteSwarmText.setAlpha(pulse);
 
       // Show split HP/DMG difficulty multipliers
       const hpMult = this.progressionManager.getSwarmHPMultiplier();
       const dmgMult = this.progressionManager.getSwarmDamageMultiplier();
-      this.enemyText.setText(`HP: x${hpMult.toFixed(1)} | DMG: x${dmgMult.toFixed(1)} | Enemies: ${this.waveManager.getEnemyCount()}`);
+      this.setTextIfChanged(this.enemyText, `HP: x${hpMult.toFixed(1)} | DMG: x${dmgMult.toFixed(1)} | Enemies: ${this.waveManager.getEnemyCount()}`);
     } else {
       // Normal wave display
       this.waveText.setVisible(true);
       this.infiniteSwarmText.setVisible(false);
 
       if (this.waveManager.currentWave > 0 && this.waveManager.isBossWave()) {
-        this.waveText.setText(`BOSS - Wave ${this.waveManager.currentWave}`);
+        this.setTextIfChanged(this.waveText, `BOSS - Wave ${this.waveManager.currentWave}`);
         this.waveText.setColor('#ff4444');
       } else {
-        this.waveText.setText(`Wave ${this.waveManager.currentWave}`);
+        this.setTextIfChanged(this.waveText, `Wave ${this.waveManager.currentWave}`);
         this.waveText.setColor('#ffffff');
       }
-      this.enemyText.setText(`Enemies: ${this.waveManager.getEnemyCount()}`);
+      this.setTextIfChanged(this.enemyText, `Enemies: ${this.waveManager.getEnemyCount()}`);
     }
 
     // Update level display
     if (this.progressionManager) {
       const level = this.progressionManager.getCurrentLevel();
-      this.levelText.setText(`Level ${level}`);
+      this.setTextIfChanged(this.levelText, `Level ${level}`);
     }
-    this.scoreText.setText(`Score: ${this.score}`);
+    this.setTextIfChanged(this.scoreText, `Score: ${this.score}`);
 
     // State indicator (NAKED warning only)
     const state = this.player.getQuillState();
     if (state === 'naked') {
-      this.stateText.setText('NAKED! Cannot shoot!');
+      this.setTextIfChanged(this.stateText, 'NAKED! Cannot shoot!');
       this.stateText.setVisible(true);
     } else {
       this.stateText.setVisible(false);
@@ -326,7 +357,7 @@ export class HUD {
     // Update quill count display
     const currentQuills = Math.floor(this.quillManager.currentQuills);
     const maxQuills = this.quillManager.maxQuills;
-    this.quillText.setText(`Quills: ${currentQuills}/${maxQuills}`);
+    this.setTextIfChanged(this.quillText, `Quills: ${currentQuills}/${maxQuills}`);
     // Color quill text based on state
     if (state === 'naked') {
       this.quillText.setColor('#ff4444');
@@ -339,9 +370,8 @@ export class HUD {
     // Update pinecone display
     if (this.progressionManager) {
       const pinecones = this.progressionManager.getSessionPinecones();
-      this.pineconeText.setText(`🌰 ${pinecones}`);
+      this.setTextIfChanged(this.pineconeText, `🌰 ${pinecones}`);
     }
-
   }
 
   private drawAimLine(): void {
@@ -450,7 +480,7 @@ export class HUD {
     });
 
     // Screen shake
-    this.scene.cameras.main.shake(500, 0.01);
+    if (GraphicsSettings.screenShake) this.scene.cameras.main.shake(500, 0.01);
   }
 
   showLevelUp(level: number): void {
@@ -529,7 +559,7 @@ export class HUD {
     });
 
     // Heavy screen shake
-    this.scene.cameras.main.shake(1000, 0.02);
+    if (GraphicsSettings.screenShake) this.scene.cameras.main.shake(1000, 0.02);
   }
 
   showStageTransition(stageName: string, tint: number | null): void {

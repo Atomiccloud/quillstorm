@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { XP_CONFIG, COLORS } from '../config';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 
 export class XPOrb extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
 
   private graphics!: Phaser.GameObjects.Graphics;
-  private glow!: Phaser.GameObjects.Graphics;
+  private glow!: Phaser.GameObjects.Graphics; // May not be created at low quality
   public xpValue: number;
   private despawnTime: number;
   private remainingDespawnTime: number;
@@ -16,6 +17,9 @@ export class XPOrb extends Phaser.GameObjects.Container {
   // Visual properties
   private baseRadius: number = 6;
   private pulsePhase: number = 0;
+  private cachedOrbColor: number = 0;
+  private _drawFrameCounter: number = 0;
+  private _hasGlow: boolean = true;
 
   constructor(scene: Phaser.Scene, x: number, y: number, xpValue: number) {
     super(scene, x, y);
@@ -24,9 +28,23 @@ export class XPOrb extends Phaser.GameObjects.Container {
     this.despawnTime = scene.time.now + XP_CONFIG.xpOrbDespawnTime;
     this.remainingDespawnTime = XP_CONFIG.xpOrbDespawnTime;
 
-    // Create graphics
-    this.glow = scene.add.graphics();
-    this.add(this.glow);
+    // Pre-compute orb color (xpValue never changes)
+    const highValueThreshold = 20;
+    const t = Math.min(1, this.xpValue / highValueThreshold);
+    const color = Phaser.Display.Color.Interpolate.ColorWithColor(
+      Phaser.Display.Color.ValueToColor(COLORS.xpOrb),
+      Phaser.Display.Color.ValueToColor(COLORS.xpOrbHigh),
+      100,
+      Math.floor(t * 100)
+    );
+    this.cachedOrbColor = Phaser.Display.Color.GetColor(color.r, color.g, color.b);
+
+    // Create graphics (skip glow at low quality)
+    this._hasGlow = GraphicsSettings.glowEffects;
+    if (this._hasGlow) {
+      this.glow = scene.add.graphics();
+      this.add(this.glow);
+    }
 
     this.graphics = scene.add.graphics();
     this.add(this.graphics);
@@ -73,6 +91,7 @@ export class XPOrb extends Phaser.GameObjects.Container {
   update(time: number, _delta: number): void {
     if (!this.body) return;
     this.pulsePhase += 0.15;
+    this._drawFrameCounter++;
 
     // Check for magnetic attraction
     if (this.magnetTarget && !this.isMagneting) {
@@ -113,34 +132,30 @@ export class XPOrb extends Phaser.GameObjects.Container {
       return;
     }
 
+    // Low quality: no glow, no pulse — draw once at construction, skip updates
+    if (!this._hasGlow && !GraphicsSettings.pulseEffects) return;
+
+    // Medium quality: redraw every 3rd frame
+    if (GraphicsSettings.getEffectiveQuality() === 'medium' && this._drawFrameCounter % 3 !== 0) return;
+
     this.draw();
   }
 
   private draw(): void {
     this.graphics.clear();
-    this.glow.clear();
 
-    // Color based on XP value (cyan for low, gold for high)
-    const highValueThreshold = 20;
-    const t = Math.min(1, this.xpValue / highValueThreshold);
-    const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-      Phaser.Display.Color.ValueToColor(COLORS.xpOrb),
-      Phaser.Display.Color.ValueToColor(COLORS.xpOrbHigh),
-      100,
-      Math.floor(t * 100)
-    );
-    const orbColor = Phaser.Display.Color.GetColor(color.r, color.g, color.b);
-
-    // Pulsing glow
-    const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.2;
-    const glowRadius = this.baseRadius * 2 * pulseScale;
-    const glowAlpha = 0.3 + Math.sin(this.pulsePhase) * 0.1;
-
-    this.glow.fillStyle(orbColor, glowAlpha);
-    this.glow.fillCircle(0, 0, glowRadius);
+    // Pulsing glow (if enabled)
+    if (this._hasGlow) {
+      this.glow.clear();
+      const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.2;
+      const glowRadius = this.baseRadius * 2 * pulseScale;
+      const glowAlpha = 0.3 + Math.sin(this.pulsePhase) * 0.1;
+      this.glow.fillStyle(this.cachedOrbColor, glowAlpha);
+      this.glow.fillCircle(0, 0, glowRadius);
+    }
 
     // Main orb
-    this.graphics.fillStyle(orbColor, 1);
+    this.graphics.fillStyle(this.cachedOrbColor, 1);
     this.graphics.fillCircle(0, 0, this.baseRadius);
 
     // Highlight

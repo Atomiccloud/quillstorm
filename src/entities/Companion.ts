@@ -12,6 +12,8 @@ export class Companion extends Phaser.GameObjects.Container {
   private readonly FOLLOW_DISTANCE = 50;
   private readonly FOLLOW_SPEED = 180;
   private facingRight: boolean = true;
+  private _prevFacingRight: boolean = true;
+  private _dirty: boolean = true;
 
   // Callback for when companion wants to shoot
   public onShoot?: (x: number, y: number, targetX: number, targetY: number) => void;
@@ -53,7 +55,16 @@ export class Companion extends Phaser.GameObjects.Container {
     if (!this.body) return;
     this.followPlayer();
     this.updateShooting(delta, enemies);
-    this.draw();
+
+    // Only redraw when facing direction changes
+    if (this.facingRight !== this._prevFacingRight) {
+      this._prevFacingRight = this.facingRight;
+      this._dirty = true;
+    }
+    if (this._dirty) {
+      this.draw();
+      this._dirty = false;
+    }
   }
 
   private followPlayer(): void {
@@ -91,15 +102,18 @@ export class Companion extends Phaser.GameObjects.Container {
     this.shootCooldown -= delta;
 
     if (this.shootCooldown <= 0) {
-      // Find nearest enemy
+      // Find nearest enemy using squared distance (avoids sqrt)
       let nearestEnemy: Phaser.GameObjects.GameObject | null = null;
-      let nearestDist = Infinity;
+      const rangeSq = COMPANION_CONFIG.range * COMPANION_CONFIG.range;
+      let nearestDistSq = rangeSq;
 
       enemies.getChildren().forEach((enemy) => {
         const e = enemy as Phaser.GameObjects.Container;
-        const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
-        if (dist < nearestDist && dist < COMPANION_CONFIG.range) {
-          nearestDist = dist;
+        const dx = this.x - e.x;
+        const dy = this.y - e.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < nearestDistSq) {
+          nearestDistSq = distSq;
           nearestEnemy = enemy;
         }
       });

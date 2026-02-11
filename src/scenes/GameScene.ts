@@ -18,6 +18,7 @@ import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
 import { StatsPanel } from '../ui/StatsPanel';
 import { SessionManager } from '../systems/SessionManager';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 import { AchievementManager } from '../systems/AchievementManager';
 import { Achievement } from '../data/achievements';
 
@@ -60,6 +61,21 @@ export class GameScene extends Phaser.Scene {
     warningVisual: Phaser.GameObjects.Graphics;
     damageDealt: boolean;
   }> = [];
+
+  // Chain reaction depth limit (prevents exponential elemental cascades)
+  private _chainDepth: number = 0;
+  private static readonly MAX_CHAIN_DEPTH = 5;
+
+  // Effect particle pools (avoid create/destroy GC pressure)
+  private circlePool: Phaser.GameObjects.Arc[] = [];
+  private rectPool: Phaser.GameObjects.Rectangle[] = [];
+
+  // Auto FPS monitor (for auto graphics quality)
+  private _fpsBuffer: number[] = [];
+  private _fpsCheckTimer: number = 0;
+  private static readonly FPS_CHECK_INTERVAL = 3000; // 3s
+  private static readonly FPS_DOWNGRADE_THRESHOLD = 40;
+  private static readonly FPS_UPGRADE_THRESHOLD = 55;
 
   // Cumulative session stats (for game over display)
   private sessionKills: number = 0;
@@ -437,9 +453,35 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // Auto FPS monitor
+    this.updateAutoFPS(delta);
+
     // Check for player death
     if (this.player.isDead()) {
       this.onPlayerDeath();
+    }
+  }
+
+  private updateAutoFPS(delta: number): void {
+    if (GraphicsSettings.getPreset() !== 'auto') return;
+
+    // Track instantaneous FPS
+    const fps = delta > 0 ? 1000 / delta : 60;
+    this._fpsBuffer.push(fps);
+
+    this._fpsCheckTimer += delta;
+    if (this._fpsCheckTimer < GameScene.FPS_CHECK_INTERVAL) return;
+    this._fpsCheckTimer = 0;
+
+    // Calculate average FPS over the buffer period
+    if (this._fpsBuffer.length === 0) return;
+    const avg = this._fpsBuffer.reduce((a, b) => a + b, 0) / this._fpsBuffer.length;
+    this._fpsBuffer.length = 0;
+
+    if (avg < GameScene.FPS_DOWNGRADE_THRESHOLD) {
+      GraphicsSettings.autoDowngrade();
+    } else if (avg > GameScene.FPS_UPGRADE_THRESHOLD) {
+      GraphicsSettings.autoUpgrade();
     }
   }
 
@@ -557,7 +599,7 @@ export class GameScene extends Phaser.Scene {
     // Dirt burst particles
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const dirt = this.add.circle(x, y, 5, 0x8b6914);
+      const dirt = this.acquireCircle(x, y, 5, 0x8b6914);
 
       this.tweens.add({
         targets: dirt,
@@ -567,12 +609,12 @@ export class GameScene extends Phaser.Scene {
         scale: 0.3,
         duration: 400,
         ease: 'Power2',
-        onComplete: () => dirt.destroy(),
+        onComplete: () => this.releaseCircle(dirt),
       });
     }
 
     // Ground ring
-    const ring = this.add.circle(x, y, 10, 0x8b6914, 0);
+    const ring = this.acquireCircle(x, y, 10, 0x8b6914, 0);
     ring.setStrokeStyle(3, 0x654321);
     this.tweens.add({
       targets: ring,
@@ -580,7 +622,7 @@ export class GameScene extends Phaser.Scene {
       alpha: 0,
       duration: 350,
       ease: 'Power1',
-      onComplete: () => ring.destroy(),
+      onComplete: () => this.releaseCircle(ring),
     });
   }
 
@@ -588,7 +630,7 @@ export class GameScene extends Phaser.Scene {
     // Small dirt particles bubbling up to warn player
     for (let i = 0; i < 4; i++) {
       const offsetX = (Math.random() - 0.5) * 30;
-      const dirt = this.add.circle(x + offsetX, y, 4, 0x8b6914);
+      const dirt = this.acquireCircle(x + offsetX, y, 4, 0x8b6914);
 
       this.tweens.add({
         targets: dirt,
@@ -597,7 +639,7 @@ export class GameScene extends Phaser.Scene {
         scale: 0.5,
         duration: 300 + Math.random() * 200,
         ease: 'Power1',
-        onComplete: () => dirt.destroy(),
+        onComplete: () => this.releaseCircle(dirt),
       });
     }
 
@@ -846,8 +888,12 @@ export class GameScene extends Phaser.Scene {
       this.waveManager.spawnSplitlings(enemy.x, enemy.y);
     }
 
-    // On-death elemental effects
-    this.handleElementalOnDeath(enemy);
+    // On-death elemental effects (skip at max chain depth to prevent exponential cascades)
+    if (this._chainDepth < GameScene.MAX_CHAIN_DEPTH) {
+      this._chainDepth++;
+      this.handleElementalOnDeath(enemy);
+      this._chainDepth--;
+    }
 
     // Chance to drop quill pickup
     if (Math.random() < 0.3) {
@@ -895,7 +941,7 @@ export class GameScene extends Phaser.Scene {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
         playerBody.setVelocity(knockbackDir * 400, -200);
         // Screen shake for impact
-        this.cameras.main.shake(100, 0.01);
+        if (GraphicsSettings.screenShake) this.cameras.main.shake(100, 0.01);
         // Thorns damage reflection
         this.applyThorns(enemy);
       } else if (this.player._lastDodged) {
@@ -974,26 +1020,70 @@ export class GameScene extends Phaser.Scene {
     projectile.destroy();
   }
 
+  private acquireCircle(x: number, y: number, radius: number, color: number, alpha: number = 1): Phaser.GameObjects.Arc {
+    const circle = this.circlePool.pop();
+    if (circle) {
+      circle.setPosition(x, y);
+      circle.setRadius(radius);
+      circle.setFillStyle(color, alpha);
+      circle.setStrokeStyle(0);
+      circle.setScale(1);
+      circle.setAlpha(alpha);
+      circle.setVisible(true);
+      circle.setActive(true);
+      return circle;
+    }
+    return this.add.circle(x, y, radius, color, alpha);
+  }
+
+  private releaseCircle(circle: Phaser.GameObjects.Arc): void {
+    circle.setVisible(false);
+    circle.setActive(false);
+    this.circlePool.push(circle);
+  }
+
+  private acquireRect(x: number, y: number, w: number, h: number, color: number, alpha: number = 1): Phaser.GameObjects.Rectangle {
+    const rect = this.rectPool.pop();
+    if (rect) {
+      rect.setPosition(x, y);
+      rect.setSize(w, h);
+      rect.setFillStyle(color, alpha);
+      rect.setScale(1);
+      rect.setAlpha(alpha);
+      rect.setVisible(true);
+      rect.setActive(true);
+      rect.rotation = 0;
+      return rect;
+    }
+    return this.add.rectangle(x, y, w, h, color, alpha);
+  }
+
+  private releaseRect(rect: Phaser.GameObjects.Rectangle): void {
+    rect.setVisible(false);
+    rect.setActive(false);
+    this.rectPool.push(rect);
+  }
+
   private spawnDeathParticles(x: number, y: number): void {
     if (this.effectsOpacity <= 0) return;
 
-    // Simple particle effect
-    for (let i = 0; i < 8; i++) {
-      const particle = this.add.circle(x, y, 4, 0xff4444);
-      particle.setAlpha(this.effectsOpacity);
-      this.physics.add.existing(particle);
-      const body = particle.body as Phaser.Physics.Arcade.Body;
+    const particleCount = GraphicsSettings.deathParticleCount;
+    for (let i = 0; i < particleCount; i++) {
+      const particle = this.acquireCircle(x, y, 4, 0xff4444, this.effectsOpacity);
 
-      const angle = (i / 8) * Math.PI * 2;
+      const angle = (i / particleCount) * Math.PI * 2;
       const speed = 100 + Math.random() * 100;
-      body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed - 100);
+      const endX = x + Math.cos(angle) * speed * 0.5;
+      const endY = y + Math.sin(angle) * speed * 0.5 - 50;
 
       this.tweens.add({
         targets: particle,
+        x: endX,
+        y: endY,
         alpha: 0,
         scale: 0,
         duration: 500,
-        onComplete: () => particle.destroy(),
+        onComplete: () => this.releaseCircle(particle),
       });
     }
   }
@@ -1002,7 +1092,7 @@ export class GameScene extends Phaser.Scene {
     if (this.effectsOpacity <= 0) return;
 
     // Expanding ring
-    const ring = this.add.circle(x, y, 10, 0xff8800, 0);
+    const ring = this.acquireCircle(x, y, 10, 0xff8800, 0);
     ring.setStrokeStyle(4, 0xff4400, this.effectsOpacity);
 
     this.tweens.add({
@@ -1011,24 +1101,23 @@ export class GameScene extends Phaser.Scene {
       alpha: 0,
       duration: 300,
       ease: 'Power2',
-      onComplete: () => ring.destroy(),
+      onComplete: () => this.releaseCircle(ring),
     });
 
     // Inner flash
-    const flash = this.add.circle(x, y, radius * 0.3, 0xffff00, 0.6 * this.effectsOpacity);
+    const flash = this.acquireCircle(x, y, radius * 0.3, 0xffff00, 0.6 * this.effectsOpacity);
     this.tweens.add({
       targets: flash,
       scale: 0,
       alpha: 0,
       duration: 200,
-      onComplete: () => flash.destroy(),
+      onComplete: () => this.releaseCircle(flash),
     });
 
     // Spark particles
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
-      const spark = this.add.circle(x, y, 3, 0xff6600);
-      spark.setAlpha(this.effectsOpacity);
+      const spark = this.acquireCircle(x, y, 3, 0xff6600, this.effectsOpacity);
 
       this.tweens.add({
         targets: spark,
@@ -1037,7 +1126,7 @@ export class GameScene extends Phaser.Scene {
         alpha: 0,
         duration: 250,
         ease: 'Power2',
-        onComplete: () => spark.destroy(),
+        onComplete: () => this.releaseCircle(spark),
       });
     }
   }
@@ -1133,7 +1222,7 @@ export class GameScene extends Phaser.Scene {
     // Burst of cyan particles spiraling outward on pickup collection
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
-      const particle = this.add.circle(x, y, 4, 0x00ffff);
+      const particle = this.acquireCircle(x, y, 4, 0x00ffff);
 
       this.tweens.add({
         targets: particle,
@@ -1143,7 +1232,7 @@ export class GameScene extends Phaser.Scene {
         scale: 0,
         duration: 300,
         ease: 'Power2',
-        onComplete: () => particle.destroy(),
+        onComplete: () => this.releaseCircle(particle),
       });
     }
   }
@@ -1227,7 +1316,7 @@ export class GameScene extends Phaser.Scene {
     // Burst of golden particles on pinecone collection
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
-      const particle = this.add.circle(x, y, 3, 0xdaa520);
+      const particle = this.acquireCircle(x, y, 3, 0xdaa520);
 
       this.tweens.add({
         targets: particle,
@@ -1237,7 +1326,7 @@ export class GameScene extends Phaser.Scene {
         scale: 0,
         duration: 250,
         ease: 'Power2',
-        onComplete: () => particle.destroy(),
+        onComplete: () => this.releaseCircle(particle),
       });
     }
   }
@@ -1996,14 +2085,14 @@ export class GameScene extends Phaser.Scene {
 
     // Steam visual
     if (this.effectsOpacity > 0) {
-      const steam = this.add.circle(ex, ey, 10, 0xccddff, 0);
+      const steam = this.acquireCircle(ex, ey, 10, 0xccddff, 0);
       steam.setStrokeStyle(3, 0xaabbdd, this.effectsOpacity * 0.6);
       this.tweens.add({
         targets: steam,
         radius: radius,
         alpha: 0,
         duration: 400,
-        onComplete: () => steam.destroy(),
+        onComplete: () => this.releaseCircle(steam),
       });
     }
   }
@@ -2123,7 +2212,7 @@ export class GameScene extends Phaser.Scene {
     if (this.effectsOpacity <= 0) return;
 
     // Orange expanding ring
-    const ring = this.add.circle(x, y, 10, 0xff6600, 0);
+    const ring = this.acquireCircle(x, y, 10, 0xff6600, 0);
     ring.setStrokeStyle(4, STATUS_EFFECT_CONFIG.burn.color, this.effectsOpacity);
 
     this.tweens.add({
@@ -2131,28 +2220,30 @@ export class GameScene extends Phaser.Scene {
       radius: radius,
       alpha: 0,
       duration: 400,
-      onComplete: () => ring.destroy(),
+      onComplete: () => this.releaseCircle(ring),
     });
 
     // Flame particles
-    for (let i = 0; i < 10; i++) {
-      const angle = (i / 10) * Math.PI * 2;
+    const flameCount = GraphicsSettings.elementalParticleCount;
+    for (let i = 0; i < flameCount; i++) {
+      const angle = (i / Math.max(1, flameCount)) * Math.PI * 2;
       const dist = radius * 0.6 * Math.random();
-      const particle = this.add.circle(
-        x + Math.cos(angle) * dist,
-        y + Math.sin(angle) * dist,
+      const px = x + Math.cos(angle) * dist;
+      const py = y + Math.sin(angle) * dist;
+      const particle = this.acquireCircle(
+        px, py,
         3 + Math.random() * 3,
-        Phaser.Math.Between(0, 1) ? 0xff6600 : 0xff4400
+        Phaser.Math.Between(0, 1) ? 0xff6600 : 0xff4400,
+        this.effectsOpacity
       );
-      particle.setAlpha(this.effectsOpacity);
 
       this.tweens.add({
         targets: particle,
-        y: particle.y - 20 - Math.random() * 20,
+        y: py - 20 - Math.random() * 20,
         alpha: 0,
         scale: 0,
         duration: 300 + Math.random() * 200,
-        onComplete: () => particle.destroy(),
+        onComplete: () => this.releaseCircle(particle),
       });
     }
   }
@@ -2161,10 +2252,11 @@ export class GameScene extends Phaser.Scene {
   private spawnPoisonSpreadEffect(x: number, y: number, range: number): void {
     if (this.effectsOpacity <= 0) return;
 
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const particle = this.add.circle(x, y, 4, STATUS_EFFECT_CONFIG.poison.color);
-      particle.setAlpha(this.effectsOpacity);
+    const count = GraphicsSettings.elementalParticleCount;
+    if (count <= 0) return;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const particle = this.acquireCircle(x, y, 4, STATUS_EFFECT_CONFIG.poison.color, this.effectsOpacity);
 
       this.tweens.add({
         targets: particle,
@@ -2173,7 +2265,7 @@ export class GameScene extends Phaser.Scene {
         alpha: 0,
         scale: 0.5,
         duration: 400,
-        onComplete: () => particle.destroy(),
+        onComplete: () => this.releaseCircle(particle),
       });
     }
   }
@@ -2225,7 +2317,7 @@ export class GameScene extends Phaser.Scene {
     if (this.effectsOpacity <= 0) return;
 
     // Blue expanding ring
-    const ring = this.add.circle(x, y, 10, 0x88ccff, 0);
+    const ring = this.acquireCircle(x, y, 10, 0x88ccff, 0);
     ring.setStrokeStyle(3, STATUS_EFFECT_CONFIG.freeze.color, this.effectsOpacity);
 
     this.tweens.add({
@@ -2233,15 +2325,15 @@ export class GameScene extends Phaser.Scene {
       radius: radius,
       alpha: 0,
       duration: 300,
-      onComplete: () => ring.destroy(),
+      onComplete: () => this.releaseCircle(ring),
     });
 
     // Ice shard particles
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
+    const shardCount = GraphicsSettings.shatterParticleCount;
+    for (let i = 0; i < shardCount; i++) {
+      const angle = (i / Math.max(1, shardCount)) * Math.PI * 2;
       const speed = 60 + Math.random() * 80;
-      const shard = this.add.rectangle(x, y, 4, 8, STATUS_EFFECT_CONFIG.freeze.color);
-      shard.setAlpha(this.effectsOpacity);
+      const shard = this.acquireRect(x, y, 4, 8, STATUS_EFFECT_CONFIG.freeze.color, this.effectsOpacity);
       shard.rotation = angle;
 
       this.tweens.add({
@@ -2250,7 +2342,7 @@ export class GameScene extends Phaser.Scene {
         y: y + Math.sin(angle) * speed,
         alpha: 0,
         duration: 400,
-        onComplete: () => shard.destroy(),
+        onComplete: () => this.releaseRect(shard),
       });
     }
   }
@@ -2301,5 +2393,11 @@ export class GameScene extends Phaser.Scene {
   shutdown(): void {
     this.events.off('resume', this.onResumeFromUpgrade, this);
     this.cleanupBomberAndBurrowerEffects();
+
+    // Destroy pooled objects so they don't leak between scene restarts
+    this.circlePool.forEach(c => c.destroy());
+    this.circlePool.length = 0;
+    this.rectPool.forEach(r => r.destroy());
+    this.rectPool.length = 0;
   }
 }

@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { AuthManager } from '../systems/AuthManager';
 import { PlayerDataManager } from '../systems/PlayerDataManager';
+import { GraphicsSettings, QualityPreset } from '../systems/GraphicsSettings';
 import { GAME_VERSION } from '../data/version';
 import { ChangelogModal } from '../ui/ChangelogModal';
 
@@ -105,7 +106,10 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Volume controls section
-    this.createVolumeControls(centerX, centerY + 320);
+    this.createVolumeControls(centerX, centerY + 310);
+
+    // Graphics quality section
+    this.createQualityButtons(centerX, centerY + 340);
 
     // Controls info
     this.add.text(centerX, GAME_CONFIG.height - 40, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  Tab: Stats  |  M: Mute', {
@@ -219,6 +223,55 @@ export class MenuScene extends Phaser.Scene {
   private updateMuteDisplay(muted: boolean): void {
     this.muteButton.setFillStyle(muted ? 0x884444 : 0x448844);
     this.muteText.setText(muted ? 'MUTE' : 'ON');
+  }
+
+  private createQualityButtons(centerX: number, y: number): void {
+    this.add.text(centerX - 150, y, 'Graphics', {
+      fontSize: '16px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#aaaaaa',
+    }).setOrigin(0, 0.5);
+
+    const presets: { label: string; value: QualityPreset }[] = [
+      { label: 'AUTO', value: 'auto' },
+      { label: 'HIGH', value: 'high' },
+      { label: 'MED', value: 'medium' },
+      { label: 'LOW', value: 'low' },
+    ];
+    const btnWidth = 50;
+    const btnHeight = 22;
+    const gap = 6;
+    const totalWidth = presets.length * btnWidth + (presets.length - 1) * gap;
+    const startX = centerX - 30 - totalWidth / 2 + btnWidth / 2;
+
+    const buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; preset: QualityPreset }[] = [];
+    const currentPreset = GraphicsSettings.getPreset();
+
+    presets.forEach((p, i) => {
+      const bx = startX + i * (btnWidth + gap);
+      const isActive = p.value === currentPreset;
+      const bg = this.add.rectangle(bx, y, btnWidth, btnHeight, isActive ? 0x4a6741 : 0x333333);
+      bg.setInteractive({ useHandCursor: true });
+      const text = this.add.text(bx, y, p.label, {
+        fontSize: '11px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: isActive ? '#ffffff' : '#888888',
+      }).setOrigin(0.5);
+
+      buttons.push({ bg, text, preset: p.value });
+
+      bg.on('pointerover', () => { if (GraphicsSettings.getPreset() !== p.value) bg.setFillStyle(0x444444); });
+      bg.on('pointerout', () => { bg.setFillStyle(GraphicsSettings.getPreset() === p.value ? 0x4a6741 : 0x333333); });
+      bg.on('pointerdown', () => {
+        AudioManager.playButtonClick();
+        GraphicsSettings.setPreset(p.value);
+        buttons.forEach(b => {
+          const active = b.preset === p.value;
+          b.bg.setFillStyle(active ? 0x4a6741 : 0x333333);
+          b.text.setColor(active ? '#ffffff' : '#888888');
+        });
+      });
+    });
   }
 
   private createRoundedButton(
