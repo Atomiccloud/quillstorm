@@ -18,6 +18,11 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Wave survival timer added to game over stats — shows how long you lasted in your final wave',
       'Infinite swarm survival timer — live mm:ss counter that color-shifts through all 4 stages',
       'Flying enemies (swoopers, bombers) now spawn across the full top of the screen instead of only at edges',
+      'New legendary upgrade: Lodestone — periodic magnetic pulse pulls all pickups toward you',
+      'Treasure chest despawn time increased (9s → 15s)',
+      'Pinecone despawn time increased (12s → 15s)',
+      'Armor scaling buffed — single pick now gives ~13% reduction, heavy investment reaches ~69%',
+      'Evasion scaling buffed — single pick now gives ~10% dodge, heavy investment reaches ~61%',
     ],
   },
   {

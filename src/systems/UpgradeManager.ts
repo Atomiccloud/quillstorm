@@ -39,6 +39,8 @@ export type ModifierType =
   // Knockback & Distance
   | 'knockback'
   | 'distanceDamage'
+  // Utility
+  | 'magnetPulse'
   // Mythic
   | 'rerollChance'
   | 'apotheosis';
@@ -94,6 +96,8 @@ export class UpgradeManager implements ModifierSource {
     // Knockback & Distance
     this.modifiers.set('knockback', 0);
     this.modifiers.set('distanceDamage', 0);
+    // Utility
+    this.modifiers.set('magnetPulse', 0);
     // Mythic
     this.modifiers.set('rerollChance', 0);
     this.modifiers.set('apotheosis', 0);
@@ -213,6 +217,10 @@ export class UpgradeManager implements ModifierSource {
       }
       if (effects.distanceDamage !== undefined) {
         this.addModifier('distanceDamage', effects.distanceDamage);
+      }
+      // Utility
+      if (effects.magnetPulse !== undefined) {
+        this.addModifier('magnetPulse', effects.magnetPulse);
       }
       // Mythic
       if (effects.rerollChance !== undefined) {

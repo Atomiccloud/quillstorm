@@ -17,7 +17,7 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 
 ### Adding Features
 - **New upgrades** → See [docs/GAMEPLAY.md#upgrades](docs/GAMEPLAY.md#upgrades), add to `src/data/upgrades.ts`
-- **Upgrade reference & balance** → See [docs/UPGRADES.md](docs/UPGRADES.md) for all 73 upgrades, mechanics, formulas, and tier ratings
+- **Upgrade reference & balance** → See [docs/UPGRADES.md](docs/UPGRADES.md) for all 74 upgrades, mechanics, formulas, and tier ratings
 - **New enemy types** → Add to `src/config.ts` ENEMY_CONFIG, implement in `src/entities/Enemy.ts`
 - **New sounds** → See [docs/AUDIO.md](docs/AUDIO.md), add to `src/systems/AudioManager.ts`
 - **New level layouts** → See [docs/LEVEL_DESIGN.md](docs/LEVEL_DESIGN.md), edit `src/systems/LevelGenerator.ts`

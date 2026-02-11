@@ -598,24 +598,22 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 ## Defense Stats
 
 ### Armor (Damage Reduction)
-- **Formula**: Logarithmic diminishing returns — `reduction = ln(1 + armor/100) / (ln(1 + armor/100) + 1.5)`
+- **Formula**: Logarithmic diminishing returns — `reduction = ln(1 + armor/100) / (ln(1 + armor/100) + 0.5)`
 - **Display**: Shown as flat "Armor" value (e.g., "50 Armor")
 - **Applied**: After shields, before quill state multiplier
 - **Infinitely stackable** with decreasing returns per point
 
 | Total Armor | Effective Reduction |
 |-------------|---------------------|
-| 5 | 3.2% |
-| 15 | 9.0% |
-| 30 | 16.0% |
-| 50 | 21.3% |
-| 75 | 27.4% |
-| 100 | 31.6% |
-| 150 | 37.8% |
-| 200 | 42.3% |
+| 8 | 13% |
+| 20 | 27% |
+| 50 | 45% |
+| 100 | 58% |
+| 200 | 69% |
+| 500 | 78% |
 
 ### Evasion (Dodge Chance)
-- **Formula**: Logarithmic diminishing returns — `dodge = ln(1 + evasion/100) / (ln(1 + evasion/100) + 2.0)`
+- **Formula**: Logarithmic diminishing returns — `dodge = ln(1 + evasion/100) / (ln(1 + evasion/100) + 0.7)`
 - **Display**: Shown as flat "Evasion" value (e.g., "50 Evasion")
 - **Applied**: Before shields — a dodge wastes no shield charges
 - **Visual**: "DODGE" floating text when triggered
@@ -623,14 +621,12 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 
 | Total Evasion | Effective Dodge |
 |---------------|-----------------|
-| 5 | 2.4% |
-| 15 | 6.9% |
-| 30 | 11.6% |
-| 50 | 16.8% |
-| 75 | 22.0% |
-| 100 | 25.7% |
-| 150 | 31.2% |
-| 200 | 35.5% |
+| 8 | 10% |
+| 20 | 21% |
+| 50 | 37% |
+| 100 | 50% |
+| 200 | 61% |
+| 500 | 72% |
 
 ### Thorns (Damage Reflection)
 - **Sources**: Diamond Hide (+10), Living Bastion (+20)
@@ -758,7 +754,7 @@ Pinecones are the premium currency used to purchase cosmetics in the shop.
 
 **Properties:**
 - **Magnet Range**: 80px (same as XP orbs)
-- **Despawn**: 12 seconds (warning flash at 9s)
+- **Despawn**: 15 seconds (warning flash at 12s)
 - **Prosperity Bonus**: +0.1% drop chance per prosperity point
 - **Persistence**: Saved to your account (requires login)
 
@@ -820,7 +816,7 @@ Enemies drop XP orbs on death. Collect them to level up and gain bonus upgrades.
 Rare drops from enemies containing better upgrades.
 
 - **Base Drop Chance**: 1%
-- **Despawn**: 9 seconds (warning at 7s)
+- **Despawn**: 15 seconds (warning at 12s)
 - **Upgrades**: Never common, higher rare+ rates
 - **First 3 chests**: Guaranteed to contain at least one rare+ upgrade
 

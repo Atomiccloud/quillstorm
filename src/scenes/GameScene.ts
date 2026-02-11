@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG, KNOCKBACK_CONFIG, DODGE_COUNTER_CONFIG, COMPANION_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, WAVE_CONFIG, PLAYER_CONFIG, ENEMY_CONFIG, CHEST_CONFIG, PINECONE_CONFIG, ELITE_CONFIG, DANGER_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, QUILL_CONFIG, INFINITE_SWARM_CONFIG, BOSS_REWARD_CONFIG, VAMPIRISM_CONFIG, KNOCKBACK_CONFIG, DODGE_COUNTER_CONFIG, COMPANION_CONFIG, MAGNET_PULSE_CONFIG } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/Enemy';
 import { Quill } from '../entities/Quill';
@@ -90,6 +90,11 @@ export class GameScene extends Phaser.Scene {
   private hitLog: DamageHitRecord[] = [];
   private lastHitSource: KilledByInfo | null = null;
 
+  // Magnet pulse
+  private magnetPulseTimer: number = 0;
+  private magnetPulseActive: boolean = false;
+  private magnetPulseDuration: number = 0;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -113,6 +118,11 @@ export class GameScene extends Phaser.Scene {
     this.waveStartTime = this.time.now;
     this.hitLog = [];
     this.lastHitSource = null;
+
+    // Magnet pulse
+    this.magnetPulseTimer = 0;
+    this.magnetPulseActive = false;
+    this.magnetPulseDuration = 0;
 
     // Create XP orbs, treasure chest, and pinecone groups
     this.xpOrbs = this.add.group({ runChildUpdate: true });
@@ -454,6 +464,9 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    // Magnet pulse (Lodestone upgrade)
+    this.updateMagnetPulse(delta);
+
     // Check for wave completion (not in infinite swarm mode)
     if (!this.isChoosingUpgrade && !this.waveManager.isInfiniteSwarm() && this.waveManager.isWaveComplete()) {
       this.waveCompleteTimer += delta;
@@ -494,6 +507,101 @@ export class GameScene extends Phaser.Scene {
     } else if (avg > GameScene.FPS_UPGRADE_THRESHOLD) {
       GraphicsSettings.autoUpgrade();
     }
+  }
+
+  private updateMagnetPulse(delta: number): void {
+    if (this.upgradeManager.getModifier('magnetPulse') < 1) return;
+
+    const playerX = this.player.x;
+    const playerY = this.player.y;
+
+    // Passive chest magnet: always pull nearby chests
+    this.treasureChests.getChildren().forEach((obj) => {
+      const chest = obj as TreasureChest;
+      if (!chest.active || chest.isCollected()) return;
+      const dist = Phaser.Math.Distance.Between(chest.x, chest.y, playerX, playerY);
+      if (dist < MAGNET_PULSE_CONFIG.chestMagnetRange && dist > 10) {
+        const angle = Phaser.Math.Angle.Between(chest.x, chest.y, playerX, playerY);
+        const body = chest.body as Phaser.Physics.Arcade.Body;
+        body.setVelocity(
+          Math.cos(angle) * MAGNET_PULSE_CONFIG.chestMagnetSpeed,
+          Math.sin(angle) * MAGNET_PULSE_CONFIG.chestMagnetSpeed
+        );
+      }
+    });
+
+    // Pulse timer
+    if (this.magnetPulseActive) {
+      this.magnetPulseDuration += delta;
+      if (this.magnetPulseDuration >= MAGNET_PULSE_CONFIG.duration) {
+        this.magnetPulseActive = false;
+        this.magnetPulseDuration = 0;
+      }
+    } else {
+      this.magnetPulseTimer += delta;
+      if (this.magnetPulseTimer >= MAGNET_PULSE_CONFIG.cooldown) {
+        this.magnetPulseTimer = 0;
+        this.magnetPulseActive = true;
+        this.magnetPulseDuration = 0;
+        this.spawnMagnetPulseRing();
+        AudioManager.playPickup();
+      }
+    }
+
+    // During active pulse: pull all pickups toward player
+    if (this.magnetPulseActive) {
+      const pullSpeed = MAGNET_PULSE_CONFIG.pullSpeed;
+
+      this.xpOrbs.getChildren().forEach((obj) => {
+        const orb = obj as XPOrb;
+        if (!orb.active) return;
+        const angle = Phaser.Math.Angle.Between(orb.x, orb.y, playerX, playerY);
+        const body = orb.body as Phaser.Physics.Arcade.Body;
+        body.setAllowGravity(false);
+        body.setVelocity(
+          Math.cos(angle) * pullSpeed,
+          Math.sin(angle) * pullSpeed
+        );
+      });
+
+      this.pinecones.getChildren().forEach((obj) => {
+        const pinecone = obj as Pinecone;
+        if (!pinecone.active) return;
+        const angle = Phaser.Math.Angle.Between(pinecone.x, pinecone.y, playerX, playerY);
+        const body = pinecone.body as Phaser.Physics.Arcade.Body;
+        body.setAllowGravity(false);
+        body.setVelocity(
+          Math.cos(angle) * pullSpeed,
+          Math.sin(angle) * pullSpeed
+        );
+      });
+
+      this.treasureChests.getChildren().forEach((obj) => {
+        const chest = obj as TreasureChest;
+        if (!chest.active || chest.isCollected()) return;
+        const angle = Phaser.Math.Angle.Between(chest.x, chest.y, playerX, playerY);
+        const body = chest.body as Phaser.Physics.Arcade.Body;
+        body.setAllowGravity(false);
+        body.setVelocity(
+          Math.cos(angle) * pullSpeed,
+          Math.sin(angle) * pullSpeed
+        );
+      });
+    }
+  }
+
+  private spawnMagnetPulseRing(): void {
+    if (this.effectsOpacity <= 0) return;
+    const ring = this.acquireCircle(this.player.x, this.player.y, 10, 0x8888ff, 0);
+    ring.setStrokeStyle(3, 0x6666ff, this.effectsOpacity * 0.7);
+    this.tweens.add({
+      targets: ring,
+      scale: 20,
+      alpha: 0,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => this.releaseCircle(ring),
+    });
   }
 
   private handleEnemyShooting(): void {

@@ -101,6 +101,7 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   elemental_convergence: { effects: { shockStrength: 3, freezeStrength: 3, burnStrength: 3, poisonStrength: 3 }, maxStacks: 1 },
   living_bastion: { effects: { armor: 0.45, thorns: 24, maxHealth: 25 } },
   wraith_form: { effects: { evasion: 0.28, moveSpeed: 0.15 } },
+  lodestone: { effects: { magnetPulse: 1 }, maxStacks: 1 },
 
   // ===== MYTHIC =====
   expanded_options: { effects: { upgradeChoices: 1 }, maxStacks: 1 },

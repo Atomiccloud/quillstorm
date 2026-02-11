@@ -1,6 +1,6 @@
 # Upgrade Reference
 
-Complete reference for all 73 upgrades, how they work mechanically, and balance assessment.
+Complete reference for all 74 upgrades, how they work mechanically, and balance assessment.
 
 ## Quick Reference Table
 
@@ -88,6 +88,7 @@ Complete reference for all 73 upgrades, how they work mechanically, and balance 
 | **Pandemic** | Legendary | poison +5, cloud 50px | -- | A |
 | **Living Bastion** | Legendary | armor +0.45, thorns +24, HP +25 | -- | A |
 | **Wraith Form** | Legendary | evasion +0.28, speed +15% | -- | A |
+| **Lodestone** | Legendary | magnetPulse 1 | 1 | A |
 | **Expanded Options** | Mythic | upgradeChoices +1 | 1 | S |
 | **Fate's Favor** | Mythic | rerollChance 30% | 1 | A |
 | **Quill Apotheosis** | Mythic | apotheosis (every 5th volley) | 1 | S |
@@ -372,6 +373,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `elemental_convergence` | Elemental Convergence | all elements +3 | S | Universal elemental. 20% secondary proc. |
 | `living_bastion` | Living Bastion | armor +0.45, thorns +24, HP +25 | A | Ultimate tank. |
 | `wraith_form` | Wraith Form | evasion +0.28, speed +0.15 | A | Ultimate dodge build. 90% dodge counter chance. |
+| `lodestone` | Lodestone | magnetPulse 1 | A | Magnetic pulse every 12s pulls all pickups. Passive chest magnet. |
 
 ### Mythic (3)
 
