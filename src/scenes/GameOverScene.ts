@@ -12,12 +12,32 @@ import { Achievement } from '../data/achievements';
 import { NameInputModal } from '../ui/NameInputModal';
 import { StatsPanel } from '../ui/StatsPanel';
 
+type DamageSourceCategory = 'contact' | 'rolling' | 'burrower' | 'bomberZone' | 'projectile' | 'stormLightning';
+
+export interface DamageHitRecord {
+  source: DamageSourceCategory;
+  enemyType: string | null;
+  damage: number;
+  timestamp: number;
+  wave: number;
+  wasLethal: boolean;
+}
+
+export interface KilledByInfo {
+  source: DamageSourceCategory;
+  enemyType: string | null;
+  damage: number;
+}
+
 interface SessionStats {
   totalKills: number;
   killsByType: Record<string, number>;
   eliteKillsByType: Record<string, number>;
   damageTaken: number;
   shieldsUsed: number;
+  waveTimeMs?: number;
+  hitLog?: DamageHitRecord[];
+  killedBy?: KilledByInfo | null;
 }
 
 interface GameOverData {
@@ -43,6 +63,7 @@ export class GameOverScene extends Phaser.Scene {
   private nameModal!: NameInputModal;
   private statsPanel: StatsPanel | null = null;
   private killsPanel: Phaser.GameObjects.Container | null = null;
+  private deathRecapPanel: Phaser.GameObjects.Container | null = null;
   private rankText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private buttonsContainer!: Phaser.GameObjects.Container;
@@ -70,21 +91,21 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     const title = data.victory ? 'VICTORY!' : 'GAME OVER';
-    const titleColor = data.victory ? '#ffaa00' : '#ff4444';
+    const titleColor = data.victory ? '#ffaa00' : '#ffffff';
 
     // Dark overlay background
     const bg = this.add.graphics();
     bg.fillStyle(0x000000, 0.6);
     bg.fillRect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
 
-    // Title with glow effect
-    this.add.text(centerX + 3, centerY - 165 + 3, title, {
+    // Title with glow effect — positioned near top
+    this.add.text(centerX + 3, 68, title, {
       fontSize: '64px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#000000',
     }).setOrigin(0.5).setAlpha(0.5);
 
-    this.add.text(centerX, centerY - 165, title, {
+    this.add.text(centerX, 65, title, {
       fontSize: '64px',
       fontFamily: 'Arial Black, sans-serif',
       color: titleColor,
@@ -92,9 +113,12 @@ export class GameOverScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5);
 
+    // Track vertical position for center column
+    let contentY = 115;
+
     // New high score banner
     if (data.isNewHighScore) {
-      const banner = this.add.text(centerX, centerY - 95, 'NEW HIGH SCORE!', {
+      const banner = this.add.text(centerX, contentY, 'NEW HIGH SCORE!', {
         fontSize: '28px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#ffff00',
@@ -109,14 +133,41 @@ export class GameOverScene extends Phaser.Scene {
         yoyo: true,
         repeat: -1,
       });
+      contentY += 40;
+    }
+
+    // Achievement unlocks (below title area, before stats panel)
+    if (data.newAchievements && data.newAchievements.length > 0 && !data.isReturn) {
+      for (let i = 0; i < data.newAchievements.length; i++) {
+        const ach = data.newAchievements[i];
+
+        const achText = this.add.text(centerX, contentY + i * 28, `ACHIEVEMENT: ${ach.name}`, {
+          fontSize: '15px',
+          fontFamily: 'Arial Black, sans-serif',
+          color: '#ffdd00',
+          stroke: '#000000',
+          strokeThickness: 3,
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+          targets: achText,
+          scale: 1.05,
+          duration: 600,
+          yoyo: true,
+          repeat: 2,
+          delay: i * 200,
+        });
+      }
+      contentY += data.newAchievements.length * 28 + 10;
     }
 
     // --- This Run Stats Panel ---
     const panelWidth = 280;
     const panelX = centerX - panelWidth / 2;
-    const panelY = centerY - 60;
+    const panelY = centerY - 55;
     const hasStats = !!data.sessionStats;
-    const panelHeight = hasStats ? 145 : 100;
+    const hasTime = hasStats && data.sessionStats!.waveTimeMs !== undefined;
+    const panelHeight = hasStats ? (hasTime ? 190 : 145) : 100;
 
     // Panel background
     const statsPanelBg = this.add.graphics();
@@ -197,8 +248,35 @@ export class GameOverScene extends Phaser.Scene {
         color: '#ff4444',
       }).setOrigin(0.5);
 
+      // WAVE TIME row
+      if (stats.waveTimeMs !== undefined) {
+        const dividerG2 = this.add.graphics();
+        dividerG2.lineStyle(1, 0x444444, 0.4);
+        dividerG2.lineBetween(panelX + 20, panelY + 145, panelX + panelWidth - 20, panelY + 145);
+
+        this.add.text(centerX, panelY + 157, 'WAVE TIME', {
+          fontSize: '12px',
+          fontFamily: 'Arial',
+          color: '#888888',
+        }).setOrigin(0.5);
+
+        const totalSec = Math.floor(stats.waveTimeMs / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        this.add.text(centerX, panelY + 175, `${mins}:${secs.toString().padStart(2, '0')}`, {
+          fontSize: '24px',
+          fontFamily: 'Arial Black, sans-serif',
+          color: '#4488ff',
+        }).setOrigin(0.5);
+      }
+
       // Kill breakdown — left side pane (mirrors StatsPanel on the right)
       this.createKillsPanel(data.sessionStats);
+
+      // Death recap panel — below kills panel
+      if (!data.victory) {
+        this.createDeathRecapPanel(data.sessionStats);
+      }
     }
 
     // Pinecones earned (golden accent)
@@ -222,38 +300,8 @@ export class GameOverScene extends Phaser.Scene {
       }).setOrigin(0, 0.5);
     }
 
-    // Achievement unlocks
-    let achievementOffset = 0;
-    if (data.newAchievements && data.newAchievements.length > 0 && !data.isReturn) {
-      const achBaseY = panelY + panelHeight + (data.sessionPinecones ? 55 : 25);
-      achievementOffset = data.newAchievements.length * 28 + 10;
-
-      for (let i = 0; i < data.newAchievements.length; i++) {
-        const ach = data.newAchievements[i];
-        const achY = achBaseY + i * 28;
-
-        const achText = this.add.text(centerX, achY, `ACHIEVEMENT: ${ach.name}`, {
-          fontSize: '15px',
-          fontFamily: 'Arial Black, sans-serif',
-          color: '#ffdd00',
-          stroke: '#000000',
-          strokeThickness: 3,
-        }).setOrigin(0.5);
-
-        // Pulse animation
-        this.tweens.add({
-          targets: achText,
-          scale: 1.05,
-          duration: 600,
-          yoyo: true,
-          repeat: 2,
-          delay: i * 200,
-        });
-      }
-    }
-
     // Rank display (hidden initially)
-    const rankY = panelY + panelHeight + (data.sessionPinecones ? 50 : 20) + achievementOffset;
+    const rankY = panelY + panelHeight + (data.sessionPinecones ? 50 : 20);
     this.rankText = this.add.text(centerX, rankY, '', {
       fontSize: '18px',
       fontFamily: 'Arial',
@@ -340,6 +388,9 @@ export class GameOverScene extends Phaser.Scene {
         }
         if (this.killsPanel) {
           this.killsPanel.setVisible(!this.killsPanel.visible);
+        }
+        if (this.deathRecapPanel) {
+          this.deathRecapPanel.setVisible(!this.deathRecapPanel.visible);
         }
       };
       this.input.keyboard?.on('keydown-TAB', this.tabKeyHandler);
@@ -537,6 +588,10 @@ export class GameOverScene extends Phaser.Scene {
       this.killsPanel.destroy();
       this.killsPanel = null;
     }
+    if (this.deathRecapPanel) {
+      this.deathRecapPanel.destroy();
+      this.deathRecapPanel = null;
+    }
     if (this.rKeyHandler) {
       this.input.keyboard?.off('keydown-R', this.rKeyHandler);
       this.rKeyHandler = null;
@@ -667,6 +722,134 @@ export class GameOverScene extends Phaser.Scene {
 
         y += LINE_HEIGHT;
       }
+    }
+
+  }
+
+  private formatKilledBy(kb: KilledByInfo): string {
+    const sourceLabels: Record<DamageSourceCategory, string> = {
+      contact: '',
+      rolling: 'Rolling',
+      burrower: 'Burrow',
+      bomberZone: '',
+      projectile: 'Projectile',
+      stormLightning: '',
+    };
+
+    if (kb.source === 'bomberZone') return 'Killed by: Bomber Zone';
+    if (kb.source === 'stormLightning') return 'Killed by: Lightning Strike';
+
+    const name = kb.enemyType ? formatEnemyName(kb.enemyType) : 'Unknown';
+    const suffix = sourceLabels[kb.source];
+    return suffix ? `Killed by: ${name} (${suffix})` : `Killed by: ${name}`;
+  }
+
+  private formatHitSource(hit: DamageHitRecord): string {
+    if (hit.source === 'bomberZone') return 'Bomber Zone';
+    if (hit.source === 'stormLightning') return 'Lightning';
+
+    const sourceLabels: Record<string, string> = {
+      contact: '',
+      rolling: 'Roll',
+      burrower: 'Burrow',
+      projectile: 'Proj',
+    };
+
+    const name = hit.enemyType ? formatEnemyName(hit.enemyType) : 'Unknown';
+    const suffix = sourceLabels[hit.source] || '';
+    return suffix ? `${name} (${suffix})` : name;
+  }
+
+  private createDeathRecapPanel(stats: SessionStats): void {
+    if (!stats.hitLog || stats.hitLog.length === 0) return;
+
+    const PANEL_WIDTH = 200;
+    const PANEL_PADDING = 12;
+    const LINE_HEIGHT = 22;
+    const hasKilledBy = !!stats.killedBy;
+    const killedByHeight = hasKilledBy ? 26 : 0;
+    const subHeaderHeight = 24;
+    const panelHeight = 10 + killedByHeight + subHeaderHeight + stats.hitLog.length * LINE_HEIGHT + PANEL_PADDING;
+
+    // Fixed position in bottom-left (above hints)
+    const deathRecapY = GAME_CONFIG.height - 60 - panelHeight;
+    this.deathRecapPanel = this.add.container(16, deathRecapY);
+    this.deathRecapPanel.setDepth(200);
+
+    // Background
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a1a2e, 0.95);
+    bg.fillRoundedRect(0, 0, PANEL_WIDTH, panelHeight, 8);
+    bg.lineStyle(2, 0xff4444, 0.6);
+    bg.strokeRoundedRect(0, 0, PANEL_WIDTH, panelHeight, 8);
+    this.deathRecapPanel.add(bg);
+
+    let innerY = 10;
+
+    // "Killed by" header
+    if (hasKilledBy) {
+      const kbText = this.add.text(PANEL_PADDING, innerY, this.formatKilledBy(stats.killedBy!), {
+        fontSize: '13px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: '#ff4444',
+      });
+      this.deathRecapPanel.add(kbText);
+      innerY += killedByHeight;
+    }
+
+    // "LAST HITS" sub-header
+    const title = this.add.text(PANEL_PADDING, innerY, 'LAST HITS', {
+      fontSize: '14px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ff6666',
+    });
+    this.deathRecapPanel.add(title);
+
+    // Hit entries (newest first)
+    const deathTime = stats.hitLog[stats.hitLog.length - 1]?.timestamp ?? 0;
+    const hits = [...stats.hitLog].reverse();
+
+    let y = innerY + subHeaderHeight;
+    for (const hit of hits) {
+      const isLethal = hit.wasLethal;
+      const color = isLethal ? '#ff4444' : '#aaaaaa';
+      const damageColor = isLethal ? '#ff4444' : '#ff8844';
+
+      // Wave number
+      const waveLabel = this.add.text(PANEL_PADDING, y, `W${hit.wave}`, {
+        fontSize: '12px',
+        fontFamily: 'Arial',
+        color: '#666666',
+      });
+      this.deathRecapPanel.add(waveLabel);
+
+      // Source name
+      const sourceName = this.add.text(PANEL_PADDING + 32, y, this.formatHitSource(hit), {
+        fontSize: '13px',
+        fontFamily: 'Arial',
+        color,
+      });
+      this.deathRecapPanel.add(sourceName);
+
+      // Damage amount
+      const dmgText = this.add.text(PANEL_WIDTH - PANEL_PADDING - 40, y, `-${hit.damage}`, {
+        fontSize: '13px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: damageColor,
+      }).setOrigin(1, 0);
+      this.deathRecapPanel.add(dmgText);
+
+      // Time ago
+      const secAgo = Math.max(0, Math.round((deathTime - hit.timestamp) / 1000));
+      const timeLabel = secAgo === 0 ? 'now' : `${secAgo}s`;
+      const timeText = this.add.text(PANEL_WIDTH - PANEL_PADDING, y, timeLabel, {
+        fontSize: '11px',
+        fontFamily: 'Arial',
+        color: '#666666',
+      }).setOrigin(1, 0);
+      this.deathRecapPanel.add(timeText);
+
+      y += LINE_HEIGHT;
     }
   }
 

@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.6.1';
+export const GAME_VERSION = '0.5.5';
 
 export interface ChangelogEntry {
   version: string;
@@ -10,7 +10,18 @@ export interface ChangelogEntry {
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: '0.6.1',
+    version: '0.5.5',
+    date: '2026-02-11',
+    changes: [
+      '"Killed By" display on game over screen — shows exactly what killed you',
+      'Death recap panel — last 5 hits with wave number, damage amount, and timing',
+      'Wave survival timer added to game over stats — shows how long you lasted in your final wave',
+      'Infinite swarm survival timer — live mm:ss counter that color-shifts through all 4 stages',
+      'Flying enemies (swoopers, bombers) now spawn across the full top of the screen instead of only at edges',
+    ],
+  },
+  {
+    version: '0.5.4',
     date: '2026-02-10',
     changes: [
       'Fixed shellback stunlock exploit — status effects no longer apply during rolling or burrowed states',
@@ -22,7 +33,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
-    version: '0.6.0',
+    version: '0.5.3',
     date: '2026-02-07',
     changes: [
       'Achievement system — 18 achievements across combat, survival, score, and style categories',

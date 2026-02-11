@@ -41,6 +41,8 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 - **Anti-cheat system** → See [docs/ANTI_CHEAT.md](docs/ANTI_CHEAT.md) for full architecture. Server: `api/_lib/session.ts`, Client: `src/systems/SessionManager.ts`, Upgrade lookup: `api/_lib/upgrades.ts`
 - **Anti-cheat upgrade ledger** → `api/session/upgrade.ts` (endpoint), tracks all upgrade picks server-side for modifier reconstruction
 - **Achievement system** → Definitions in `src/data/achievements.ts`, tracking in `src/systems/AchievementManager.ts`, synced via `api/player/sync.ts`
+- **Death tracking** → Hit logging + "Killed By" display: tracking in `src/scenes/GameScene.ts` recordPlayerHit(), display in `src/scenes/GameOverScene.ts` (banner, death recap panel, TIME row)
+- **Infinite swarm timer** → Live survival timer in `src/ui/HUD.ts` swarmTimerText, uses `ProgressionManager.getSwarmDuration()` and `getStageTint()` for 4-stage color
 - **Meta-progression (planned)** → Stages, mutators, and perk slots tracked in `docs/TRACKER.md` and plan file
 
 ### Understanding Systems

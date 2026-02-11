@@ -18,6 +18,7 @@ import { LevelGenerator } from '../systems/LevelGenerator';
 import { HUD } from '../ui/HUD';
 import { StatsPanel } from '../ui/StatsPanel';
 import { SessionManager } from '../systems/SessionManager';
+import { DamageHitRecord, KilledByInfo } from './GameOverScene';
 import { GraphicsSettings } from '../systems/GraphicsSettings';
 import { AchievementManager } from '../systems/AchievementManager';
 import { Achievement } from '../data/achievements';
@@ -84,6 +85,11 @@ export class GameScene extends Phaser.Scene {
   private totalDamageTaken: number = 0;
   private totalShieldsUsed: number = 0;
 
+  // Death tracking
+  private waveStartTime: number = 0;
+  private hitLog: DamageHitRecord[] = [];
+  private lastHitSource: KilledByInfo | null = null;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -102,6 +108,11 @@ export class GameScene extends Phaser.Scene {
 
     SessionManager.startSession();
     AchievementManager.startRun();
+
+    // Death tracking
+    this.waveStartTime = this.time.now;
+    this.hitLog = [];
+    this.lastHitSource = null;
 
     // Create XP orbs, treasure chest, and pinecone groups
     this.xpOrbs = this.add.group({ runChildUpdate: true });
@@ -545,7 +556,9 @@ export class GameScene extends Phaser.Scene {
         // AOE damage to player if in range
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         if (dist <= config.surfaceRadius) {
-          if (this.player._uf(config.surfaceDamage)) {
+          const taken = this.player._uf(config.surfaceDamage);
+          this.recordPlayerHit('burrower', enemy.enemyType, config.surfaceDamage, taken);
+          if (taken) {
             AudioManager.playPlayerDamage();
           }
         }
@@ -736,7 +749,9 @@ export class GameScene extends Phaser.Scene {
           zone.damageDealt = true;
           const dist = Phaser.Math.Distance.Between(zone.x, zone.y, this.player.x, this.player.y);
           if (dist <= config.bombRadius) {
-            if (this.player._uf(config.bombDamage)) {
+            const taken = this.player._uf(config.bombDamage);
+            this.recordPlayerHit('bomberZone', null, config.bombDamage, taken);
+            if (taken) {
               AudioManager.playPlayerDamage();
             }
           }
@@ -934,7 +949,9 @@ export class GameScene extends Phaser.Scene {
     // Rolling shellback deals roll damage and knockback
     if (enemy.isRolling) {
       const damage = enemy.getRollDamage();
-      if (this.player._uf(damage)) {
+      const taken = this.player._uf(damage);
+      this.recordPlayerHit('rolling', enemy.enemyType, damage, taken);
+      if (taken) {
         AudioManager.playPlayerDamage();
         // Strong knockback from roll attack
         const knockbackDir = this.player.x > enemy.x ? 1 : -1;
@@ -951,7 +968,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.player._uf(enemy.damage)) {
+    const contactTaken = this.player._uf(enemy.damage);
+    this.recordPlayerHit('contact', enemy.enemyType, enemy.damage, contactTaken);
+    if (contactTaken) {
       AudioManager.playPlayerDamage();
       // Thorns damage reflection
       this.applyThorns(enemy);
@@ -1014,10 +1033,27 @@ export class GameScene extends Phaser.Scene {
   private onProjectileHitPlayer(_playerObj: Phaser.GameObjects.GameObject, projectileObj: Phaser.GameObjects.GameObject): void {
     const projectile = projectileObj as Phaser.GameObjects.Arc;
 
-    if (this.player._uf(15)) {
+    const projTaken = this.player._uf(15);
+    this.recordPlayerHit('projectile', 'spitter', 15, projTaken);
+    if (projTaken) {
       AudioManager.playPlayerDamage();
     }
     projectile.destroy();
+  }
+
+  private recordPlayerHit(source: DamageHitRecord['source'], enemyType: string | null, damage: number, wasTaken: boolean): void {
+    if (!wasTaken) return;
+    const record: DamageHitRecord = {
+      source,
+      enemyType,
+      damage,
+      timestamp: this.time.now,
+      wave: this.waveManager.currentWave,
+      wasLethal: this.player.isDead(),
+    };
+    this.hitLog.push(record);
+    if (this.hitLog.length > 5) this.hitLog.shift();
+    this.lastHitSource = { source, enemyType, damage };
   }
 
   private acquireCircle(x: number, y: number, radius: number, color: number, alpha: number = 1): Phaser.GameObjects.Arc {
@@ -1351,6 +1387,7 @@ export class GameScene extends Phaser.Scene {
 
     // Activate infinite swarm in wave manager
     this.waveManager.activateInfiniteSwarm(this.time.now);
+    this.waveStartTime = this.time.now;
 
     this.player.resetShieldsForWave();
     this.player._es();
@@ -1502,12 +1539,6 @@ export class GameScene extends Phaser.Scene {
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
 
-    // Block shooting briefly to prevent the upgrade-select click from firing a shot
-    this.shootingBlocked = true;
-    this.time.delayedCall(50, () => {
-      this.shootingBlocked = false;
-    });
-
     const source = this.pendingUpgradeSource;
     this.isChoosingUpgrade = false;
     this.pendingUpgradeSource = null;
@@ -1532,7 +1563,7 @@ export class GameScene extends Phaser.Scene {
       this.registry.remove('bossRewardChoice');
 
       if (choice?.type === 'power') {
-        // Player chose Power: show normal upgrade selection
+        // Player chose Power: show normal upgrade selection (chain directly, no shooting block)
         this.isChoosingUpgrade = true;
         this.pendingUpgradeSource = 'wave';
         this.scene.pause();
@@ -1570,27 +1601,39 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (source === 'chest') {
-      // Chest: mark as collected for rigged tracking, resume gameplay
+      // Chest: mark as collected for rigged tracking
       this.progressionManager.collectChest();
       this.player.heal(10); // Small heal from chest
-      // Check for pending level ups
+      // Chain directly to level-up if pending (no shooting block during chain)
       if (this.progressionManager.hasPendingLevelUp()) {
         this.showLevelUpUpgradeSelection();
+        return;
       }
+      this.blockShootingBriefly();
       return;
     }
 
     if (source === 'levelup') {
-      // Level up: check for more pending level ups
+      // Chain to more level-ups if pending (no shooting block during chain)
       if (this.progressionManager.hasPendingLevelUp()) {
         this.showLevelUpUpgradeSelection();
+        return;
       }
+      this.blockShootingBriefly();
       return;
     }
 
     // Wave complete: proceed to next wave or infinite swarm
     this.player.heal(20); // Heal between waves
     this.advanceToNextWave();
+  }
+
+  private blockShootingBriefly(): void {
+    // Brief shooting block prevents the upgrade-select click from firing a quill
+    this.shootingBlocked = true;
+    this.time.delayedCall(50, () => {
+      this.shootingBlocked = false;
+    });
   }
 
   private advanceToNextWave(): void {
@@ -1618,6 +1661,7 @@ export class GameScene extends Phaser.Scene {
 
     // Start next wave
     this.time.delayedCall(500, () => {
+      this.waveStartTime = this.time.now;
       this.player.resetShieldsForWave();
       this.player.resetPerf();
       this.updateCompanions();
@@ -1728,6 +1772,9 @@ export class GameScene extends Phaser.Scene {
           eliteKillsByType: { ...this.sessionEliteKillsByType },
           damageTaken: this.totalDamageTaken,
           shieldsUsed: this.totalShieldsUsed,
+          waveTimeMs: this.time.now - this.waveStartTime,
+          hitLog: [...this.hitLog],
+          killedBy: this.lastHitSource,
         },
       });
     });
