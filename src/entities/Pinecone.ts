@@ -1,11 +1,12 @@
 import Phaser from 'phaser';
 import { PINECONE_CONFIG } from '../config';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 
 export class Pinecone extends Phaser.GameObjects.Container {
   declare body: Phaser.Physics.Arcade.Body;
 
   private graphics!: Phaser.GameObjects.Graphics;
-  private glow!: Phaser.GameObjects.Graphics;
+  private glow!: Phaser.GameObjects.Graphics; // May not be created at low quality
   public value: number;
   private despawnTime: number;
   private remainingDespawnTime: number;
@@ -18,6 +19,8 @@ export class Pinecone extends Phaser.GameObjects.Container {
   private baseHeight: number = 14;
   private pulsePhase: number = 0;
   private rotationAngle: number = 0;
+  private _drawFrameCounter: number = 0;
+  private _hasGlow: boolean = true;
 
   constructor(scene: Phaser.Scene, x: number, y: number, value: number = 1) {
     super(scene, x, y);
@@ -29,9 +32,12 @@ export class Pinecone extends Phaser.GameObjects.Container {
     // Random initial rotation
     this.rotationAngle = Math.random() * Math.PI * 2;
 
-    // Create graphics
-    this.glow = scene.add.graphics();
-    this.add(this.glow);
+    // Create graphics (skip glow at low quality)
+    this._hasGlow = GraphicsSettings.glowEffects;
+    if (this._hasGlow) {
+      this.glow = scene.add.graphics();
+      this.add(this.glow);
+    }
 
     this.graphics = scene.add.graphics();
     this.add(this.graphics);
@@ -119,12 +125,19 @@ export class Pinecone extends Phaser.GameObjects.Container {
       return;
     }
 
+    this._drawFrameCounter++;
+
+    // Low quality: no glow, no pulse — draw once at construction, skip updates
+    if (!this._hasGlow && !GraphicsSettings.pulseEffects) return;
+
+    // Medium quality: redraw every 3rd frame
+    if (GraphicsSettings.getEffectiveQuality() === 'medium' && this._drawFrameCounter % 3 !== 0) return;
+
     this.draw();
   }
 
   private draw(): void {
     this.graphics.clear();
-    this.glow.clear();
 
     const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.15;
 
@@ -133,11 +146,14 @@ export class Pinecone extends Phaser.GameObjects.Container {
     const highlightColor = 0xcd853f; // Peru (lighter brown)
     const glowColor = 0xdaa520; // Goldenrod
 
-    // Pulsing glow
-    const glowRadius = Math.max(this.baseWidth, this.baseHeight) * 1.5 * pulseScale;
-    const glowAlpha = 0.25 + Math.sin(this.pulsePhase) * 0.1;
-    this.glow.fillStyle(glowColor, glowAlpha);
-    this.glow.fillCircle(0, 0, glowRadius);
+    // Pulsing glow (if enabled)
+    if (this._hasGlow) {
+      this.glow.clear();
+      const glowRadius = Math.max(this.baseWidth, this.baseHeight) * 1.5 * pulseScale;
+      const glowAlpha = 0.25 + Math.sin(this.pulsePhase) * 0.1;
+      this.glow.fillStyle(glowColor, glowAlpha);
+      this.glow.fillCircle(0, 0, glowRadius);
+    }
 
     // Draw pinecone shape (oval with scale-like pattern)
     const w = this.baseWidth * pulseScale;

@@ -22,6 +22,9 @@ export class Quill extends Phaser.GameObjects.Container {
   private rainbowTimer: number = 0;
   private spawnX: number;
   private spawnY: number;
+  private _homingFrameOffset: number = 0;
+  private static _globalFrameCounter: number = 0;
+  private static _nextQuillIndex: number = 0;
 
   public damage: number;
   public isEmpowered: boolean = false;
@@ -106,6 +109,9 @@ export class Quill extends Phaser.GameObjects.Container {
       });
     }
 
+    // Stagger homing frame offset for performance
+    this._homingFrameOffset = Quill._nextQuillIndex++;
+
     // Create graphics
     this.graphics = scene.add.graphics();
     this.add(this.graphics);
@@ -121,9 +127,12 @@ export class Quill extends Phaser.GameObjects.Container {
       return;
     }
 
-    // Apply homing behavior
+    // Apply homing behavior (staggered — each quill updates every 3rd frame)
     if (this.homingStrength > 0 && this.enemiesGroup) {
-      this.applyHoming();
+      Quill._globalFrameCounter++;
+      if ((Quill._globalFrameCounter + this._homingFrameOffset) % 3 === 0) {
+        this.applyHoming();
+      }
     }
 
     // Update rotation to match velocity
@@ -151,15 +160,17 @@ export class Quill extends Phaser.GameObjects.Container {
   private applyHoming(): void {
     if (!this.enemiesGroup) return;
 
-    // Find nearest enemy
+    // Find nearest enemy using squared distance (avoids sqrt)
     let nearestEnemy: Phaser.GameObjects.GameObject | null = null;
-    let nearestDist = Infinity;
+    let nearestDistSq = 90000; // 300^2 — homing range
 
     this.enemiesGroup.getChildren().forEach((enemy) => {
       const e = enemy as Phaser.GameObjects.Container;
-      const dist = Phaser.Math.Distance.Between(this.x, this.y, e.x, e.y);
-      if (dist < nearestDist && dist < 300) { // Only home within range
-        nearestDist = dist;
+      const dx = this.x - e.x;
+      const dy = this.y - e.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < nearestDistSq) {
+        nearestDistSq = distSq;
         nearestEnemy = enemy;
       }
     });

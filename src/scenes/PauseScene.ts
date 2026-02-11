@@ -1,27 +1,18 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS } from '../config';
+import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
-import { SaveManager } from '../systems/SaveManager';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { SettingsModal } from '../ui/SettingsModal';
+import { StatsPanel } from '../ui/StatsPanel';
 
 interface PauseSceneData {
   upgradeManager?: UpgradeManager;
 }
 
 export class PauseScene extends Phaser.Scene {
-  private volumeFill!: Phaser.GameObjects.Rectangle;
-  private volumeText!: Phaser.GameObjects.Text;
-  private muteButton!: Phaser.GameObjects.Rectangle;
-  private muteText!: Phaser.GameObjects.Text;
-  private effectsFill!: Phaser.GameObjects.Rectangle;
-  private effectsText!: Phaser.GameObjects.Text;
   private upgradeManager: UpgradeManager | null = null;
-
-  // Slider drag tracking
-  private isDraggingVolume: boolean = false;
-  private isDraggingEffects: boolean = false;
-  private volumeBarX: number = 0;
-  private volumeBarWidth: number = 0;
+  private settingsModal!: SettingsModal;
+  private statsPanel: StatsPanel | null = null;
 
   constructor() {
     super({ key: 'PauseScene' });
@@ -59,114 +50,19 @@ export class PauseScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    // Volume section
-    this.add.text(centerX, centerY + 20, 'Volume', {
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    // Volume bar background
-    const barWidth = 180;
-    const barHeight = 12;
-    const barY = centerY + 50;
-    this.volumeBarX = centerX;
-    this.volumeBarWidth = barWidth;
-
-    const volumeBarBg = this.add.rectangle(centerX, barY, barWidth, barHeight, 0x333333);
-    volumeBarBg.setInteractive({ useHandCursor: true });
-
-    // Volume bar fill
-    const currentVolume = AudioManager.getVolume();
-    this.volumeFill = this.add.rectangle(
-      centerX - barWidth / 2,
-      barY,
-      currentVolume * barWidth,
-      barHeight,
-      0x4a6741
-    ).setOrigin(0, 0.5);
-
-    // Volume percentage text
-    this.volumeText = this.add.text(centerX + barWidth / 2 + 15, barY, `${Math.round(currentVolume * 100)}%`, {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0, 0.5);
-
-    // Mute button
-    const isMuted = AudioManager.getMuted();
-    this.muteButton = this.add.rectangle(centerX - barWidth / 2 - 25, barY, 30, 20, isMuted ? 0x884444 : 0x448844);
-    this.muteButton.setInteractive({ useHandCursor: true });
-    this.muteText = this.add.text(centerX - barWidth / 2 - 25, barY, isMuted ? 'OFF' : 'ON', {
-      fontSize: '10px',
+    // Settings button
+    const settingsButton = this.add.rectangle(centerX, centerY + 20, 200, 50, 0x555555);
+    settingsButton.setInteractive({ useHandCursor: true });
+    this.add.text(centerX, centerY + 20, 'Settings', {
+      fontSize: '24px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
-
-    // Start dragging on volume bar
-    volumeBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDraggingVolume = true;
-      this.updateVolumeFromPointer(pointer);
-    });
-
-    // Track dragging at scene level (allows dragging outside the bar)
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDraggingVolume) {
-        this.updateVolumeFromPointer(pointer);
-      }
-      if (this.isDraggingEffects) {
-        this.updateEffectsFromPointer(pointer);
-      }
-    });
-
-    // Stop dragging when mouse is released anywhere
-    this.input.on('pointerup', () => {
-      this.isDraggingVolume = false;
-      this.isDraggingEffects = false;
-    });
-
-    // Mute button click
-    this.muteButton.on('pointerdown', () => {
-      AudioManager.playButtonClick();
-      const muted = AudioManager.toggleMute();
-      this.updateMuteDisplay(muted);
-    });
-
-    // Effects opacity section
-    this.add.text(centerX, centerY + 80, 'Effects Opacity', {
-      fontSize: '18px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#aaaaaa',
-    }).setOrigin(0.5);
-
-    const effectsBarY = centerY + 110;
-    const effectsBarBg = this.add.rectangle(centerX, effectsBarY, barWidth, barHeight, 0x333333);
-    effectsBarBg.setInteractive({ useHandCursor: true });
-
-    const currentEffects = SaveManager.getEffectsOpacity();
-    this.effectsFill = this.add.rectangle(
-      centerX - barWidth / 2,
-      effectsBarY,
-      currentEffects * barWidth,
-      barHeight,
-      0x4a6741
-    ).setOrigin(0, 0.5);
-
-    this.effectsText = this.add.text(centerX + barWidth / 2 + 15, effectsBarY, `${Math.round(currentEffects * 100)}%`, {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0, 0.5);
-
-    effectsBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDraggingEffects = true;
-      this.updateEffectsFromPointer(pointer);
-    });
 
     // Restart and Main Menu buttons side by side
     const buttonWidth = 160;
     const buttonGap = 20;
-    const buttonY = centerY + 175;
+    const buttonY = centerY + 90;
 
     const restartButton = this.add.rectangle(centerX - buttonWidth / 2 - buttonGap / 2, buttonY, buttonWidth, 50, 0x555555);
     restartButton.setInteractive({ useHandCursor: true });
@@ -192,6 +88,13 @@ export class PauseScene extends Phaser.Scene {
       this.resumeGame();
     });
 
+    settingsButton.on('pointerover', () => settingsButton.setFillStyle(0x666666));
+    settingsButton.on('pointerout', () => settingsButton.setFillStyle(0x555555));
+    settingsButton.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.settingsModal.show();
+    });
+
     restartButton.on('pointerover', () => restartButton.setFillStyle(0x666666));
     restartButton.on('pointerout', () => restartButton.setFillStyle(0x555555));
     restartButton.on('pointerdown', () => {
@@ -215,150 +118,29 @@ export class PauseScene extends Phaser.Scene {
 
     // M to toggle mute
     this.input.keyboard?.on('keydown-M', () => {
-      const muted = AudioManager.toggleMute();
-      this.updateMuteDisplay(muted);
+      AudioManager.toggleMute();
     });
 
     // Instructions
-    this.add.text(centerX, centerY + 240, 'Press ESC to resume | M to toggle mute', {
+    this.add.text(centerX, centerY + 150, 'Press ESC to resume | M to toggle mute', {
       fontSize: '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#888888',
     }).setOrigin(0.5);
 
+    // Settings modal
+    this.settingsModal = new SettingsModal(this, () => { });
+    this.add.existing(this.settingsModal);
+
     // Stats panel on the right side
     if (this.upgradeManager) {
-      this.createStatsDisplay();
+      this.statsPanel = new StatsPanel(this, this.upgradeManager);
+      this.statsPanel.show();
     }
-  }
-
-  private createStatsDisplay(): void {
-    if (!this.upgradeManager) return;
-
-    const panelX = GAME_CONFIG.width - 300;
-    const panelY = 60;
-    const panelWidth = 260;
-    const lineHeight = 22;
-
-    // Panel background
-    const bg = this.add.graphics();
-    bg.fillStyle(0x1a1a2e, 0.95);
-    bg.fillRoundedRect(panelX, panelY, panelWidth, 500, 8);
-    bg.lineStyle(2, COLORS.rarity.legendary, 0.8);
-    bg.strokeRoundedRect(panelX, panelY, panelWidth, 500, 8);
-
-    // Title
-    this.add.text(panelX + panelWidth / 2, panelY + 16, 'CURRENT STATS', {
-      fontSize: '18px',
-      fontFamily: 'Arial Black, sans-serif',
-      color: '#ffd700',
-    }).setOrigin(0.5, 0);
-
-    let y = panelY + 50;
-
-    const formatPercent = (v: number) => `${v >= 0 ? '+' : ''}${Math.round(v * 100)}%`;
-    const formatFlat = (v: number) => `${v >= 0 ? '+' : ''}${v}`;
-
-    const addStat = (name: string, value: string, isPositive: boolean = true) => {
-      this.add.text(panelX + 16, y, name, {
-        fontSize: '14px',
-        color: '#cccccc',
-      });
-      this.add.text(panelX + panelWidth - 16, y, value, {
-        fontSize: '14px',
-        color: isPositive ? '#66ff66' : '#ff6666',
-      }).setOrigin(1, 0);
-      y += lineHeight;
-    };
-
-    const addHeader = (name: string) => {
-      this.add.text(panelX + 16, y, name, {
-        fontSize: '12px',
-        color: '#888888',
-      });
-      y += lineHeight;
-    };
-
-    // Combat stats
-    addHeader('COMBAT');
-    const damage = this.upgradeManager.getModifier('damage');
-    if (damage !== 0) addStat('Damage', formatPercent(damage));
-    const fireRate = this.upgradeManager.getModifier('fireRate');
-    if (fireRate !== 0) addStat('Fire Rate', formatPercent(fireRate));
-    // v0.5.0: Crit uses diminishing returns: effective = raw / (raw + 1)
-    const rawCrit = this.upgradeManager.getModifier('critChance');
-    if (rawCrit > 0) {
-      const effectiveCrit = rawCrit / (rawCrit + 1);
-      const rawDisplay = Math.round(rawCrit * 100);
-      const effectiveDisplay = Math.round(effectiveCrit * 100);
-      addStat('Crit', `+${rawDisplay} (${effectiveDisplay}%)`);
-    }
-    const critDamage = this.upgradeManager.getModifier('critDamage');
-    if (critDamage !== 0) addStat('Crit Damage', `+${critDamage.toFixed(1)}x`);
-    const piercing = this.upgradeManager.getModifier('piercing');
-    if (piercing !== 0) addStat('Pierce', formatFlat(piercing));
-    const explosionRadius = this.upgradeManager.getModifier('explosionRadius');
-    if (explosionRadius !== 0) addStat('Explosion', `${explosionRadius}px`);
-    const projectileCount = this.upgradeManager.getModifier('projectileCount');
-    if (projectileCount !== 0) addStat('Multi-shot', formatFlat(projectileCount));
-    y += 8;
-
-    // Defense stats
-    addHeader('DEFENSE');
-    const maxHealth = this.upgradeManager.getModifier('maxHealth');
-    if (maxHealth !== 0) addStat('Max Health', formatFlat(maxHealth));
-    const shieldCharges = this.upgradeManager.getModifier('shieldCharges');
-    if (shieldCharges !== 0) addStat('Shields', `${shieldCharges} charges`);
-    const vampStr = this.upgradeManager.getModifier('vampirismStrength');
-    if (vampStr > 0) {
-      const vampChance = Math.round((vampStr / (vampStr + 20)) * 100);
-      const vampHeal = 8 + vampStr * 3;
-      addStat('Vampirism', `${vampChance}% / ${vampHeal} HP`);
-    }
-    y += 8;
-
-    // Movement stats
-    addHeader('MOVEMENT');
-    const moveSpeed = this.upgradeManager.getModifier('moveSpeed');
-    if (moveSpeed !== 0) addStat('Speed', formatPercent(moveSpeed));
-    const jumpHeight = this.upgradeManager.getModifier('jumpHeight');
-    if (jumpHeight !== 0) addStat('Jump', formatPercent(jumpHeight));
-    y += 8;
-
-    // Special stats
-    addHeader('SPECIAL');
-    const prosperity = this.upgradeManager.getModifier('prosperity');
-    if (prosperity !== 0) addStat('Prosperity', formatFlat(prosperity));
-    const companionCount = this.upgradeManager.getModifier('companionCount');
-    if (companionCount !== 0) addStat('Companions', formatFlat(companionCount));
-    const maxQuills = this.upgradeManager.getModifier('maxQuills');
-    if (maxQuills !== 0) addStat('Max Quills', formatFlat(maxQuills));
-    const regenRate = this.upgradeManager.getModifier('regenRate');
-    if (regenRate !== 0) addStat('Regen Rate', formatPercent(regenRate));
-  }
-
-  private updateVolumeFromPointer(pointer: Phaser.Input.Pointer): void {
-    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
-    const newVolume = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
-    AudioManager.setVolume(newVolume);
-    this.volumeFill.width = newVolume * this.volumeBarWidth;
-    this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
-  }
-
-  private updateEffectsFromPointer(pointer: Phaser.Input.Pointer): void {
-    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
-    const newOpacity = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
-    SaveManager.setEffectsOpacity(newOpacity);
-    this.effectsFill.width = newOpacity * this.volumeBarWidth;
-    this.effectsText.setText(`${Math.round(newOpacity * 100)}%`);
-  }
-
-  private updateMuteDisplay(muted: boolean): void {
-    this.muteButton.setFillStyle(muted ? 0x884444 : 0x448844);
-    this.muteText.setText(muted ? 'OFF' : 'ON');
   }
 
   private resumeGame(): void {
+    this.statsPanel?.destroy();
     this.scene.stop();
     this.scene.resume('GameScene');
   }

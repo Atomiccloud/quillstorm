@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG } from '../config';
 import { SaveManager } from '../systems/SaveManager';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 
 export type EnemyType = 'scurrier' | 'spitter' | 'swooper' | 'shellback' | 'boss' | 'burrower' | 'splitter' | 'splitling' | 'healer' | 'flyingBoss' | 'bomber';
 
@@ -94,6 +95,23 @@ export class Enemy extends Phaser.GameObjects.Container {
   private baseSpeed: number = 0;
   // Frostfire steam AoE callback (set by GameScene)
   public onFreezeEnd: ((enemy: Enemy) => void) | null = null;
+
+  // Dirty-flag rendering optimization
+  private _dirty: boolean = true;
+  private _drawFrameCounter: number = 0;
+  private _prevFacingRight: boolean = true;
+  private _prevHealth: number = -1;
+  private _prevBurnCount: number = 0;
+  private _prevPoisonCount: number = 0;
+  private _prevShockActive: boolean = false;
+  private _prevChillActive: boolean = false;
+  private _prevFreezeActive: boolean = false;
+  private _prevRolling: boolean = false;
+  private _prevBurrowed: boolean = false;
+  private _prevCharging: boolean = false;
+  private _prevDiving: boolean = false;
+  private _prevBossPhase: number = 1;
+  private _sceneTime: number = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -202,6 +220,8 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (!this.target || this.health <= 0) return;
 
     const delta = _delta;
+    this._sceneTime = time;
+    this._drawFrameCounter++;
 
     // Update status effects
     this.updateStatusEffects(delta);
@@ -210,14 +230,15 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (this.knockbackTimer > 0) {
       this.knockbackTimer -= delta;
       this.body.setVelocity(this.knockbackVx, this.knockbackVy);
-      this.draw();
+      this._dirty = true;
+      this.drawIfDirty();
       return;
     }
 
     // If stunned or frozen, skip all AI (movement, attacks, abilities)
     if (this._isStunned || this._isFrozen) {
       this.body.setVelocity(0, 0);
-      this.draw();
+      this.drawIfDirty();
       return;
     }
 
@@ -266,7 +287,39 @@ export class Enemy extends Phaser.GameObjects.Container {
         break;
     }
 
-    this.draw();
+    this.drawIfDirty();
+  }
+
+  private drawIfDirty(): void {
+    // Check for state changes that affect visuals
+    if (this.facingRight !== this._prevFacingRight) { this._dirty = true; this._prevFacingRight = this.facingRight; }
+    if (this.health !== this._prevHealth) { this._dirty = true; this._prevHealth = this.health; }
+    if (this.burnStacks.length !== this._prevBurnCount) { this._dirty = true; this._prevBurnCount = this.burnStacks.length; }
+    if (this.poisonStacks.length !== this._prevPoisonCount) { this._dirty = true; this._prevPoisonCount = this.poisonStacks.length; }
+    if ((this.shockTimer > 0) !== this._prevShockActive) { this._dirty = true; this._prevShockActive = this.shockTimer > 0; }
+    if ((this.chillTimer > 0) !== this._prevChillActive) { this._dirty = true; this._prevChillActive = this.chillTimer > 0; }
+    if ((this.freezeTimer > 0) !== this._prevFreezeActive) { this._dirty = true; this._prevFreezeActive = this.freezeTimer > 0; }
+    if (this.isRolling !== this._prevRolling) { this._dirty = true; this._prevRolling = this.isRolling; }
+    if (this.isBurrowed !== this._prevBurrowed) { this._dirty = true; this._prevBurrowed = this.isBurrowed; }
+    if (this.isCharging !== this._prevCharging) { this._dirty = true; this._prevCharging = this.isCharging; }
+    if (this.isDiving !== this._prevDiving) { this._dirty = true; this._prevDiving = this.isDiving; }
+    if (this.bossPhase !== this._prevBossPhase) { this._dirty = true; this._prevBossPhase = this.bossPhase; }
+
+    // Animated effects: redraw every 3rd frame (20fps) instead of every frame
+    // At Low quality (tint mode), status overlays use static alpha — no animation needed
+    const detail = GraphicsSettings.statusOverlayDetail;
+    const hasAnimatedStatus = detail !== 'tint' && (this.shockTimer > 0 || this.chillTimer > 0
+      || this.burnStacks.length > 0 || this.poisonStacks.length > 0);
+    const hasAnimatedEffect = hasAnimatedStatus || this.freezeTimer > 0
+      || (this.isElite && GraphicsSettings.eliteGlowPulse) || this.isRolling;
+    if (hasAnimatedEffect && this._drawFrameCounter % 3 === 0) {
+      this._dirty = true;
+    }
+
+    if (this._dirty) {
+      this.draw();
+      this._dirty = false;
+    }
   }
 
   private updateFacing(delta: number): void {
@@ -968,7 +1021,7 @@ export class Enemy extends Phaser.GameObjects.Container {
       // Shell pattern on ball
       this.graphics.lineStyle(2, color);
       for (let i = 0; i < 4; i++) {
-        const angle = (i / 4) * Math.PI * 2 + (this.scene.time.now / 100);
+        const angle = (i / 4) * Math.PI * 2 + (this._sceneTime / 100);
         this.graphics.beginPath();
         this.graphics.arc(0, 0, rollSize * 0.6, angle, angle + Math.PI * 0.3);
         this.graphics.strokePath();
@@ -1064,7 +1117,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.graphics.fillCircle(w * 0.15, -h * 0.15, 3);
 
     // Jiggly aura
-    const pulse = Math.sin(this.scene.time.now / 200) * 2;
+    const pulse = Math.sin(this._sceneTime / 200) * 2;
     this.graphics.lineStyle(1, color + 0x222222, 0.4);
     this.graphics.strokeEllipse(0, 0, w + pulse, h + pulse);
   }
@@ -1092,7 +1145,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.graphics.fillRect(-w * 0.25, -3, w * 0.5, 6);
 
     // Pulsing aura
-    const pulse = Math.sin(this.scene.time.now / 300) * 0.2 + 0.3;
+    const pulse = Math.sin(this._sceneTime / 300) * 0.2 + 0.3;
     this.graphics.lineStyle(2, 0x90ee90, pulse);
     this.graphics.strokeCircle(0, 0, w * 0.55);
 
@@ -1180,7 +1233,7 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     // Phase 3 enrage glow
     if (this.bossPhase === 3) {
-      const pulse = Math.sin(this.scene.time.now / 100) * 0.2 + 0.6;
+      const pulse = Math.sin(this._sceneTime / 100) * 0.2 + 0.6;
       this.graphics.lineStyle(3, 0xff4400, pulse);
       this.graphics.strokeEllipse(0, 0, w + 5, h + 5);
     }
@@ -1268,7 +1321,7 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     // Phase 3 enrage glow
     if (this.bossPhase === 3) {
-      const pulse = Math.sin(this.scene.time.now / 100) * 0.2 + 0.6;
+      const pulse = Math.sin(this._sceneTime / 100) * 0.2 + 0.6;
       this.graphics.lineStyle(3, 0xff00ff, pulse);
       this.graphics.strokeEllipse(0, 0, w * 0.6, h * 0.5);
     }
@@ -1324,8 +1377,10 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   private drawEliteOverlay(w: number, h: number): void {
-    // Pulsing gold glow ellipse around the enemy
-    const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.004);
+    // Pulsing gold glow ellipse around the enemy (static at Low quality)
+    const pulse = GraphicsSettings.eliteGlowPulse
+      ? 0.7 + 0.3 * Math.sin(this._sceneTime * 0.004)
+      : 1;
     this.graphics.lineStyle(2, ELITE_CONFIG.glowColor, ELITE_CONFIG.glowAlpha * pulse);
     this.graphics.strokeEllipse(0, 0, w * 1.3, h * 1.3);
 
@@ -1562,32 +1617,38 @@ export class Enemy extends Phaser.GameObjects.Container {
     const opacity = SaveManager.getEffectsOpacity();
     if (opacity <= 0) return;
 
+    const detail = GraphicsSettings.statusOverlayDetail;
+
     // Shock overlay - yellow flash
     if (this.shockTimer > 0) {
-      const flash = (0.3 + 0.3 * Math.sin(this._statusTintTimer * 0.02)) * opacity;
+      const flash = detail === 'tint' ? 0.4 * opacity
+        : (0.3 + 0.3 * Math.sin(this._statusTintTimer * 0.02)) * opacity;
       this.graphics.fillStyle(STATUS_EFFECT_CONFIG.shock.color, flash);
       this.graphics.fillEllipse(0, 0, w, h);
-      // Small jagged spark particles
-      const sparkAlpha = (0.5 + 0.3 * Math.sin(this._statusTintTimer * 0.03)) * opacity;
-      this.graphics.lineStyle(2, STATUS_EFFECT_CONFIG.shock.color, sparkAlpha);
-      for (let i = 0; i < 3; i++) {
-        const angle = (this._statusTintTimer * 0.01 + i * 2.1) % (Math.PI * 2);
-        const r1 = w * 0.4;
-        const r2 = w * 0.65;
-        const x1 = Math.cos(angle) * r1;
-        const y1 = Math.sin(angle) * r1 * (h / w);
-        const x2 = Math.cos(angle + 0.3) * r2;
-        const y2 = Math.sin(angle + 0.3) * r2 * (h / w);
-        this.graphics.beginPath();
-        this.graphics.moveTo(x1, y1);
-        this.graphics.lineTo(x2, y2);
-        this.graphics.strokePath();
+      // Small jagged spark particles (full detail only)
+      if (detail === 'full') {
+        const sparkAlpha = (0.5 + 0.3 * Math.sin(this._statusTintTimer * 0.03)) * opacity;
+        this.graphics.lineStyle(2, STATUS_EFFECT_CONFIG.shock.color, sparkAlpha);
+        for (let i = 0; i < 3; i++) {
+          const angle = (this._statusTintTimer * 0.01 + i * 2.1) % (Math.PI * 2);
+          const r1 = w * 0.4;
+          const r2 = w * 0.65;
+          const x1 = Math.cos(angle) * r1;
+          const y1 = Math.sin(angle) * r1 * (h / w);
+          const x2 = Math.cos(angle + 0.3) * r2;
+          const y2 = Math.sin(angle + 0.3) * r2 * (h / w);
+          this.graphics.beginPath();
+          this.graphics.moveTo(x1, y1);
+          this.graphics.lineTo(x2, y2);
+          this.graphics.strokePath();
+        }
       }
     }
 
     // Chill overlay - light blue tint (ice T1)
     if (this.chillTimer > 0 && this.freezeTimer <= 0) {
-      const pulse = (0.2 + 0.1 * Math.sin(this._statusTintTimer * 0.01)) * opacity;
+      const pulse = detail === 'tint' ? 0.25 * opacity
+        : (0.2 + 0.1 * Math.sin(this._statusTintTimer * 0.01)) * opacity;
       this.graphics.fillStyle(STATUS_EFFECT_CONFIG.chill.color, pulse);
       this.graphics.fillEllipse(0, 0, w, h);
     }
@@ -1596,19 +1657,22 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (this.freezeTimer > 0) {
       this.graphics.fillStyle(STATUS_EFFECT_CONFIG.freeze.color, 0.35 * opacity);
       this.graphics.fillEllipse(0, 0, w, h);
-      // Ice crystal outline
-      this.graphics.lineStyle(2, 0xaaddff, 0.5 * opacity);
-      this.graphics.strokeEllipse(0, 0, w * 1.1, h * 1.1);
+      // Ice crystal outline (simple + full detail)
+      if (detail !== 'tint') {
+        this.graphics.lineStyle(2, 0xaaddff, 0.5 * opacity);
+        this.graphics.strokeEllipse(0, 0, w * 1.1, h * 1.1);
+      }
     }
 
     // Burn overlay - orange glow, intensity scales with stacks
     if (this.burnStacks.length > 0) {
       const intensity = Math.min(0.5, 0.15 + this.burnStacks.length * 0.07);
-      const flicker = (intensity + 0.1 * Math.sin(this._statusTintTimer * 0.015)) * opacity;
+      const flicker = detail === 'tint' ? intensity * opacity
+        : (intensity + 0.1 * Math.sin(this._statusTintTimer * 0.015)) * opacity;
       this.graphics.fillStyle(STATUS_EFFECT_CONFIG.burn.color, flicker);
       this.graphics.fillEllipse(0, 0, w, h);
-      // Flickering glow ring
-      if (this.burnStacks.length >= 2) {
+      // Flickering glow ring (full detail only)
+      if (detail === 'full' && this.burnStacks.length >= 2) {
         this.graphics.lineStyle(1, 0xff4400, flicker * 0.8);
         this.graphics.strokeEllipse(0, 0, w * 1.15, h * 1.15);
       }
@@ -1619,8 +1683,8 @@ export class Enemy extends Phaser.GameObjects.Container {
       const intensity = Math.min(0.5, 0.15 + this.poisonStacks.length * 0.07) * opacity;
       this.graphics.fillStyle(STATUS_EFFECT_CONFIG.poison.color, intensity);
       this.graphics.fillEllipse(0, 0, w, h);
-      // Drip particles (simple dots moving downward)
-      if (this.poisonStacks.length >= 2) {
+      // Drip particles (full detail only)
+      if (detail === 'full' && this.poisonStacks.length >= 2) {
         const dripAlpha = (0.3 + 0.2 * Math.sin(this._statusTintTimer * 0.008)) * opacity;
         this.graphics.fillStyle(0x44ff44, dripAlpha);
         for (let i = 0; i < Math.min(this.poisonStacks.length, 3); i++) {
@@ -1640,7 +1704,7 @@ export class Enemy extends Phaser.GameObjects.Container {
 
     // Rolling shellback is invincible
     if (this.isRolling) {
-      this.scene.cameras.main.shake(50, 0.002);
+      if (GraphicsSettings.screenShake) this.scene.cameras.main.shake(50, 0.002);
       return false;
     }
 
@@ -1653,7 +1717,7 @@ export class Enemy extends Phaser.GameObjects.Container {
       const blockRadians = (this.blockAngle / 2) * Math.PI / 180;
       if (angleDiff < blockRadians) {
         // Blocked! Visual feedback
-        this.scene.cameras.main.shake(50, 0.002);
+        if (GraphicsSettings.screenShake) this.scene.cameras.main.shake(50, 0.002);
         return false;
       }
     }

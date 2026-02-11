@@ -6,6 +6,7 @@ import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { getCosmeticManager } from '../systems/CosmeticManager';
 import { Cosmetic } from '../data/cosmetics';
+import { GraphicsSettings } from '../systems/GraphicsSettings';
 
 export type QuillState = 'full' | 'patchy' | 'sparse' | 'naked';
 
@@ -146,6 +147,7 @@ export class Player extends Phaser.GameObjects.Container {
 
   private updateTrail(time: number): void {
     if (!this.equippedTrail || this.equippedTrail.id === 'trail_none') return;
+    if (!GraphicsSettings.trailParticles) return;
 
     // Only spawn trail when moving
     const isMoving = Math.abs(this.body.velocity.x) > 20 || Math.abs(this.body.velocity.y) > 20;

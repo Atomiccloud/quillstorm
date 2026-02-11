@@ -5,18 +5,11 @@ import { AuthManager } from '../systems/AuthManager';
 import { PlayerDataManager } from '../systems/PlayerDataManager';
 import { GAME_VERSION } from '../data/version';
 import { ChangelogModal } from '../ui/ChangelogModal';
+import { SettingsModal } from '../ui/SettingsModal';
 
 export class MenuScene extends Phaser.Scene {
-  private volumeFill!: Phaser.GameObjects.Rectangle;
-  private volumeText!: Phaser.GameObjects.Text;
-  private muteButton!: Phaser.GameObjects.Rectangle;
-  private muteText!: Phaser.GameObjects.Text;
   private changelogModal!: ChangelogModal;
-
-  // Volume slider drag tracking
-  private isDraggingVolume: boolean = false;
-  private volumeBarX: number = 0;
-  private volumeBarWidth: number = 0;
+  private settingsModal!: SettingsModal;
 
   constructor() {
     super({ key: 'MenuScene' });
@@ -76,6 +69,13 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('LeaderboardScene', { returnScene: 'MenuScene' });
     });
 
+    // Settings button
+    const settingsY = secondRowY + 75;
+    this.createRoundedButton(centerX, settingsY, 160, 46, 10, 0x555555, 0x666666, 'SETTINGS', '20px', () => {
+      AudioManager.playButtonClick();
+      this.settingsModal.show();
+    });
+
     // Account button (top right)
     const accountButton = this.add.rectangle(GAME_CONFIG.width - 80, 35, 130, 40, 0x555577)
       .setInteractive({ useHandCursor: true })
@@ -104,9 +104,6 @@ export class MenuScene extends Phaser.Scene {
       }
     });
 
-    // Volume controls section
-    this.createVolumeControls(centerX, centerY + 320);
-
     // Controls info
     this.add.text(centerX, GAME_CONFIG.height - 40, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  Tab: Stats  |  M: Mute', {
       fontSize: '14px',
@@ -130,95 +127,14 @@ export class MenuScene extends Phaser.Scene {
     this.changelogModal = new ChangelogModal(this, () => { });
     this.add.existing(this.changelogModal);
 
+    // Settings modal
+    this.settingsModal = new SettingsModal(this, () => { });
+    this.add.existing(this.settingsModal);
+
     // M key to toggle mute
     this.input.keyboard?.on('keydown-M', () => {
-      const muted = AudioManager.toggleMute();
-      this.updateMuteDisplay(muted);
+      AudioManager.toggleMute();
     });
-  }
-
-  private createVolumeControls(centerX: number, y: number): void {
-    // Volume label
-    this.add.text(centerX - 150, y, 'Volume', {
-      fontSize: '16px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#aaaaaa',
-    }).setOrigin(0, 0.5);
-
-    // Volume bar background
-    const barWidth = 120;
-    const barHeight = 12;
-    const barX = centerX - 30;
-    this.volumeBarX = barX;
-    this.volumeBarWidth = barWidth;
-
-    const volumeBarBg = this.add.rectangle(barX, y, barWidth, barHeight, 0x333333);
-    volumeBarBg.setInteractive({ useHandCursor: true });
-
-    // Volume bar fill
-    const currentVolume = AudioManager.getVolume();
-    this.volumeFill = this.add.rectangle(
-      barX - barWidth / 2,
-      y,
-      currentVolume * barWidth,
-      barHeight,
-      0x4a6741
-    ).setOrigin(0, 0.5);
-
-    // Volume percentage text
-    this.volumeText = this.add.text(barX + barWidth / 2 + 10, y, `${Math.round(currentVolume * 100)}%`, {
-      fontSize: '14px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0, 0.5);
-
-    // Mute button
-    const isMuted = AudioManager.getMuted();
-    this.muteButton = this.add.rectangle(centerX + 100, y, 50, 24, isMuted ? 0x884444 : 0x448844);
-    this.muteButton.setInteractive({ useHandCursor: true });
-    this.muteText = this.add.text(centerX + 100, y, isMuted ? 'MUTE' : 'ON', {
-      fontSize: '12px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#ffffff',
-    }).setOrigin(0.5);
-
-    // Start dragging on volume bar
-    volumeBarBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDraggingVolume = true;
-      this.updateVolumeFromPointer(pointer);
-    });
-
-    // Track dragging at scene level (allows dragging outside the bar)
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (this.isDraggingVolume) {
-        this.updateVolumeFromPointer(pointer);
-      }
-    });
-
-    // Stop dragging when mouse is released anywhere
-    this.input.on('pointerup', () => {
-      this.isDraggingVolume = false;
-    });
-
-    // Mute button click
-    this.muteButton.on('pointerdown', () => {
-      AudioManager.playButtonClick();
-      const muted = AudioManager.toggleMute();
-      this.updateMuteDisplay(muted);
-    });
-  }
-
-  private updateVolumeFromPointer(pointer: Phaser.Input.Pointer): void {
-    const relativeX = pointer.x - (this.volumeBarX - this.volumeBarWidth / 2);
-    const newVolume = Phaser.Math.Clamp(relativeX / this.volumeBarWidth, 0, 1);
-    AudioManager.setVolume(newVolume);
-    this.volumeFill.width = newVolume * this.volumeBarWidth;
-    this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
-  }
-
-  private updateMuteDisplay(muted: boolean): void {
-    this.muteButton.setFillStyle(muted ? 0x884444 : 0x448844);
-    this.muteText.setText(muted ? 'MUTE' : 'ON');
   }
 
   private createRoundedButton(
