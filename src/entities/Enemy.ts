@@ -43,6 +43,14 @@ export class Enemy extends Phaser.GameObjects.Container {
   public isRolling: boolean = false;
   private rollTimer: number = 0;
   private lastRollTime: number = 0;
+  private rollDirection: number = 0;
+
+  // Direction commitment (prevents instant direction flipping)
+  private directionLockTimer: number = 0;
+  private lockedDirection: number = 1;
+
+  // Jump cooldown
+  private jumpCooldownTimer: number = 0;
 
   // Burrower state
   public isBurrowed: boolean = false;
@@ -213,8 +221,13 @@ export class Enemy extends Phaser.GameObjects.Container {
       return;
     }
 
-    // Face the target
-    this.facingRight = this.target.x > this.x;
+    // Face the target (with direction commitment for ground melee enemies)
+    this.updateFacing(delta);
+
+    // Tick jump cooldown
+    if (this.jumpCooldownTimer > 0) {
+      this.jumpCooldownTimer -= delta;
+    }
 
     // Movement AI based on type
     switch (this.enemyType) {
@@ -256,10 +269,45 @@ export class Enemy extends Phaser.GameObjects.Container {
     this.draw();
   }
 
+  private updateFacing(delta: number): void {
+    const desiredRight = this.target!.x > this.x;
+    const desiredDir = desiredRight ? 1 : -1;
+
+    // Get per-type direction change delay
+    const delay = this.getDirectionChangeDelay();
+    if (delay <= 0) {
+      // No delay — instant facing (ranged, flying, bosses)
+      this.facingRight = desiredRight;
+      this.lockedDirection = desiredDir;
+      return;
+    }
+
+    // Direction commitment: must wait before reversing
+    if (desiredDir !== this.lockedDirection) {
+      this.directionLockTimer -= delta;
+      if (this.directionLockTimer <= 0) {
+        this.lockedDirection = desiredDir;
+        this.facingRight = desiredRight;
+        this.directionLockTimer = delay;
+      }
+    } else {
+      this.facingRight = desiredRight;
+      this.directionLockTimer = delay;
+    }
+  }
+
+  private getDirectionChangeDelay(): number {
+    switch (this.enemyType) {
+      case 'scurrier':
+        return ENEMY_CONFIG.scurrier.directionChangeDelay;
+      default:
+        return 0;
+    }
+  }
+
   private updateScurrier(): void {
-    // Simple chase behavior
-    const dir = this.target!.x > this.x ? 1 : -1;
-    this.body.setVelocityX(dir * this.speed);
+    // Chase using committed direction
+    this.body.setVelocityX(this.lockedDirection * this.speed);
     this.tryJump();
   }
 
@@ -342,10 +390,9 @@ export class Enemy extends Phaser.GameObjects.Container {
     const dist = Phaser.Math.Distance.Between(this.x, this.y, this.target!.x, this.target!.y);
 
     if (this.isRolling) {
-      // Rolling: move toward player at 2x speed, invincible
+      // Rolling: committed direction, invincible
       this.rollTimer -= this.scene.game.loop.delta;
-      const dir = this.target!.x > this.x ? 1 : -1;
-      this.body.setVelocityX(dir * config.rollSpeed);
+      this.body.setVelocityX(this.rollDirection * config.rollSpeed);
 
       if (this.rollTimer <= 0) {
         this.isRolling = false;
@@ -364,6 +411,7 @@ export class Enemy extends Phaser.GameObjects.Container {
     ) {
       this.isRolling = true;
       this.rollTimer = config.rollDuration;
+      this.rollDirection = this.target!.x > this.x ? 1 : -1;
       return;
     }
 
@@ -759,12 +807,17 @@ export class Enemy extends Phaser.GameObjects.Container {
     // Only jump if on the ground and player is above
     if (!this.body.blocked.down || !this.target) return;
 
+    // Respect jump cooldown for scurriers
+    if (this.jumpCooldownTimer > 0) return;
+
     const heightDiff = this.target.y - this.y;
     // Player is at least 60px above
     if (heightDiff < -60) {
       // Small random chance per frame to avoid all enemies jumping at once
-      if (Math.random() < 0.03) {
+      if (Math.random() < 0.02) {
         this.body.setVelocityY(-620); // Strong jump to reach platforms
+        const cooldown = this.enemyType === 'scurrier' ? ENEMY_CONFIG.scurrier.jumpCooldown : 0;
+        this.jumpCooldownTimer = cooldown;
       }
     }
   }
@@ -1391,6 +1444,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   applyShock(duration: number): void {
+    if (this.isRolling || this.isBurrowed) return;
     // Single instance - refresh if new duration is longer than remaining
     if (duration > this.shockTimer) {
       this.shockTimer = duration;
@@ -1398,6 +1452,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   applyChill(slowAmount: number, duration: number): void {
+    if (this.isRolling || this.isBurrowed) return;
     // Single instance - refresh/upgrade
     if (duration > this.chillTimer || slowAmount > this.chillSlowAmount) {
       this.chillTimer = Math.max(this.chillTimer, duration);
@@ -1406,6 +1461,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   applyFreeze(duration: number): void {
+    if (this.isRolling || this.isBurrowed) return;
     // Single instance - refresh if new duration is longer than remaining
     if (duration > this.freezeTimer) {
       this.freezeTimer = duration;
@@ -1425,6 +1481,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   applyBurn(dps: number, duration: number): void {
+    if (this.isRolling || this.isBurrowed) return;
     // Stacking - add new stack (capped for safety)
     if (this.burnStacks.length < STATUS_EFFECT_CONFIG.burn.maxStacks) {
       this.burnStacks.push({ timer: duration, dps, duration });
@@ -1432,6 +1489,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   applyPoison(amp: number, duration: number): void {
+    if (this.isRolling || this.isBurrowed) return;
     // Stacking - add new stack (capped for safety)
     if (this.poisonStacks.length < STATUS_EFFECT_CONFIG.poison.maxStacks) {
       this.poisonStacks.push({ timer: duration, amp, duration });

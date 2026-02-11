@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.6.0';
+export const GAME_VERSION = '0.6.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.1',
+    date: '2026-02-10',
+    changes: [
+      'Fixed shellback stunlock exploit — status effects no longer apply during rolling or burrowed states',
+      'Shellback roll now locks direction at start instead of tracking the player mid-roll',
+      'Shellback roll speed increased (100 → 160)',
+      'Movement speed cap reduced (600 → 500 px/sec)',
+      'Scurriers now commit to a direction briefly before reversing (250ms delay)',
+      'Scurrier jump cooldown added (1.2s after landing) and jump frequency reduced',
+    ],
+  },
   {
     version: '0.6.0',
     date: '2026-02-07',

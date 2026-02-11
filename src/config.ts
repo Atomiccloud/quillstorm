@@ -14,7 +14,7 @@ export const PLAYER_CONFIG = {
   airControl: 0.8, // Multiplier for air movement
   coyoteTime: 100, // ms after leaving a platform where jump is still allowed
   jumpCutMultiplier: 0.4, // Velocity multiplier when jump key released early (lower = shorter min jump)
-  maxSpeed: 600, // Maximum movement speed in px/sec (prevents uncontrollable gameplay)
+  maxSpeed: 500, // Maximum movement speed in px/sec (prevents uncontrollable gameplay)
 
   // Health
   maxHealth: 100,
@@ -72,6 +72,8 @@ export const ENEMY_CONFIG = {
     color: 0x8b4513,
     width: 30,
     height: 25,
+    directionChangeDelay: 250, // ms before scurrier can reverse direction
+    jumpCooldown: 1200, // ms after landing before can jump again
   },
   // Spitter - ranged attacker
   spitter: {
@@ -106,7 +108,7 @@ export const ENEMY_CONFIG = {
     width: 45,
     height: 35,
     blockAngle: 90, // Degrees of frontal protection
-    rollSpeed: 100, // 2x base speed during roll
+    rollSpeed: 160, // Fast roll speed during charge
     rollDuration: 2000, // ms of rolling
     rollCooldown: 6000, // ms between rolls
     rollDamage: 20, // contact damage while rolling
