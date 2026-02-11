@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import { validateSubmission, getISOWeek, getNextMondayTimestamp } from '../_lib/validation';
 import { checkRateLimit, checkSubmissionCooldown, getClientIP } from '../_lib/ratelimit';
-import { getSessionKey, GameSession, validateSubmission as validateSessionSubmission, validatePerf, validatePerfEnhanced } from '../_lib/session';
+import { getSessionKey, GameSession, validateSubmission as validateSessionSubmission, validatePerf, validatePerfEnhanced, buildShadowDiagnostic } from '../_lib/session';
 
 export const config = {
   runtime: 'edge',
@@ -35,7 +35,9 @@ async function shadowSubmit(
   playerName: string,
   score: number,
   wave: number,
-  fingerprint: string
+  fingerprint: string,
+  failureReasons: string[],
+  sessionSnapshot: GameSession | null
 ): Promise<Response> {
   const id = nanoid(12);
   const timestamp = Date.now();
@@ -59,6 +61,16 @@ async function shadowSubmit(
   const shadowGlobalCount = await kv.zcard('shadow:leaderboard:global');
   if (shadowGlobalCount > 500) {
     await kv.zremrangebyrank('shadow:leaderboard:global', 0, shadowGlobalCount - 501);
+  }
+
+  // Store diagnostic record (7-day TTL) for investigating false positives
+  try {
+    const diagnostic = buildShadowDiagnostic(
+      id, fingerprint, playerName, score, wave, failureReasons, sessionSnapshot
+    );
+    await kv.set(`shadow:diagnostic:${id}`, JSON.stringify(diagnostic), { ex: 604800 });
+  } catch {
+    // Never break the honeypot flow if diagnostic storage fails
   }
 
   // Calculate fake ranks (their position in shadow + offset to look real)
@@ -163,36 +175,62 @@ export default async function handler(req: Request): Promise<Response> {
 
     // Session validation - REQUIRED for real leaderboard
     let isValidSession = false;
+    const failureReasons: string[] = [];
+    let sessionSnapshot: GameSession | null = null;
 
-    if (body.sessionToken && body.sessionToken !== 'dev-mode-no-validation') {
+    if (!body.sessionToken || body.sessionToken === 'dev-mode-no-validation') {
+      failureReasons.push('no_session_token');
+    } else {
       const sessionKey = getSessionKey(body.sessionToken);
       const sessionData = await kv.get<string>(sessionKey);
 
-      if (sessionData) {
+      if (!sessionData) {
+        failureReasons.push('session_not_found');
+      } else {
         const session: GameSession = typeof sessionData === 'string'
           ? JSON.parse(sessionData)
           : sessionData;
+        sessionSnapshot = session;
 
-        // Check fingerprint matches
-        if (session.fingerprint === fingerprint) {
-          // Validate submission against session history
+        if (session.fingerprint !== fingerprint) {
+          failureReasons.push('fingerprint_mismatch');
+        } else {
+          // Run all checks and collect all failure reasons
           const sessionValidation = validateSessionSubmission(session, wave, score);
-          if (sessionValidation.valid) {
-            const perfCheck = validatePerf(session, score, wave);
-            const perfEnhanced = validatePerfEnhanced(session, score, wave);
-            if (perfCheck.valid && perfEnhanced.valid && !session.statsFlagged && !session.modifiersFlagged) {
-              isValidSession = true;
-            }
+          if (!sessionValidation.valid) {
+            failureReasons.push('session_validation_failed');
           }
-          // Delete session after validation (one-time use)
-          await kv.del(sessionKey);
+
+          const perfCheck = validatePerf(session, score, wave);
+          if (!perfCheck.valid) {
+            failureReasons.push('perf_check_failed');
+          }
+
+          const perfEnhanced = validatePerfEnhanced(session, score, wave);
+          if (!perfEnhanced.valid) {
+            failureReasons.push('perf_enhanced_failed');
+          }
+
+          if (session.statsFlagged) {
+            failureReasons.push('stats_flagged');
+          }
+
+          if (session.modifiersFlagged) {
+            failureReasons.push('modifiers_flagged');
+          }
+
+          if (failureReasons.length === 0) {
+            isValidSession = true;
+          }
         }
+        // Delete session after validation (one-time use)
+        await kv.del(sessionKey);
       }
     }
 
     // If session validation failed, save to shadow leaderboard instead
     if (!isValidSession) {
-      return await shadowSubmit(kv, playerName, score, wave, fingerprint);
+      return await shadowSubmit(kv, playerName, score, wave, fingerprint, failureReasons, sessionSnapshot);
     }
 
     // === VALID SUBMISSION - Save to real leaderboard ===
