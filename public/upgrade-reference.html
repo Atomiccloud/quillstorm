@@ -593,7 +593,7 @@
   <h1>Quillstorm Upgrade Reference</h1>
   <p>Complete guide to all upgrades, rarities, and mechanics</p>
   <div class="stats-row">
-    <div class="stat-badge"><strong>74</strong> upgrades total</div>
+    <div class="stat-badge"><strong>75</strong> upgrades total</div>
     <div class="stat-badge"><strong>6</strong> rarity tiers</div>
     <div class="stat-badge"><strong>4</strong> elements</div>
     <div class="stat-badge"><strong>3</strong> mythics</div>
@@ -721,16 +721,16 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-armor)"></span>Armor (Damage Reduction)</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + armor/100) / (ln(1 + armor/100) + 0.5)</code>
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">1 - e^(-raw * 1.2)</code>
         </p>
         <table class="info-table">
           <tr><th>Armor</th><th>Reduction</th></tr>
-          <tr><td>8</td><td>13%</td></tr>
-          <tr><td>20</td><td>27%</td></tr>
+          <tr><td>8</td><td>9%</td></tr>
+          <tr><td>20</td><td>21%</td></tr>
           <tr><td>50</td><td>45%</td></tr>
-          <tr><td>100</td><td>58%</td></tr>
-          <tr><td>200</td><td>69%</td></tr>
-          <tr><td>500</td><td>78%</td></tr>
+          <tr><td>105</td><td>72%</td></tr>
+          <tr><td>200</td><td>91%</td></tr>
+          <tr><td>250</td><td>95%</td></tr>
         </table>
       </div>
 
@@ -738,16 +738,16 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-evasion)"></span>Evasion (Dodge Chance)</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">ln(1 + evasion/100) / (ln(1 + evasion/100) + 0.7)</code>
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">1 - e^(-raw * 0.9)</code>
         </p>
         <table class="info-table">
           <tr><th>Evasion</th><th>Dodge</th></tr>
-          <tr><td>8</td><td>10%</td></tr>
-          <tr><td>20</td><td>21%</td></tr>
-          <tr><td>50</td><td>37%</td></tr>
-          <tr><td>100</td><td>50%</td></tr>
-          <tr><td>200</td><td>61%</td></tr>
-          <tr><td>500</td><td>72%</td></tr>
+          <tr><td>8</td><td>7%</td></tr>
+          <tr><td>20</td><td>17%</td></tr>
+          <tr><td>50</td><td>36%</td></tr>
+          <tr><td>88</td><td>55%</td></tr>
+          <tr><td>200</td><td>83%</td></tr>
+          <tr><td>300</td><td>93%</td></tr>
         </table>
       </div>
 
@@ -1004,6 +1004,7 @@ const UPGRADES = [
   { id:'cluster_bombs', name:'Cluster Bombs', desc:'Bigger explosions with more damage.', rarity:'rare', cat:'offense', effects:{explosionRadius:60, damage:0.2}, stacks:null },
   { id:'reinforced_shield', name:'Reinforced Shield', desc:'Block one hit per wave. Shield cap: 10.', rarity:'rare', cat:'defense', effects:{shieldCharges:1}, stacks:null },
   { id:'baby_buddy', name:'Baby Buddy', desc:'A baby porcupine fights alongside you!', rarity:'rare', cat:'special', effects:{companionCount:1}, stacks:4 },
+  { id:'blood_quills', name:'Blood Quills', desc:'Crimson quills drain life from enemies. Stronger proc chance and healing.', rarity:'rare', cat:'special', effects:{vampirismStrength:3, damage:0.2}, stacks:null },
   { id:'treasure_hunter', name:'Treasure Hunter', desc:'Significantly better drops, plus bonus damage.', rarity:'rare', cat:'utility', effects:{prosperity:15, damage:0.05}, stacks:null },
   { id:'danger_2', name:'Daredevil', desc:'+24% mob strength, +6% elite spawn chance, +20% XP.', rarity:'rare', cat:'special', effects:{dangerLevel:2}, stacks:null },
   { id:'elite_slayer', name:'Elite Slayer', desc:'Massive bonus damage to elite enemies, with a small damage boost.', rarity:'rare', cat:'offense', effects:{eliteDamageBonus:0.50, damage:0.05}, stacks:null },
@@ -1042,7 +1043,7 @@ const UPGRADES = [
   { id:'glass_god', name:'Glass God', desc:'Incredible power, but you become very fragile.', rarity:'legendary', cat:'offense', effects:{damage:1.5, critChance:0.3, critDamage:1.0, maxHealth:-50}, stacks:1 },
   { id:'nuclear_quills', name:'Nuclear Quills', desc:'Devastating explosions, but slower firing.', rarity:'legendary', cat:'offense', effects:{explosionRadius:150, damage:0.8, fireRate:-0.3}, stacks:1 },
   { id:'porcupine_army', name:'Porcupine Army', desc:'An entire squad of baby porcupines!', rarity:'legendary', cat:'special', effects:{companionCount:4}, stacks:1 },
-  { id:'vampire_lord', name:'Vampire Lord', desc:'Major vampirism boost plus bonus damage.', rarity:'legendary', cat:'special', effects:{vampirismStrength:3, damage:0.3}, stacks:1 },
+  { id:'vampire_lord', name:'Vampire Lord', desc:'Overwhelming vampiric power with devastating damage.', rarity:'legendary', cat:'special', effects:{vampirismStrength:5, damage:0.5}, stacks:1 },
   { id:'immortal_fortress', name:'Immortal Fortress', desc:'Block four hits per wave and +100 HP. Shield cap: 10.', rarity:'legendary', cat:'defense', effects:{shieldCharges:4, maxHealth:100}, stacks:null },
   { id:'midas', name:'Midas', desc:'Everything you touch turns to gold! Maximum prosperity.', rarity:'legendary', cat:'utility', effects:{prosperity:40, damage:0.15}, stacks:null },
   { id:'living_bastion', name:'Living Bastion', desc:'Become an unstoppable fortress. +45 Armor, +24 Thorns, +25 HP.', rarity:'legendary', cat:'defense', effects:{armor:0.45, thorns:24, maxHealth:25}, stacks:null },

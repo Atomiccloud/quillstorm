@@ -355,6 +355,13 @@ export const UPGRADES: Upgrade[] = [
     effects: { companionCount: 1 },
     maxStacks: 4,
   },
+  {
+    id: 'blood_quills',
+    name: 'Blood Quills',
+    description: 'Crimson quills drain life from enemies. Stronger proc chance and healing.',
+    rarity: 'rare',
+    effects: { vampirismStrength: 3, damage: 0.2 },
+  },
 
   // EPIC - New
   {
@@ -407,9 +414,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'vampire_lord',
     name: 'Vampire Lord',
-    description: 'Major vampirism boost plus bonus damage.',
+    description: 'Overwhelming vampiric power with devastating damage.',
     rarity: 'legendary',
-    effects: { vampirismStrength: 3, damage: 0.3 },
+    effects: { vampirismStrength: 5, damage: 0.5 },
     maxStacks: 1,
   },
   {

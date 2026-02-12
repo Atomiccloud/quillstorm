@@ -1,6 +1,6 @@
 # Upgrade Reference
 
-Complete reference for all 74 upgrades, how they work mechanically, and balance assessment.
+Complete reference for all 75 upgrades, how they work mechanically, and balance assessment.
 
 ## Quick Reference Table
 
@@ -45,6 +45,7 @@ Complete reference for all 74 upgrades, how they work mechanically, and balance 
 | **Cluster Bombs** | Rare | explosion 60px, damage +20% | -- | A |
 | **Reinforced Shield** | Rare | shield +1 | -- | B |
 | **Baby Buddy** | Rare | companion +1 | 4 | B |
+| **Blood Quills** | Rare | vampirism +3, damage +20% | -- | B |
 | **Treasure Hunter** | Rare | prosperity +15, damage +5% | -- | B |
 | **Daredevil** | Rare | danger +2 | -- | B |
 | **Elite Slayer** | Rare | eliteDmg +50%, damage +5% | -- | C |
@@ -79,7 +80,7 @@ Complete reference for all 74 upgrades, how they work mechanically, and balance 
 | **Glass God** | Legendary | dmg +150%, crit +30%, critDmg +1.0, HP -50 | 1 | S |
 | **Nuclear Quills** | Legendary | explosion 150px, dmg +80%, rate -30% | 1 | S |
 | **Porcupine Army** | Legendary | companion +4 | 1 | A |
-| **Vampire Lord** | Legendary | vampirism +3, damage +30% | 1 | A |
+| **Vampire Lord** | Legendary | vampirism +5, damage +50% | 1 | A |
 | **Immortal Fortress** | Legendary | shield +4, HP +100 | -- | A |
 | **Midas** | Legendary | prosperity +40, damage +15% | 1 | A |
 | **Storm Caller** | Legendary | shock +5, chain +3 | -- | A |
@@ -162,25 +163,27 @@ Complete reference for all 74 upgrades, how they work mechanically, and balance 
 - Turn rate: `angleDiff * strength * 0.1` radians per frame
 - Higher strength = faster tracking correction
 
-### Armor (Logarithmic Diminishing Returns)
-- Formula: `effective = ln(1 + raw) / (ln(1 + raw) + 1.5)`
+### Armor (Exponential Saturation)
+- Formula: `effective = 1 - e^(-raw * 1.2)`
 - Damage reduction: `actualDamage = incoming * (1 - effective)`
 - Examples:
-  - 0.08 raw (Tough Skin) → **5.1% DR**
-  - 0.12 raw (Iron Quills) → **7.3% DR**
-  - 0.25 raw → **13.0% DR**
-  - 0.50 raw → **21.4% DR**
-  - 1.00 raw → **31.6% DR**
+  - 0.08 raw (Tough Skin) → **9% DR**
+  - 0.20 raw (two commons) → **21% DR**
+  - 0.50 raw → **45% DR**
+  - 1.05 raw (full chain) → **72% DR**
+  - 2.00 raw (heavy stacking) → **91% DR**
+  - 2.50 raw (extreme) → **95% DR**
 
-### Evasion (Logarithmic Diminishing Returns)
-- Formula: `effective = ln(1 + raw) / (ln(1 + raw) + 2.0)`
+### Evasion (Exponential Saturation)
+- Formula: `effective = 1 - e^(-raw * 0.9)`
 - Checked BEFORE shields (successful dodge doesn't consume shield charge)
 - Examples:
-  - 0.08 raw (Quick Reflexes) → **3.8% dodge**
-  - 0.12 raw (Acrobat) → **5.5% dodge**
-  - 0.25 raw → **10.0% dodge**
-  - 0.50 raw → **16.9% dodge**
-  - 1.00 raw → **25.8% dodge**
+  - 0.08 raw (Quick Reflexes) → **7% dodge**
+  - 0.20 raw (two commons) → **17% dodge**
+  - 0.50 raw → **36% dodge**
+  - 0.88 raw (full chain) → **55% dodge**
+  - 2.00 raw (heavy stacking) → **83% dodge**
+  - 3.00 raw (extreme) → **93% dodge**
 
 ### Shield Charges
 - Absorbs 1 hit per charge
@@ -309,7 +312,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `iron_quills` | Iron Quills | armor +0.12, thorns +4 | B | 7.3% DR + thorns. Solid pick. |
 | `acrobat` | Acrobat | evasion +0.12 | B | 5.5% dodge + upgrades dodge counter to 40%. |
 
-### Rare (17)
+### Rare (18)
 
 | ID | Name | Effects | Tier | Notes |
 |----|------|---------|------|-------|
@@ -323,6 +326,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `cluster_bombs` | Cluster Bombs | explosion 60px, damage +0.20 | A | AoE + damage combo. |
 | `reinforced_shield` | Reinforced Shield | shield +1 | B | Good early, weaker late. |
 | `baby_buddy` | Baby Buddy | companion +1 | B | Extra DPS source. |
+| `blood_quills` | Blood Quills | vampirism +3, damage +0.20 | B | 17.4% proc for 20 HP + solid damage. Vampirism stepping stone. |
 | `treasure_hunter` | Treasure Hunter | prosperity +15, damage +0.05 | B | Luck + tiny damage. |
 | `danger_2` | Daredevil | danger +2 | B | Bigger risk/reward. |
 | `elite_slayer` | Elite Slayer | eliteDmg +0.50, damage +0.05 | C | Niche. The +5% damage is too small to carry it. |
@@ -367,7 +371,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `glass_god` | Glass God | dmg +1.5, crit +0.30, critDmg +1.0, HP -50 | S | Glass cannon supreme. |
 | `nuclear_quills` | Nuclear Quills | explosion 150px, dmg +0.80, rate -0.30 | S | Screen-clearing explosions. |
 | `porcupine_army` | Porcupine Army | companion +4 | A | Army of helpers. |
-| `vampire_lord` | Vampire Lord | vampirism +3, damage +0.30 | A | Strong sustain + damage. |
+| `vampire_lord` | Vampire Lord | vampirism +5, damage +0.50 | A | Overwhelming sustain + damage. True legendary power. |
 | `immortal_fortress` | Immortal Fortress | shield +4, HP +100 | A | Nearly unkillable. |
 | `midas` | Midas | prosperity +40, damage +0.15 | A | Max luck. |
 | `elemental_convergence` | Elemental Convergence | all elements +3 | S | Universal elemental. 20% secondary proc. |

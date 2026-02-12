@@ -348,14 +348,14 @@ export const STATUS_EFFECT_CONFIG = {
   },
 };
 
-// Armor configuration - logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
+// Armor configuration - exponential saturation: effective = 1 - e^(-raw * scale)
 export const ARMOR_CONFIG = {
-  diminishingK: 0.5,            // k=0.5: raw 0.5 → 45%, raw 1.0 → 58%, raw 2.0 → 69%
+  scale: 1.2,                   // raw 0.08 → 9%, raw 0.5 → 45%, raw 1.05 → 72%, raw 2.0 → 91%, raw 2.5 → 95%
 };
 
-// Evasion configuration - logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
+// Evasion configuration - exponential saturation: effective = 1 - e^(-raw * scale)
 export const EVASION_CONFIG = {
-  diminishingK: 0.7,            // k=0.7: raw 0.5 → 37%, raw 1.0 → 50%, raw 2.0 → 61%
+  scale: 0.9,                   // raw 0.08 → 7%, raw 0.5 → 36%, raw 0.88 → 55%, raw 2.0 → 83%, raw 3.0 → 93%
 };
 
 export const MAGNET_PULSE_CONFIG = {

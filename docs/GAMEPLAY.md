@@ -453,7 +453,7 @@ Upgrades are offered after each wave. Rarity determines power level.
 
 ---
 
-### Rare Upgrades (13)
+### Rare Upgrades (14)
 
 | Name | Effect | Description |
 |------|--------|-------------|
@@ -467,6 +467,7 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Cluster Bombs | 60px explosion, +20% damage | Bigger explosions |
 | Reinforced Shield | +2 shields, +15 health | Better defense |
 | Baby Buddy | +1 companion | Baby porcupine helper |
+| Blood Quills | +3 vampirism str, +20% damage | Vampirism + damage |
 | Lightning Quills | +3 shock strength (23%) | Better stun procs |
 | Icicle Quills | +3 freeze strength (23%) | Longer freeze |
 | Flame Quills | +3 burn strength (23%, 24 DPS) | Hotter stacking burns |
@@ -510,7 +511,7 @@ Upgrades are offered after each wave. Rarity determines power level.
 | Glass God | +150% damage, +30% crit, +1.0x crit damage, -50 health | 1 | Ultimate glass cannon |
 | Nuclear Quills | 150px explosion, +80% damage, -30% fire rate | 1 | Nuke build |
 | Porcupine Army | +4 companions | 1 | Army of helpers |
-| Vampire Lord | +3 vampirism str, +30% damage | 1 | Lifesteal build |
+| Vampire Lord | +5 vampirism str, +50% damage | 1 | Lifesteal build |
 | Immortal Fortress | +5 shields, +50 health | 1 | Unkillable defense |
 | Living Bastion | +40 Armor, +20 Thorns, +25 HP | ∞ | Unstoppable fortress |
 | Wraith Form | +25 Evasion, +15% speed | ∞ | Become intangible |
@@ -598,35 +599,35 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 ## Defense Stats
 
 ### Armor (Damage Reduction)
-- **Formula**: Logarithmic diminishing returns — `reduction = ln(1 + armor/100) / (ln(1 + armor/100) + 0.5)`
+- **Formula**: Exponential saturation — `reduction = 1 - e^(-raw * 1.2)`
 - **Display**: Shown as flat "Armor" value (e.g., "50 Armor")
 - **Applied**: After shields, before quill state multiplier
-- **Infinitely stackable** with decreasing returns per point
+- **Infinitely stackable** — approaches 100% asymptotically
 
 | Total Armor | Effective Reduction |
 |-------------|---------------------|
-| 8 | 13% |
-| 20 | 27% |
+| 8 | 9% |
+| 20 | 21% |
 | 50 | 45% |
-| 100 | 58% |
-| 200 | 69% |
-| 500 | 78% |
+| 105 | 72% |
+| 200 | 91% |
+| 250 | 95% |
 
 ### Evasion (Dodge Chance)
-- **Formula**: Logarithmic diminishing returns — `dodge = ln(1 + evasion/100) / (ln(1 + evasion/100) + 0.7)`
+- **Formula**: Exponential saturation — `dodge = 1 - e^(-raw * 0.9)`
 - **Display**: Shown as flat "Evasion" value (e.g., "50 Evasion")
 - **Applied**: Before shields — a dodge wastes no shield charges
 - **Visual**: "DODGE" floating text when triggered
-- **Infinitely stackable** with decreasing returns per point
+- **Infinitely stackable** — approaches 100% asymptotically
 
 | Total Evasion | Effective Dodge |
 |---------------|-----------------|
-| 8 | 10% |
-| 20 | 21% |
-| 50 | 37% |
-| 100 | 50% |
-| 200 | 61% |
-| 500 | 72% |
+| 8 | 7% |
+| 20 | 17% |
+| 50 | 36% |
+| 88 | 55% |
+| 200 | 83% |
+| 300 | 93% |
 
 ### Thorns (Damage Reflection)
 - **Sources**: Diamond Hide (+10), Living Bastion (+20)
@@ -711,7 +712,7 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 - Higher strength = tighter tracking
 
 ### Vampirism (Lifesteal)
-- Obtained through upgrades (Life Leech +1 str, Vampire Lord +3 str)
+- Obtained through upgrades (Life Leech +1 str, Blood Quills +3 str, Vampire Lord +5 str)
 - Stack-based system similar to elemental effects
 - Proc chance: `stacks / (stacks + 20)` — diminishing returns (1 str = 4.8%, 5 = 20%, 10 = 33%)
 - Heal amount: `8 + (stacks × 3)` — linear scaling (1 str = 11 HP, 5 = 23 HP, 10 = 38 HP)

@@ -569,9 +569,9 @@ export class Player extends Phaser.GameObjects.Container {
     if (this._pf) return false;
 
     // Evasion check - before shields so a dodge doesn't waste a charge
-    // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + k)
+    // Exponential saturation: effective = 1 - e^(-raw * scale)
     const rawEvasion = this.upgradeManager.getModifier('evasion');
-    const evasion = rawEvasion > 0 ? Math.log(1 + rawEvasion) / (Math.log(1 + rawEvasion) + EVASION_CONFIG.diminishingK) : 0;
+    const evasion = rawEvasion > 0 ? 1 - Math.exp(-rawEvasion * EVASION_CONFIG.scale) : 0;
     if (evasion > 0 && Math.random() < evasion) {
       this.spawnDodgeText();
       this._lastDodged = true;
@@ -608,9 +608,9 @@ export class Player extends Phaser.GameObjects.Container {
       return false; // No damage taken
     }
 
-    // Apply armor damage reduction (logarithmic diminishing returns)
+    // Apply armor damage reduction (exponential saturation)
     const rawArmor = this.upgradeManager.getModifier('armor');
-    const armor = rawArmor > 0 ? Math.log(1 + rawArmor) / (Math.log(1 + rawArmor) + ARMOR_CONFIG.diminishingK) : 0;
+    const armor = rawArmor > 0 ? 1 - Math.exp(-rawArmor * ARMOR_CONFIG.scale) : 0;
     const armorReduced = armor > 0 ? amount * (1 - armor) : amount;
 
     const state = this.getQuillState();

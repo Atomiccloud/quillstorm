@@ -295,23 +295,21 @@ export class StatsPanel {
     const shieldCharges = this.upgradeManager.getModifier('shieldCharges');
     if (shieldCharges !== 0) defense.push({ name: 'Shields', value: `${shieldCharges} charges` });
 
-    // Display armor/evasion with effective percentages (diminishing returns)
-    // Armor: effective = ln(1 + raw) / (ln(1 + raw) + k)
+    // Display armor/evasion with effective percentages (exponential saturation)
+    // Armor: effective = 1 - e^(-raw * scale)
     const armor = this.upgradeManager.getModifier('armor');
     if (armor > 0) {
       const rawDisplay = Math.round(armor * 100);
-      const lnTerm = Math.log(1 + armor);
-      const effectiveArmor = lnTerm / (lnTerm + ARMOR_CONFIG.diminishingK);
+      const effectiveArmor = 1 - Math.exp(-armor * ARMOR_CONFIG.scale);
       const effectiveDisplay = Math.round(effectiveArmor * 100);
       defense.push({ name: 'Armor', value: `${rawDisplay} (${effectiveDisplay}%)` });
     }
 
-    // Evasion: effective = ln(1 + raw) / (ln(1 + raw) + k)
+    // Evasion: effective = 1 - e^(-raw * scale)
     const evasion = this.upgradeManager.getModifier('evasion');
     if (evasion > 0) {
       const rawDisplay = Math.round(evasion * 100);
-      const lnTerm = Math.log(1 + evasion);
-      const effectiveEvasion = lnTerm / (lnTerm + EVASION_CONFIG.diminishingK);
+      const effectiveEvasion = 1 - Math.exp(-evasion * EVASION_CONFIG.scale);
       const effectiveDisplay = Math.round(effectiveEvasion * 100);
       defense.push({ name: 'Evasion', value: `${rawDisplay} (${effectiveDisplay}%)` });
     }
