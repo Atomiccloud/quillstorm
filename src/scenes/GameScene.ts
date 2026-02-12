@@ -63,6 +63,7 @@ export class GameScene extends Phaser.Scene {
     phase: 'warning' | 'active';
     warningVisual: Phaser.GameObjects.Graphics;
     damageDealt: boolean;
+    damage: number;
   }> = [];
 
   // Chain reaction depth limit (prevents exponential elemental cascades)
@@ -663,6 +664,8 @@ export class GameScene extends Phaser.Scene {
           const projColor = e.isBoss() ? 0xff4400 : 0x00ff00;
 
           const projectile = this.add.circle(e.x, e.y, projSize, projColor);
+          projectile.setData('damage', e.damage);
+          projectile.setData('enemyType', e.enemyType);
           this.physics.add.existing(projectile);
 
           // Add to group FIRST, then set velocity (group can reset body properties)
@@ -698,11 +701,11 @@ export class GameScene extends Phaser.Scene {
         AudioManager.playBurrowSurface();
         const config = ENEMY_CONFIG.burrower;
 
-        // AOE damage to player if in range
+        // AOE damage to player if in range (scales with enemy damage)
         const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y);
         if (dist <= config.surfaceRadius) {
-          const taken = this.player._uf(config.surfaceDamage);
-          this.recordPlayerHit('burrower', enemy.enemyType, config.surfaceDamage, taken);
+          const taken = this.player._uf(enemy.damage);
+          this.recordPlayerHit('burrower', enemy.enemyType, enemy.damage, taken);
           if (taken) {
             AudioManager.playPlayerDamage();
           }
@@ -737,7 +740,7 @@ export class GameScene extends Phaser.Scene {
       // Bomber bomb drop
       if (enemy._droppingBomb) {
         enemy._droppingBomb = false;
-        this.createBombZone(enemy._bombDropX, enemy._bombDropY);
+        this.createBombZone(enemy._bombDropX, enemy._bombDropY, enemy.damage);
       }
     });
 
@@ -844,7 +847,7 @@ export class GameScene extends Phaser.Scene {
     return container;
   }
 
-  private createBombZone(x: number, y: number): void {
+  private createBombZone(x: number, y: number, damage: number): void {
     const gfx = this.add.graphics();
 
     this.bombZones.push({
@@ -854,6 +857,7 @@ export class GameScene extends Phaser.Scene {
       phase: 'warning',
       warningVisual: gfx,
       damageDealt: false,
+      damage,
     });
   }
 
@@ -894,8 +898,8 @@ export class GameScene extends Phaser.Scene {
           zone.damageDealt = true;
           const dist = Phaser.Math.Distance.Between(zone.x, zone.y, this.player.x, this.player.y);
           if (dist <= config.bombRadius) {
-            const taken = this.player._uf(config.bombDamage);
-            this.recordPlayerHit('bomberZone', null, config.bombDamage, taken);
+            const taken = this.player._uf(zone.damage);
+            this.recordPlayerHit('bomberZone', null, zone.damage, taken);
             if (taken) {
               AudioManager.playPlayerDamage();
             }
@@ -938,6 +942,7 @@ export class GameScene extends Phaser.Scene {
     const enemy = enemyObj as Enemy;
 
     if (quill.isDead() || enemy.isDead()) return;
+    if (!quill.canHitEnemy(enemy)) return;
 
     // Use the quill's modifier source (real UpgradeManager for player, CompanionUpgradeProxy for companions)
     const mods = quill.modifiers;
@@ -1022,8 +1027,9 @@ export class GameScene extends Phaser.Scene {
       AudioManager.playHit();
     }
 
-    // Handle quill (may pierce or die)
-    quill.onHitEnemy();
+    // Track hit and handle quill (may pierce or die)
+    const isNewTarget = quill.registerHit(enemy);
+    quill.onHitEnemy(isNewTarget);
   }
 
   private handleEnemyKill(enemy: Enemy): void {
@@ -1206,9 +1212,11 @@ export class GameScene extends Phaser.Scene {
 
   private onProjectileHitPlayer(_playerObj: Phaser.GameObjects.GameObject, projectileObj: Phaser.GameObjects.GameObject): void {
     const projectile = projectileObj as Phaser.GameObjects.Arc;
+    const damage = projectile.getData('damage') ?? ENEMY_CONFIG.spitter.damage;
+    const enemyType = projectile.getData('enemyType') ?? 'spitter';
 
-    const projTaken = this.player._uf(15);
-    this.recordPlayerHit('projectile', 'spitter', 15, projTaken);
+    const projTaken = this.player._uf(damage);
+    this.recordPlayerHit('projectile', enemyType, damage, projTaken);
     if (projTaken) {
       AudioManager.playPlayerDamage();
     }

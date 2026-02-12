@@ -162,6 +162,7 @@ export class LeaderboardScene extends Phaser.Scene {
   private static readonly NOTABLE_ENTRIES = [
     { rank: 1, playerName: 'Atomic (Unbalanced Patch)', score: 18968390, wave: 20, timestamp: 0 },
     { rank: 2, playerName: 'Adamz (Unbalanced Patch)', score: 14377267, wave: 20, timestamp: 0 },
+    { rank: 3, playerName: 'Adamz (Unbalanced Patch)', score: 4401361, wave: 20, timestamp: 0 },
     { rank: 3, playerName: 'Griillz (Unbalanced Patch)', score: 10000000, wave: 20, timestamp: 0 },
     { rank: 4, playerName: 'JONISNTGAMING (QoL Hax)', score: 976519, wave: 20, timestamp: 0 },
     { rank: 5, playerName: 'PROGOONER (Bug Abuse)', score: 1230622, wave: 20, timestamp: 0 },

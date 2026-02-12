@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.71';
+export const GAME_VERSION = '0.5.74';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,24 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.72',
+    date: '2026-02-12',
+    changes: [
+      'Stats panel now shows capped speed value (+67%) instead of raw modifier when over the movement speed cap',
+      'Fixed spitter/boss projectiles, burrower emergence, and bomber zones not scaling with wave/danger/elite multipliers',
+      'Enemies now build escalating immunity to stun and freeze — prevents permanent CC-lock at high elemental strength',
+      'Stun/freeze cannot be refreshed during active CC; immunity window starts when CC expires',
+      'Each consecutive stun/freeze reduces duration by 75ms and increases immunity by 250ms',
+      'Bosses take 50% stun / 40% freeze duration with 1.5x longer immunity windows',
+      'Elites take 75% stun / 70% freeze duration with 1.2x longer immunity windows',
+      'Subtle white shimmer shows when enemies are CC-immune',
+      'Piercing quills now hit each enemy at most twice per pass-through instead of burning all charges on one target',
+      'Second hit on same enemy no longer consumes a pierce charge — only unique targets cost pierce',
+      'Homing and bouncing quills can re-hit enemies after leaving and returning',
+      'Fixed piercing damage compounding — each hit now rolls fresh crit and distance damage from base',
+    ],
+  },
   {
     version: '0.5.71',
     date: '2026-02-12',

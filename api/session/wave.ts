@@ -10,8 +10,6 @@ import {
   DefenseStats,
   ModifierSnapshot,
   validateWaveReport,
-  validateStatMetrics,
-  validateDefenseStats,
   validateModifierSnapshot,
   validateQuillEfficiency,
   validateWaveTiming,
@@ -162,11 +160,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // Validate stat metrics (HP/quills/prosperity) - silently flag if suspicious
-    const statValidation = validateStatMetrics(body.wave, body.sm);
-    if (!statValidation.valid) {
-      session.statsFlagged = true;
-    }
+    // Stat metrics (HP/quills/prosperity) validated via modifier snapshot from upgrade ledger
 
     // Add wave record
     const waveRecord: WaveRecord = {
@@ -185,17 +179,7 @@ export default async function handler(req: Request): Promise<Response> {
     };
     session.waves.push(waveRecord);
 
-    // Validate defense stats for early waves (anti-cheat)
-    const dsValidation = validateDefenseStats(session, body.wave);
-    if (!dsValidation.valid) {
-      return new Response(JSON.stringify({ success: false, error: dsValidation.error }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-      });
-    }
+    // Defense stats (armor/evasion) validated via modifier snapshot from upgrade ledger
 
     // v0.5.1: Validate modifier snapshot against upgrade ledger
     const modValidation = validateModifierSnapshot(session, body.um);

@@ -7,7 +7,6 @@ import {
   StatMetrics,
   DefenseStats,
   ModifierSnapshot,
-  validateStatMetrics,
 } from '../_lib/session';
 
 export const config = {
@@ -153,11 +152,7 @@ export default async function handler(req: Request): Promise<Response> {
     }
     if (body.sm && typeof body.sm === 'object') {
       session.finalSm = body.sm;
-      // Validate stat metrics - silently flag if suspicious
-      const statValidation = validateStatMetrics(body.finalWave, body.sm);
-      if (!statValidation.valid) {
-        session.statsFlagged = true;
-      }
+      // Stat metrics validated via modifier snapshot from upgrade ledger
     }
     if (body.ds && typeof body.ds === 'object') {
       session.finalDs = body.ds;

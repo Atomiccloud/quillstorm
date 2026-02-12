@@ -116,7 +116,6 @@ export interface GameSession {
   finalDangerLevel?: number;
   finalPm?: PerfMetrics;
   finalSm?: StatMetrics;
-  statsFlagged?: boolean;    // True if HP/quills/prosperity values were suspicious
   finalDs?: DefenseStats;
   // v0.5.1: Enhanced anti-cheat
   upgradeLedger?: UpgradeLedgerEntry[];  // Server-side record of all upgrade picks
@@ -304,76 +303,9 @@ export function validatePerf(
   return { valid: true };
 }
 
-// Stat validation constants (generous bounds based on max possible upgrades per wave)
-// Base stats: HP=100, Quills=30, Prosperity=0
-// Formula allows for multiple legendary upgrades per wave (very generous)
-const BASE_HP = 100;
-const BASE_QUILLS = 30;
-const HP_PER_WAVE = 25;      // ~1 legendary HP upgrade worth per wave
-const QUILLS_PER_WAVE = 20;  // ~1 epic quills upgrade worth per wave
-const PROSPERITY_PER_WAVE = 25; // ~1 epic prosperity upgrade worth per wave
-
-// Validate stat metrics (HP, quills, prosperity) against wave
-export function validateStatMetrics(
-  wave: number,
-  sm?: StatMetrics
-): { valid: boolean } {
-  // No stats provided = old client, skip validation
-  if (!sm) {
-    return { valid: true };
-  }
-
-  // Calculate max allowed values (very generous)
-  const maxHP = BASE_HP + wave * HP_PER_WAVE;
-  const maxQuills = BASE_QUILLS + wave * QUILLS_PER_WAVE;
-  const maxProsperity = wave * PROSPERITY_PER_WAVE;
-
-  // Check if any stat exceeds the generous maximum
-  if (sm.m > maxHP || sm.c > maxQuills || sm.p > maxProsperity) {
-    return { valid: false };
-  }
-
-  return { valid: true };
-}
-
-// Defense stat validation constants
-// Max armor = wave * 20 (generous: allows multiple legendaries per wave somehow)
-// Max evasion = wave * 15 (slightly stricter since evasion is stronger early)
-export const MAX_ARMOR_PER_WAVE = 20;   // Max 20 armor per wave
-export const MAX_EVASION_PER_WAVE = 15; // Max 15 evasion per wave
-
-// Validate defense stats for all waves (anti-cheat)
-// Returns invalid if armor/evasion values are impossibly high for the wave number
-export function validateDefenseStats(
-  session: GameSession,
-  wave: number
-): { valid: boolean; error?: string } {
-
-  // Get the most recent wave record with defense stats
-  const lastWaveWithDs = [...session.waves].reverse().find(w => w.ds);
-  if (!lastWaveWithDs || !lastWaveWithDs.ds) {
-    // No defense stats reported (old client) - pass
-    return { valid: true };
-  }
-
-  const { a: armor, e: evasion } = lastWaveWithDs.ds;
-  const waveNum = lastWaveWithDs.wave;
-
-  // Calculate max allowed based on wave number
-  // Adding a base buffer of 10 for wave 1 edge cases
-  const maxArmor = 10 + (waveNum * MAX_ARMOR_PER_WAVE);
-  const maxEvasion = 10 + (waveNum * MAX_EVASION_PER_WAVE);
-
-  if (armor > maxArmor) {
-    return { valid: false, error: 'Invalid session' };
-  }
-
-  if (evasion > maxEvasion) {
-    return { valid: false, error: 'Invalid session' };
-  }
-
-  return { valid: true };
-}
+// Stat metrics (HP/quills/prosperity) and defense stats (armor/evasion) are validated
+// via modifier snapshot reconstruction from the upgrade ledger, which provides exact
+// expected values rather than crude wave-based bounds.
 
 // ===== v0.5.1: Enhanced Anti-Cheat Validation =====
 
@@ -552,7 +484,6 @@ export interface ShadowDiagnostic {
     stageId?: string;
     activeMutators?: string[];
     activePerks?: Record<string, string>;
-    statsFlagged: boolean;
     modifiersFlagged: boolean;
     heuristicFlags: string[];
     waveCount: number;
@@ -607,7 +538,6 @@ export function buildShadowDiagnostic(
       stageId: s.stageId,
       activeMutators: s.activeMutators,
       activePerks: s.activePerks,
-      statsFlagged: !!session.statsFlagged,
       modifiersFlagged: !!session.modifiersFlagged,
       heuristicFlags: session.heuristicFlags || [],
       waveCount: session.waves.length,

@@ -211,10 +211,6 @@ export default async function handler(req: Request): Promise<Response> {
             failureReasons.push('perf_enhanced_failed');
           }
 
-          if (session.statsFlagged) {
-            failureReasons.push('stats_flagged');
-          }
-
           if (session.modifiersFlagged) {
             failureReasons.push('modifiers_flagged');
           }

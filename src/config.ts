@@ -348,6 +348,37 @@ export const STATUS_EFFECT_CONFIG = {
   },
 };
 
+// CC Immunity — escalating immunity after stun/freeze expires
+// Prevents permanent stun-lock at high elemental strength
+export const CC_IMMUNITY_CONFIG = {
+  stun: {
+    baseImmunityDuration: 240,    // ms immune after first stun expires
+    immunityEscalation: 250,      // +250ms per consecutive stun
+    maxImmunityDuration: 3000,    // hard cap on immunity window
+    durationReductionFlat: 75,    // each consecutive stun is 75ms shorter
+    minDuration: 200,             // stun can't go below 200ms
+    decayTime: 5000,              // ms without stun before escalation drops by 1
+  },
+  freeze: {
+    baseImmunityDuration: 240,
+    immunityEscalation: 250,
+    maxImmunityDuration: 3000,
+    durationReductionFlat: 75,
+    minDuration: 200,
+    decayTime: 6000,
+  },
+  boss: {
+    stunDurationMult: 0.5,        // bosses stunned for 50% duration
+    freezeDurationMult: 0.4,      // bosses frozen for 40% duration
+    immunityMult: 1.5,            // 50% longer immunity windows
+  },
+  elite: {
+    stunDurationMult: 0.75,
+    freezeDurationMult: 0.7,
+    immunityMult: 1.2,
+  },
+};
+
 // Armor configuration - exponential saturation with soft cap
 // Base: 1 - e^(-raw * scale), then above threshold: threshold + (excess * penalty)
 // Soft cap limits deep infinite swarm stacking to ~92.5% max
