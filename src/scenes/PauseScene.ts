@@ -13,6 +13,8 @@ export class PauseScene extends Phaser.Scene {
   private upgradeManager: UpgradeManager | null = null;
   private settingsModal!: SettingsModal;
   private statsPanel: StatsPanel | null = null;
+  private confirmGroup: Phaser.GameObjects.Group | null = null;
+  private confirmOverlay: Phaser.GameObjects.Rectangle | null = null;
 
   constructor() {
     super({ key: 'PauseScene' });
@@ -99,16 +101,20 @@ export class PauseScene extends Phaser.Scene {
     restartButton.on('pointerout', () => restartButton.setFillStyle(0x555555));
     restartButton.on('pointerdown', () => {
       AudioManager.playButtonClick();
-      this.scene.stop('GameScene');
-      this.scene.start('GameScene');
+      this.showConfirm('Restart this run?', 'Your current progress will be lost.', () => {
+        this.scene.stop('GameScene');
+        this.scene.start('GameScene');
+      });
     });
 
     menuButton.on('pointerover', () => menuButton.setFillStyle(0x666666));
     menuButton.on('pointerout', () => menuButton.setFillStyle(0x555555));
     menuButton.on('pointerdown', () => {
       AudioManager.playButtonClick();
-      this.scene.stop('GameScene');
-      this.scene.start('MenuScene');
+      this.showConfirm('Quit to main menu?', 'Your current progress will be lost.', () => {
+        this.scene.stop('GameScene');
+        this.scene.start('MenuScene');
+      });
     });
 
     // Escape to resume
@@ -136,6 +142,75 @@ export class PauseScene extends Phaser.Scene {
     if (this.upgradeManager) {
       this.statsPanel = new StatsPanel(this, this.upgradeManager);
       this.statsPanel.show();
+    }
+  }
+
+  private showConfirm(title: string, subtitle: string, onConfirm: () => void): void {
+    if (this.confirmGroup) return;
+
+    const centerX = GAME_CONFIG.width / 2;
+    const centerY = GAME_CONFIG.height / 2;
+
+    // Darken overlay to focus on dialog
+    this.confirmOverlay = this.add.rectangle(centerX, centerY, GAME_CONFIG.width, GAME_CONFIG.height, 0x000000, 0.5);
+    this.confirmOverlay.setInteractive();
+    this.confirmOverlay.setDepth(100);
+
+    this.confirmGroup = this.add.group();
+
+    const panel = this.add.rectangle(centerX, centerY, 320, 180, 0x1a1a2e, 0.95).setStrokeStyle(2, 0x555555).setDepth(101);
+    const titleText = this.add.text(centerX, centerY - 50, title, {
+      fontSize: '24px',
+      fontFamily: 'Arial Black, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5).setDepth(101);
+    const subText = this.add.text(centerX, centerY - 18, subtitle, {
+      fontSize: '14px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#aaaaaa',
+    }).setOrigin(0.5).setDepth(101);
+
+    const confirmBtn = this.add.rectangle(centerX - 70, centerY + 40, 120, 44, 0x8b2020).setDepth(101);
+    confirmBtn.setInteractive({ useHandCursor: true });
+    const confirmLabel = this.add.text(centerX - 70, centerY + 40, 'Confirm', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5).setDepth(101);
+
+    const cancelBtn = this.add.rectangle(centerX + 70, centerY + 40, 120, 44, 0x555555).setDepth(101);
+    cancelBtn.setInteractive({ useHandCursor: true });
+    const cancelLabel = this.add.text(centerX + 70, centerY + 40, 'Cancel', {
+      fontSize: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#ffffff',
+    }).setOrigin(0.5).setDepth(101);
+
+    confirmBtn.on('pointerover', () => confirmBtn.setFillStyle(0xa52a2a));
+    confirmBtn.on('pointerout', () => confirmBtn.setFillStyle(0x8b2020));
+    confirmBtn.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      onConfirm();
+    });
+
+    cancelBtn.on('pointerover', () => cancelBtn.setFillStyle(0x666666));
+    cancelBtn.on('pointerout', () => cancelBtn.setFillStyle(0x555555));
+    cancelBtn.on('pointerdown', () => {
+      AudioManager.playButtonClick();
+      this.dismissConfirm();
+    });
+
+    this.confirmGroup.addMultiple([panel, titleText, subText, confirmBtn, confirmLabel, cancelBtn, cancelLabel]);
+  }
+
+  private dismissConfirm(): void {
+    if (this.confirmGroup) {
+      this.confirmGroup.clear(true, true);
+      this.confirmGroup = null;
+    }
+    if (this.confirmOverlay) {
+      this.confirmOverlay.destroy();
+      this.confirmOverlay = null;
     }
   }
 

@@ -347,7 +347,8 @@ export class HUD {
       }
       this.swarmTimerText.setAlpha(pulse);
 
-      // Show split HP/DMG difficulty multipliers
+      // Show split HP/DMG difficulty multipliers (below timer)
+      this.enemyText.setY(76);
       const hpMult = this.progressionManager.getSwarmHPMultiplier();
       const dmgMult = this.progressionManager.getSwarmDamageMultiplier();
       this.setTextIfChanged(this.enemyText, `HP: x${hpMult.toFixed(1)} | DMG: x${dmgMult.toFixed(1)} | Enemies: ${this.waveManager.getEnemyCount()}`);
@@ -356,6 +357,7 @@ export class HUD {
       this.waveText.setVisible(true);
       this.infiniteSwarmText.setVisible(false);
       this.swarmTimerText.setVisible(false);
+      this.enemyText.setY(55);
 
       if (this.waveManager.currentWave > 0 && this.waveManager.isBossWave()) {
         this.setTextIfChanged(this.waveText, `BOSS - Wave ${this.waveManager.currentWave}`);
@@ -518,7 +520,7 @@ export class HUD {
 
     const text = this.scene.add.text(
       GAME_CONFIG.width / 2,
-      GAME_CONFIG.height / 2 - 80,
+      GAME_CONFIG.height / 2 + 30,
       `LEVEL UP!\nLevel ${level}`,
       {
         fontSize: '42px',
@@ -541,7 +543,7 @@ export class HUD {
         this.scene.tweens.add({
           targets: text,
           alpha: 0,
-          y: GAME_CONFIG.height / 2 - 130,
+          y: GAME_CONFIG.height / 2 - 20,
           duration: 1500,
           onComplete: () => text.destroy(),
         });

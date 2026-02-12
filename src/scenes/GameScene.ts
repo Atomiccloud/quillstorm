@@ -95,6 +95,11 @@ export class GameScene extends Phaser.Scene {
   private magnetPulseActive: boolean = false;
   private magnetPulseDuration: number = 0;
 
+  // Restart confirmation (R key double-tap)
+  private restartPending: boolean = false;
+  private restartTimer: number = 0;
+  private restartText: Phaser.GameObjects.Text | null = null;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -397,10 +402,20 @@ export class GameScene extends Phaser.Scene {
       this.showMuteIndicator(muted);
     });
 
-    // R to quick restart
+    // R to quick restart (double-tap to confirm)
     this.input.keyboard?.on('keydown-R', () => {
-      if (this.isChoosingUpgrade) return;
-      this.scene.restart();
+      if (this.isChoosingUpgrade || this.gameOver) return;
+      if (this.restartPending) {
+        this.scene.restart();
+      } else {
+        this.restartPending = true;
+        this.restartTimer = 2000;
+        this.restartText = this.add.text(
+          GAME_CONFIG.width / 2, 60,
+          'Press R again to restart',
+          { fontSize: '18px', fontFamily: 'Arial, sans-serif', color: '#ff6666' }
+        ).setOrigin(0.5).setDepth(200);
+      }
     });
 
     // Tab to toggle stats panel
@@ -436,6 +451,16 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number, delta: number): void {
     if (this.gameOver) return;
+
+    // Restart confirmation timeout
+    if (this.restartPending) {
+      this.restartTimer -= delta;
+      if (this.restartTimer <= 0) {
+        this.restartPending = false;
+        this.restartText?.destroy();
+        this.restartText = null;
+      }
+    }
 
     // Update systems
     this.player.update(time, delta);
