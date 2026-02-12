@@ -740,6 +740,25 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 - All quills in the empowered volley auto-crit and apply all unlocked elements at 100% proc rate
 - Visual: rainbow quill effect on empowered volley
 
+### CC Immunity (Stun/Freeze Tenacity)
+Enemies build immunity to stun and freeze to prevent permanent CC-lock at high elemental strength.
+
+**Rules:**
+- Once stunned/frozen, no new stun/freeze can be applied (no refresh during active CC)
+- When CC expires, the enemy gains an **immunity window** — stun/freeze is blocked during this period
+- Each consecutive CC **escalates**: immunity gets longer (+250ms per stun/freeze) and CC duration shrinks (−75ms per stun/freeze)
+- Minimum CC duration: 200ms
+- Escalation decays back to 0 after 5-6 seconds without being CC'd
+- **Chill (slow) is unaffected** — no immunity system for slows
+
+**Boss/Elite Resistance:**
+- Bosses: stun at 50% duration, freeze at 40% duration, 1.5x longer immunity windows
+- Elites: stun at 75% duration, freeze at 70% duration, 1.2x longer immunity windows
+
+**Visual Feedback:** Enemies display a subtle white shimmer outline while CC-immune.
+
+**Config:** `CC_IMMUNITY_CONFIG` in `src/config.ts`
+
 ---
 
 ## Pickups

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG } from '../config';
+import { ENEMY_CONFIG, ENEMY_SCALING, WAVE_CONFIG, ELITE_CONFIG, STATUS_EFFECT_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, CC_IMMUNITY_CONFIG } from '../config';
 import { SaveManager } from '../systems/SaveManager';
 import { GraphicsSettings } from '../systems/GraphicsSettings';
 
@@ -95,6 +95,13 @@ export class Enemy extends Phaser.GameObjects.Container {
   private baseSpeed: number = 0;
   // Frostfire steam AoE callback (set by GameScene)
   public onFreezeEnd: ((enemy: Enemy) => void) | null = null;
+  // CC Immunity / Tenacity
+  private _stunImmunityTimer: number = 0;
+  private _freezeImmunityTimer: number = 0;
+  private _stunEscalation: number = 0;
+  private _freezeEscalation: number = 0;
+  private _stunDecayTimer: number = 0;
+  private _freezeDecayTimer: number = 0;
 
   // Dirty-flag rendering optimization
   private _dirty: boolean = true;
@@ -111,6 +118,8 @@ export class Enemy extends Phaser.GameObjects.Container {
   private _prevCharging: boolean = false;
   private _prevDiving: boolean = false;
   private _prevBossPhase: number = 1;
+  private _prevStunImmune: boolean = false;
+  private _prevFreezeImmune: boolean = false;
   private _sceneTime: number = 0;
 
   constructor(
@@ -304,12 +313,15 @@ export class Enemy extends Phaser.GameObjects.Container {
     if (this.isCharging !== this._prevCharging) { this._dirty = true; this._prevCharging = this.isCharging; }
     if (this.isDiving !== this._prevDiving) { this._dirty = true; this._prevDiving = this.isDiving; }
     if (this.bossPhase !== this._prevBossPhase) { this._dirty = true; this._prevBossPhase = this.bossPhase; }
+    if ((this._stunImmunityTimer > 0) !== this._prevStunImmune) { this._dirty = true; this._prevStunImmune = this._stunImmunityTimer > 0; }
+    if ((this._freezeImmunityTimer > 0) !== this._prevFreezeImmune) { this._dirty = true; this._prevFreezeImmune = this._freezeImmunityTimer > 0; }
 
     // Animated effects: redraw every 3rd frame (20fps) instead of every frame
     // At Low quality (tint mode), status overlays use static alpha — no animation needed
     const detail = GraphicsSettings.statusOverlayDetail;
     const hasAnimatedStatus = detail !== 'tint' && (this.shockTimer > 0 || this.chillTimer > 0
-      || this.burnStacks.length > 0 || this.poisonStacks.length > 0);
+      || this.burnStacks.length > 0 || this.poisonStacks.length > 0
+      || this._stunImmunityTimer > 0 || this._freezeImmunityTimer > 0);
     const hasAnimatedEffect = hasAnimatedStatus || this.freezeTimer > 0
       || (this.isElite && GraphicsSettings.eliteGlowPulse) || this.isRolling;
     if (hasAnimatedEffect && this._drawFrameCounter % 3 === 0) {
@@ -1420,6 +1432,15 @@ export class Enemy extends Phaser.GameObjects.Container {
       this._isStunned = true;
       if (this.shockTimer <= 0) {
         this.shockTimer = 0;
+        // Start immunity window
+        const ccCfg = CC_IMMUNITY_CONFIG;
+        const immunityMult = this.isBoss() ? ccCfg.boss.immunityMult : (this.isElite ? ccCfg.elite.immunityMult : 1);
+        this._stunImmunityTimer = Math.min(
+          ccCfg.stun.maxImmunityDuration,
+          (ccCfg.stun.baseImmunityDuration + this._stunEscalation * ccCfg.stun.immunityEscalation) * immunityMult
+        );
+        this._stunEscalation++;
+        this._stunDecayTimer = 0;
       }
     }
 
@@ -1439,10 +1460,45 @@ export class Enemy extends Phaser.GameObjects.Container {
       this._isFrozen = true;
       if (this.freezeTimer <= 0) {
         this.freezeTimer = 0;
+        // Start immunity window
+        const ccCfg = CC_IMMUNITY_CONFIG;
+        const immunityMult = this.isBoss() ? ccCfg.boss.immunityMult : (this.isElite ? ccCfg.elite.immunityMult : 1);
+        this._freezeImmunityTimer = Math.min(
+          ccCfg.freeze.maxImmunityDuration,
+          (ccCfg.freeze.baseImmunityDuration + this._freezeEscalation * ccCfg.freeze.immunityEscalation) * immunityMult
+        );
+        this._freezeEscalation++;
+        this._freezeDecayTimer = 0;
         // Frostfire combo: steam AoE on thaw
         if (this.onFreezeEnd) {
           this.onFreezeEnd(this);
         }
+      }
+    }
+
+    // Tick CC immunity timers
+    if (this._stunImmunityTimer > 0) {
+      this._stunImmunityTimer -= delta;
+      if (this._stunImmunityTimer <= 0) this._stunImmunityTimer = 0;
+    }
+    if (this._freezeImmunityTimer > 0) {
+      this._freezeImmunityTimer -= delta;
+      if (this._freezeImmunityTimer <= 0) this._freezeImmunityTimer = 0;
+    }
+
+    // Decay CC escalation when not stunned/frozen and not immune
+    if (this._stunEscalation > 0 && this.shockTimer <= 0 && this._stunImmunityTimer <= 0) {
+      this._stunDecayTimer += delta;
+      if (this._stunDecayTimer >= CC_IMMUNITY_CONFIG.stun.decayTime) {
+        this._stunDecayTimer -= CC_IMMUNITY_CONFIG.stun.decayTime;
+        this._stunEscalation = Math.max(0, this._stunEscalation - 1);
+      }
+    }
+    if (this._freezeEscalation > 0 && this.freezeTimer <= 0 && this._freezeImmunityTimer <= 0) {
+      this._freezeDecayTimer += delta;
+      if (this._freezeDecayTimer >= CC_IMMUNITY_CONFIG.freeze.decayTime) {
+        this._freezeDecayTimer -= CC_IMMUNITY_CONFIG.freeze.decayTime;
+        this._freezeEscalation = Math.max(0, this._freezeEscalation - 1);
       }
     }
 
@@ -1500,10 +1556,18 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   applyShock(duration: number): void {
     if (this.isRolling || this.isBurrowed) return;
-    // Single instance - refresh if new duration is longer than remaining
-    if (duration > this.shockTimer) {
-      this.shockTimer = duration;
+    if (this.shockTimer > 0) return; // No refresh during active stun
+    if (this._stunImmunityTimer > 0) return; // Immune
+    // Apply boss/elite duration reduction
+    const ccCfg = CC_IMMUNITY_CONFIG;
+    let effective = duration;
+    if (this.isBoss()) effective *= ccCfg.boss.stunDurationMult;
+    else if (this.isElite) effective *= ccCfg.elite.stunDurationMult;
+    // Escalation flat reduction
+    if (this._stunEscalation > 0) {
+      effective = Math.max(ccCfg.stun.minDuration, effective - this._stunEscalation * ccCfg.stun.durationReductionFlat);
     }
+    this.shockTimer = effective;
   }
 
   applyChill(slowAmount: number, duration: number): void {
@@ -1517,10 +1581,18 @@ export class Enemy extends Phaser.GameObjects.Container {
 
   applyFreeze(duration: number): void {
     if (this.isRolling || this.isBurrowed) return;
-    // Single instance - refresh if new duration is longer than remaining
-    if (duration > this.freezeTimer) {
-      this.freezeTimer = duration;
+    if (this.freezeTimer > 0) return; // No refresh during active freeze
+    if (this._freezeImmunityTimer > 0) return; // Immune
+    // Apply boss/elite duration reduction
+    const ccCfg = CC_IMMUNITY_CONFIG;
+    let effective = duration;
+    if (this.isBoss()) effective *= ccCfg.boss.freezeDurationMult;
+    else if (this.isElite) effective *= ccCfg.elite.freezeDurationMult;
+    // Escalation flat reduction
+    if (this._freezeEscalation > 0) {
+      effective = Math.max(ccCfg.freeze.minDuration, effective - this._freezeEscalation * ccCfg.freeze.durationReductionFlat);
     }
+    this.freezeTimer = effective;
     // Freeze overrides chill
     this.chillTimer = 0;
     this.chillSlowAmount = 0;
@@ -1593,6 +1665,16 @@ export class Enemy extends Phaser.GameObjects.Container {
   /** Whether this enemy is currently chilled (slowed) */
   isChilled(): boolean {
     return this.chillTimer > 0;
+  }
+
+  /** Whether this enemy is currently immune to stun */
+  isStunImmune(): boolean {
+    return this._stunImmunityTimer > 0;
+  }
+
+  /** Whether this enemy is currently immune to freeze */
+  isFreezeImmune(): boolean {
+    return this._freezeImmunityTimer > 0;
   }
 
   /** Enable poison stack growth (T2+) */
@@ -1693,6 +1775,14 @@ export class Enemy extends Phaser.GameObjects.Container {
           this.graphics.fillCircle(dripX, dripY, 2);
         }
       }
+    }
+
+    // CC Immunity shimmer — subtle white outline when immune to stun/freeze
+    if (this._stunImmunityTimer > 0 || this._freezeImmunityTimer > 0) {
+      const shimmerAlpha = detail === 'tint' ? 0.15 * opacity
+        : (0.1 + 0.1 * Math.sin(this._statusTintTimer * 0.015)) * opacity;
+      this.graphics.lineStyle(1, 0xffffff, shimmerAlpha);
+      this.graphics.strokeEllipse(0, 0, w * 1.05, h * 1.05);
     }
   }
 

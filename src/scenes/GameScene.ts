@@ -942,6 +942,7 @@ export class GameScene extends Phaser.Scene {
     const enemy = enemyObj as Enemy;
 
     if (quill.isDead() || enemy.isDead()) return;
+    if (!quill.canHitEnemy(enemy)) return;
 
     // Use the quill's modifier source (real UpgradeManager for player, CompanionUpgradeProxy for companions)
     const mods = quill.modifiers;
@@ -1026,8 +1027,9 @@ export class GameScene extends Phaser.Scene {
       AudioManager.playHit();
     }
 
-    // Handle quill (may pierce or die)
-    quill.onHitEnemy();
+    // Track hit and handle quill (may pierce or die)
+    const isNewTarget = quill.registerHit(enemy);
+    quill.onHitEnemy(isNewTarget);
   }
 
   private handleEnemyKill(enemy: Enemy): void {

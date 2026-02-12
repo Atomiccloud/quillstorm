@@ -152,7 +152,7 @@ console.log('Player:', d.playerName, '| Score:', d.score, '| Wave:', d.wave);
 console.log('Reasons:', d.failureReasons.join(', '));
 if (d.session) {
   console.log('Waves recorded:', d.session.waveCount, '| Upgrades:', d.session.upgradeLedgerCount);
-  console.log('Stats flagged:', d.session.statsFlagged, '| Modifiers flagged:', d.session.modifiersFlagged);
+  console.log('Modifiers flagged:', d.session.modifiersFlagged);
   if (d.session.heuristicFlags.length) console.log('Heuristic flags:', d.session.heuristicFlags.join(', '));
   if (d.session.lastModifierSnapshot && d.session.expectedModifiers) {
     console.log('\\nModifier comparison (reported vs expected):');
@@ -197,5 +197,4 @@ for (let i = 0; i < r.length; i += 2) {
 | `session_validation_failed` | Wave/score consistency check failed |
 | `perf_check_failed` | Zero engagement in waves 18-20 (40k+ score) |
 | `perf_enhanced_failed` | Zero engagement in waves 15-20 (25k+ score) |
-| `stats_flagged` | HP/quills/prosperity exceeded wave-based bounds |
 | `modifiers_flagged` | Modifier snapshot didn't match upgrade ledger |

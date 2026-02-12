@@ -25,6 +25,8 @@ export class Quill extends Phaser.GameObjects.Container {
   private _homingFrameOffset: number = 0;
   private static _globalFrameCounter: number = 0;
   private static _nextQuillIndex: number = 0;
+  private baseDamage: number;
+  private _hitCounts: Map<Phaser.GameObjects.GameObject, { count: number, time: number }> = new Map();
 
   public damage: number;
   public isEmpowered: boolean = false;
@@ -58,9 +60,10 @@ export class Quill extends Phaser.GameObjects.Container {
     this.lifetime = QUILL_CONFIG.lifetime;
 
     // Calculate damage
-    const baseDamage = QUILL_CONFIG.damage;
+    const rawBase = QUILL_CONFIG.damage;
     const damageMult = 1 + this.upgradeManager.getModifier('damage');
-    this.damage = baseDamage * damageMult;
+    this.baseDamage = rawBase * damageMult;
+    this.damage = this.baseDamage;
 
     // Get pierce count from upgrades
     this.pierceCount = Math.floor(this.upgradeManager.getModifier('piercing'));
@@ -240,7 +243,29 @@ export class Quill extends Phaser.GameObjects.Container {
     }
   }
 
-  onHitEnemy(): boolean {
+  canHitEnemy(enemy: Phaser.GameObjects.GameObject): boolean {
+    const entry = this._hitCounts.get(enemy);
+    if (!entry) return true;
+    if (Date.now() - entry.time > 200) return true;
+    return entry.count < 2;
+  }
+
+  registerHit(enemy: Phaser.GameObjects.GameObject): boolean {
+    const now = Date.now();
+    const entry = this._hitCounts.get(enemy);
+    if (!entry || now - entry.time > 200) {
+      this._hitCounts.set(enemy, { count: 1, time: now });
+      return true;
+    }
+    entry.count++;
+    entry.time = now;
+    return false;
+  }
+
+  onHitEnemy(isNewTarget: boolean): boolean {
+    // Reset damage from base each hit to prevent compounding
+    this.damage = this.baseDamage;
+
     // Apply distance damage bonus before crit (so crit multiplies it)
     const distDamageMod = this.upgradeManager.getModifier('distanceDamage');
     if (distDamageMod > 0) {
@@ -258,14 +283,17 @@ export class Quill extends Phaser.GameObjects.Container {
       this.damage *= critMult;
     }
 
-    // Handle piercing
-    if (this.pierceCount > 0) {
-      this.pierceCount--;
-      return false; // Don't destroy
+    // Only consume a pierce charge for new targets (not the double-hit)
+    if (isNewTarget) {
+      if (this.pierceCount > 0) {
+        this.pierceCount--;
+        return false; // Don't destroy
+      }
+      this.dead = true;
+      return true;
     }
 
-    this.dead = true;
-    return true;
+    return false;
   }
 
   isDead(): boolean {

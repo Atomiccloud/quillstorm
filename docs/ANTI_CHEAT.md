@@ -208,7 +208,7 @@ When submitting to `/api/leaderboard/submit`, the server validates the score aga
       - Add unreported kill points from gameover (current wave + infinite swarm)
       - Final score must not exceed total expected + 30% tolerance
    d. Score must not be below 90% of last recorded score
-4. Check statsFlagged (Layer 8) and modifiersFlagged (Layer 9)
+4. Check modifiersFlagged (Layer 8)
 5. Run original perf check (35k+/wave 20) and enhanced perf check (25k+/wave 15+)
 6. Delete session (one-time use)
 ```
@@ -352,7 +352,7 @@ Basic server-side validation on all submissions:
      b. Validate timestamp within 3s window
      c. Check rate limits
      d. Validate session (gameOver=true, score matches, wave matches)
-     e. Check statsFlagged, modifiersFlagged
+     e. Check modifiersFlagged (upgrade ledger mismatch)
      f. Run enhanced perf check (25k+/wave 15+)
      g. Save to REAL leaderboard (or shadow if any check failed)
      h. Delete session (one-time use)
@@ -376,7 +376,7 @@ Basic server-side validation on all submissions:
    b. No session token → Shadow leaderboard (fake success)
    c. Session exists but score doesn't match history → Shadow leaderboard
    d. Session exists but game over not reported → Shadow leaderboard
-   e. Session exists but modifiersFlagged → Shadow leaderboard
+   e. Session exists but modifiers don't match upgrade ledger → Shadow leaderboard
    f. Session exists but enhanced perf check fails → Shadow leaderboard
 
 3. Attacker tries to spoof all data consistently
@@ -433,53 +433,7 @@ Failed validation routes to the shadow leaderboard via the existing honeypot mec
 
 ---
 
-## Layer 8: Stat Metrics Validation
-
-Detects players who modify their HP, quill count, or prosperity values via console/memory hacking. The client reports these stats (obfuscated) with each wave and game-over report.
-
-### What's Tracked
-
-Each wave report includes an optional `sm` field with obfuscated sub-fields:
-- `m` - Max health
-- `c` - Max quills (capacity)
-- `p` - Prosperity
-
-### Validation Rules
-
-The server calculates maximum allowed values based on the wave number:
-- **Max HP** = `100 + (wave * 25)` (base 100 + ~1 legendary upgrade per wave)
-- **Max Quills** = `30 + (wave * 20)` (base 30 + ~1 epic upgrade per wave)
-- **Max Prosperity** = `wave * 25` (base 0 + ~1 epic upgrade per wave)
-
-These bounds are intentionally generous to avoid false positives. Most upgrades have **no maxStacks limit**, so theoretical all-in builds can reach extreme values (e.g., 280 quills, 600 HP). The upgrade ledger (Layer 9) provides more precise validation by computing exact expected values from actual picks.
-
-| Wave | Max HP | Max Quills | Max Prosperity |
-|------|--------|------------|----------------|
-| 1    | 125    | 50         | 25             |
-| 10   | 350    | 230        | 250            |
-| 20   | 600    | 430        | 500            |
-
-### Defense Stats Validation
-
-Each wave report includes an optional `ds` field with armor and evasion values. The server validates these aren't impossibly high for the wave number:
-
-- **Max Armor** = `10 + (wave * 20)`
-- **Max Evasion** = `10 + (wave * 15)`
-- Validated for **all waves** (previously was only waves 1-19, extended in v0.5.1)
-
-### Detection Logic
-
-If any reported stat exceeds its wave-based maximum, the session is flagged with `statsFlagged: true`. This flag persists through the session and causes the final score submission to route to the shadow leaderboard.
-
-### Integration
-
-- Flag is set silently (request still returns success)
-- Flag is checked at score submission time alongside other validations
-- Flagged sessions go to shadow leaderboard via existing honeypot
-
----
-
-## Layer 9: Upgrade Ledger & Modifier Snapshot Validation (v0.5.1)
+## Layer 8: Upgrade Ledger & Modifier Snapshot Validation (v0.5.1)
 
 Detects modifier tampering (damage, fire rate, regen, etc.) by cross-referencing the player's actual upgrade picks with their reported modifier values.
 
@@ -533,6 +487,10 @@ const reported = um.d / 1000;  // um.d = 300 → 0.30
 - **Hard reject**: 3 or more major flags → session is blocked from real leaderboard
 - **Soft flag**: fewer than 3 major flags → `session.modifiersFlagged = true`
 
+### What This Replaces
+
+Previously (pre-v0.5.72), a separate "Stat Metrics Validation" layer used crude wave-based bounds to check HP, quills, prosperity, armor, and evasion (e.g., `maxHP = 100 + wave * 25`). This was removed because the upgrade ledger provides **exact** expected values for all these stats. The wave-based bounds caused false positives for legitimate infinite swarm runs where players accumulate hundreds of upgrades on wave 20.
+
 ### Why This Is Hard to Spoof
 
 A cheater who modifies `upgradeManager.modifiers.set('damage', 5.0)` in DevTools will:
@@ -543,7 +501,7 @@ A cheater who modifies `upgradeManager.modifiers.set('damage', 5.0)` in DevTools
 To spoof successfully, the cheater would need to:
 - Intercept and modify the `um` field in every wave report
 - Know the exact expected values from their upgrade picks
-- Also spoof consistent quill efficiency and wave timing (Layers 10)
+- Also spoof consistent quill efficiency and wave timing (Layer 9)
 
 ### Modifier Snapshot Keys
 
@@ -570,7 +528,7 @@ All values are transmitted as integers (raw value × 1000):
 
 ---
 
-## Layer 10: Behavioral Heuristics (v0.5.1)
+## Layer 9: Behavioral Heuristics (v0.5.1)
 
 Detects stat manipulation indirectly by analyzing gameplay patterns. These heuristics flag suspicious behavior but do **not** reject submissions outright — they add flags to `session.heuristicFlags[]` for use in future analysis.
 
@@ -614,10 +572,9 @@ Cross-references damage taken with defensive stats:
 4. **Timestamp relies on client clock** - If client clock is >3s off from server, legitimate submissions fail.
 5. **Salt is in the client bundle** - Determined attackers can extract it from the JS bundle. The checksum is a speed bump, not a wall. The session validation is the stronger layer.
 6. **Survivability telemetry is self-reported** - A sophisticated cheater who discovers the `pm` field could spoof realistic values. However, they'd need to reverse-engineer both the obfuscated names and the server-side thresholds.
-7. **Stat metrics are self-reported** - Similar to survivability, the `sm` field could be spoofed by someone who reverse-engineers the obfuscated names and validation bounds.
-8. **Modifier snapshot is self-reported** - The `um` field could be spoofed, but the cheater would need to fake values consistent with their upgrade ledger AND behavioral heuristics. Spoofing one layer is easy; spoofing all layers consistently is exponentially harder.
-9. **Upgrade ledger relies on client reporting** - A cheater could skip sending upgrade reports, but the server would then have an empty ledger with non-zero modifiers, which is an obvious mismatch.
-10. **Behavioral heuristics are passive** - Currently only flag, don't reject. A future update could use flag accumulation as a rejection trigger.
+7. **Modifier snapshot is self-reported** - The `um` field could be spoofed, but the cheater would need to fake values consistent with their upgrade ledger AND behavioral heuristics. Spoofing one layer is easy; spoofing all layers consistently is exponentially harder.
+8. **Upgrade ledger relies on client reporting** - A cheater could skip sending upgrade reports, but the server would then have an empty ledger with non-zero modifiers, which is an obvious mismatch.
+9. **Behavioral heuristics are passive** - Currently only flag, don't reject. A future update could use flag accumulation as a rejection trigger.
 
 ---
 
