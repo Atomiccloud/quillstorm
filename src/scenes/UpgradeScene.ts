@@ -272,14 +272,40 @@ export class UpgradeScene extends Phaser.Scene {
       const val = upgrade.effects.moveSpeed;
       effects.push(`Speed: ${val > 0 ? '+' : ''}${Math.round(val * 100)}%`);
     }
+    if (upgrade.effects.jumpHeight) {
+      const val = upgrade.effects.jumpHeight;
+      effects.push(`Jump: +${Math.round(val * 100)}%`);
+    }
     if (upgrade.effects.projectileCount) {
       effects.push(`+${upgrade.effects.projectileCount} projectiles`);
+    }
+    if (upgrade.effects.projectileSpeed) {
+      const val = upgrade.effects.projectileSpeed;
+      effects.push(`Quill Speed: +${Math.round(val * 100)}%`);
+    }
+    if (upgrade.effects.projectileSize) {
+      const val = upgrade.effects.projectileSize;
+      effects.push(`Quill Size: +${Math.round(val * 100)}%`);
     }
     if (upgrade.effects.critChance) {
       effects.push(`Crit: +${Math.round(upgrade.effects.critChance * 100)}%`);
     }
+    if (upgrade.effects.critDamage) {
+      const val = upgrade.effects.critDamage;
+      effects.push(`Crit Dmg: +${Math.round(val * 100)}%`);
+    }
     if (upgrade.effects.piercing) {
       effects.push(`Pierce: +${upgrade.effects.piercing} enemies`);
+    }
+    if (upgrade.effects.bouncing) {
+      effects.push(`Bounces: +${upgrade.effects.bouncing}`);
+    }
+    if (upgrade.effects.knockback) {
+      effects.push(`Knockback: +${upgrade.effects.knockback}`);
+    }
+    if (upgrade.effects.distanceDamage) {
+      const val = upgrade.effects.distanceDamage;
+      effects.push(`Range Dmg: +${Math.round(val * 100)}%`);
     }
     if (upgrade.effects.maxHealth) {
       effects.push(`Max HP: +${upgrade.effects.maxHealth}`);

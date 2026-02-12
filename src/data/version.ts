@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.5';
+export const GAME_VERSION = '0.5.6';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,18 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.6',
+    date: '2026-02-12',
+    changes: [
+      'New rare upgrade: Blood Quills — +3 vampirism strength, +20% damage',
+      'Vampire Lord buffed — vampirism strength 3→5, damage 30%→50%',
+      'Upgrade cards now show all stat effects (crit damage, bouncing, quill speed, jump, quill size, knockback, range damage)',
+      'Armor and evasion reworked — new exponential saturation formula reaches 90-95% with heavy stacking',
+      'Fixed infinite swarm timer overlapping HP/DMG stats, and level up / wave complete banners no longer overlap',
+      'Restart and main menu buttons now require confirmation during a run to prevent accidental progress loss',
+    ],
+  },
   {
     version: '0.5.5',
     date: '2026-02-11',
