@@ -14,6 +14,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: '2026-02-12',
     changes: [
       'Stats panel now shows capped speed value (+67%) instead of raw modifier when over the movement speed cap',
+      'Fixed spitter/boss projectiles, burrower emergence, and bomber zones not scaling with wave/danger/elite multipliers',
     ],
   },
   {

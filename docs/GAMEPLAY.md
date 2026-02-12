@@ -59,7 +59,7 @@ Your quill percentage determines your mechanical state (4 states) and visual app
 
 ### Spitter (Green)
 - **Health**: 25
-- **Damage**: 15 (projectile)
+- **Damage**: 15 base (projectile, scales with wave/danger)
 - **Speed**: 60
 - **Projectile Speed**: 250
 - **Fire Rate**: 3.0 sec between shots
@@ -114,7 +114,7 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Moves toward player at 1.5x speed while burrowed (3 seconds)
   - **Warning Phase**: Red exclamation mark + repeating dirt particles appear 900ms before surfacing
   - Surfaces on the player's platform level, offset 50-90px to the left or right
-  - Surfaces with AOE damage (60px radius, 20 damage)
+  - Surfaces with AOE damage (60px radius, scales with enemy damage)
   - Visual: dark brown mole with claws, dirt burst on surfacing
 - **Unlocked**: Wave 9
 
@@ -150,7 +150,7 @@ Your quill percentage determines your mechanical state (4 states) and visual app
 
 ### Bomber (Dark Navy)
 - **Health**: 40
-- **Damage**: 8 (contact), 20 (bomb zone)
+- **Damage**: 8 base (contact), bomb zone scales with enemy damage
 - **Speed**: 80
 - **Points**: 45
 - **Behavior**:
@@ -158,14 +158,14 @@ Your quill percentage determines your mechanical state (4 states) and visual app
   - Drifts horizontally following player with gentle sine patrol
   - Every 3 seconds, drops a bomb zone at its current position
   - **Warning Phase** (800ms): Pulsing red circle outline on ground below
-  - **Active Phase** (1000ms): Filled orange-red danger zone, deals 20 damage once on detonation
+  - **Active Phase** (1000ms): Filled orange-red danger zone, deals scaled damage once on detonation
   - Forces player to stay mobile and avoid camping platforms
   - Visual: dark crow/raven with orange belly pouch, orange eyes
 - **Unlocked**: Wave 15
 
 ### Boss (Dark Red)
 - **Health**: 300
-- **Damage**: 25 (contact)
+- **Damage**: 25 base (contact, projectiles scale with wave/danger)
 - **Speed**: 100
 - **Projectile Speed**: 400
 - **Charge Speed**: 350
@@ -195,7 +195,7 @@ Your quill percentage determines your mechanical state (4 states) and visual app
 
 ### Flying Boss (Purple)
 - **Health**: 1,000 (base, scales with boss tier)
-- **Damage**: 35 (contact)
+- **Damage**: 35 base (contact, projectiles scale with wave/danger)
 - **Speed**: 150
 - **Projectile Speed**: 350
 - **Dive Speed**: 500
@@ -337,7 +337,7 @@ Enemies get stronger every 2 waves (capped at multiplier):
 | Damage | +10% | 5.0x |
 | Speed | +3% | 5.0x |
 
-Note: Stats only increase on waves 3, 5, 7, 9, etc. Spawn pacing also scales every 2 waves.
+Note: Stats only increase on waves 3, 5, 7, 9, etc. Spawn pacing also scales every 2 waves. All enemy damage sources scale (contact, projectiles, burrower AOE, bomber zones).
 
 ### Boss HP Scaling
 
