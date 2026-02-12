@@ -1165,8 +1165,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private acquireCircle(x: number, y: number, radius: number, color: number, alpha: number = 1): Phaser.GameObjects.Arc {
-    const circle = this.circlePool.pop();
-    if (circle) {
+    while (this.circlePool.length > 0) {
+      const circle = this.circlePool.pop()!;
+      if (!circle.scene) continue;
       circle.setPosition(x, y);
       circle.setRadius(radius);
       circle.setFillStyle(color, alpha);
@@ -1181,14 +1182,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   private releaseCircle(circle: Phaser.GameObjects.Arc): void {
+    if (!circle.scene) return;
     circle.setVisible(false);
     circle.setActive(false);
     this.circlePool.push(circle);
   }
 
   private acquireRect(x: number, y: number, w: number, h: number, color: number, alpha: number = 1): Phaser.GameObjects.Rectangle {
-    const rect = this.rectPool.pop();
-    if (rect) {
+    while (this.rectPool.length > 0) {
+      const rect = this.rectPool.pop()!;
+      if (!rect.scene) continue;
       rect.setPosition(x, y);
       rect.setSize(w, h);
       rect.setFillStyle(color, alpha);
@@ -1203,6 +1206,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private releaseRect(rect: Phaser.GameObjects.Rectangle): void {
+    if (!rect.scene) return;
     rect.setVisible(false);
     rect.setActive(false);
     this.rectPool.push(rect);
