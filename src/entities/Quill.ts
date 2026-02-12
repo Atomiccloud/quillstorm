@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { QUILL_CONFIG, COLORS, DISTANCE_DAMAGE_CONFIG } from '../config';
+import { QUILL_CONFIG, COLORS, DISTANCE_DAMAGE_CONFIG, CRIT_CONFIG } from '../config';
 import { ModifierSource } from '../systems/UpgradeManager';
 
 export class Quill extends Phaser.GameObjects.Container {
@@ -248,14 +248,12 @@ export class Quill extends Phaser.GameObjects.Container {
       this.damage *= (1 + distDamageMod * distRatio * distRatio);
     }
 
-    // Check for crit (empowered quills from Apotheosis always crit)
-    // v0.5.0: Crit now has diminishing returns: effective = raw / (raw + 1)
-    const rawCrit = this.upgradeManager.getModifier('critChance');
-    const effectiveCrit = rawCrit > 0 ? rawCrit / (rawCrit + 1) : 0;
+    const rawCrit = CRIT_CONFIG.baseCritChance + this.upgradeManager.getModifier('critChance');
+    const effectiveCrit = rawCrit / (rawCrit + 1);
     const isCrit = this.isEmpowered || Math.random() < effectiveCrit;
 
     if (isCrit) {
-      const critMult = 2 + this.upgradeManager.getModifier('critDamage');
+      const critMult = CRIT_CONFIG.baseMultiplier + this.upgradeManager.getModifier('critDamage');
       this.damage *= critMult;
     }
 

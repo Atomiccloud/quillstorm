@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG, CRIT_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class StatsPanel {
@@ -254,18 +254,12 @@ export class StatsPanel {
     const fireRate = this.upgradeManager.getModifier('fireRate');
     if (fireRate !== 0) combat.push({ name: 'Fire Rate', value: formatPercent(fireRate) });
 
-    // v0.5.0: Crit uses diminishing returns: effective = raw / (raw + 1)
-    // Display as flat number with effective percentage
-    const rawCrit = this.upgradeManager.getModifier('critChance');
-    if (rawCrit > 0) {
-      const effectiveCrit = rawCrit / (rawCrit + 1);
-      const rawDisplay = Math.round(rawCrit * 100);
-      const effectiveDisplay = Math.round(effectiveCrit * 100);
-      combat.push({ name: 'Crit', value: `+${rawDisplay} (${effectiveDisplay}%)` });
-    }
+    const rawCrit = CRIT_CONFIG.baseCritChance + this.upgradeManager.getModifier('critChance');
+    const effectiveCrit = rawCrit / (rawCrit + 1);
+    combat.push({ name: 'Crit Chance', value: `${Math.round(effectiveCrit * 100)}%` });
 
-    const critDamage = this.upgradeManager.getModifier('critDamage');
-    if (critDamage !== 0) combat.push({ name: 'Crit Damage', value: `+${critDamage.toFixed(1)}x` });
+    const totalCritMult = CRIT_CONFIG.baseMultiplier + this.upgradeManager.getModifier('critDamage');
+    combat.push({ name: 'Crit Damage', value: `${totalCritMult.toFixed(2)}x` });
 
     const piercing = this.upgradeManager.getModifier('piercing');
     if (piercing !== 0) combat.push({ name: 'Pierce', value: formatFlat(piercing) });

@@ -386,6 +386,11 @@ export const DISTANCE_DAMAGE_CONFIG = {
   maxDistance: 600,              // px for full distance bonus (quadratic scaling)
 };
 
+export const CRIT_CONFIG = {
+  baseCritChance: 0.05,         // ~5% effective crit from the start (diminishing returns: raw/(raw+1))
+  baseMultiplier: 2.5,          // Crits deal 2.5x damage baseline (before critDamage upgrades)
+};
+
 export const COMPANION_CONFIG = {
   range: 600,                    // Detection/targeting range in px
   baseShootInterval: 2000,       // Base ms between shots (before fire rate scaling)

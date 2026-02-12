@@ -102,6 +102,8 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 ### Adjusting Game Balance
 All balance constants live in `src/config.ts` — search for the relevant `*_CONFIG` export. See Quick Links above for specific systems.
 
+**When changing upgrade values:** Always update `docs/UPGRADES.md`, `public/upgrade-reference.html`, and `api/_lib/upgrades.ts` to stay in sync.
+
 ### Adding a New Enemy Type
 1. Add config to `ENEMY_CONFIG` in `src/config.ts`
 2. Add type to `EnemyType` union in `src/entities/Enemy.ts`
@@ -113,6 +115,8 @@ All balance constants live in `src/config.ts` — search for the relevant `*_CON
 1. Add to `upgrades` array in `src/data/upgrades.ts`
 2. Ensure effect keys match `ModifierType` in `src/systems/UpgradeManager.ts`
 3. Set appropriate rarity, maxStacks, and effects
+4. **Always** update `docs/UPGRADES.md` and `public/upgrade-reference.html` to match
+5. If the upgrade has server-side validation, update `api/_lib/upgrades.ts`
 
 ### Adding a New Sound
 1. Add static method to `AudioManager` class

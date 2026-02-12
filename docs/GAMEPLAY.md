@@ -635,18 +635,20 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 - **Scaling**: Thorns damage scales with your damage modifier (`thorns × (1 + damageModifier)`)
 - **Applied**: On both regular contact damage and shellback roll attacks
 
-### Critical Hits (v0.5.0 Rebalanced)
+### Critical Hits (v0.5.7 Rebalanced)
+- **Base crit chance**: 5% (0.05 raw, ~4.8% effective) — crits happen from the start
 - **Formula**: Diminishing returns — `effectiveCrit = rawCrit / (rawCrit + 1)`
-- **Display**: Shown as "+100 Crit (50%)" where 100 is raw and 50% is effective
-- **Base crit damage**: 2.0x
-- **Crit damage bonuses**: Add to base (e.g., +1.0x = 3.0x total)
+- **Display**: Stats panel shows effective crit % and total crit multiplier
+- **Base crit damage**: 2.5x
+- **Crit damage bonuses**: Add to base (e.g., +1.0x = 3.5x total)
 
 | Raw Crit | Effective Chance |
 |----------|------------------|
-| 10% | 9% |
-| 25% | 20% |
-| 50% | 33% |
-| 100% | 50% |
+| 5% (base) | 4.8% |
+| 20% (+1 VP) | 16.7% |
+| 45% (+VP +DP) | 31.0% |
+| 95% (+VP +DP +CM) | 48.7% |
+| 195% (all four) | 66.1% |
 | 200% | 67% |
 | 300% | 75% |
 
