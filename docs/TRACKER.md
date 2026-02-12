@@ -127,6 +127,7 @@ See [V0.5.0_BALANCE_PLAN.md](V0.5.0_BALANCE_PLAN.md) for balance specifications.
 
 ### Gameplay Caps
 - [x] Movement speed cap at 600 px/sec — `src/config.ts`, `src/entities/Player.ts`
+- [x] Stats panel shows capped speed value instead of raw modifier — `src/ui/StatsPanel.ts`
 - [x] Explosion radius cap at 400px — `src/config.ts`, `src/scenes/GameScene.ts`
 - [x] Remove score submission cap (was 2,999,999) — `api/_lib/validation.ts`
 

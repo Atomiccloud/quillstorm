@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG, CRIT_CONFIG } from '../config';
+import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG, CRIT_CONFIG, PLAYER_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
 
 export class StatsPanel {
@@ -332,7 +332,12 @@ export class StatsPanel {
 
     // Movement stats
     const moveSpeed = this.upgradeManager.getModifier('moveSpeed');
-    if (moveSpeed !== 0) movement.push({ name: 'Speed', value: formatPercent(moveSpeed) });
+    if (moveSpeed !== 0) {
+      const effectiveCap = (PLAYER_CONFIG.maxSpeed / PLAYER_CONFIG.moveSpeed) - 1;
+      const capped = moveSpeed > effectiveCap;
+      const displayValue = capped ? formatPercent(effectiveCap) + ' (cap)' : formatPercent(moveSpeed);
+      movement.push({ name: 'Speed', value: displayValue });
+    }
 
     const jumpHeight = this.upgradeManager.getModifier('jumpHeight');
     if (jumpHeight !== 0) movement.push({ name: 'Jump', value: formatPercent(jumpHeight) });

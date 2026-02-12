@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.71';
+export const GAME_VERSION = '0.5.72';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,13 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.72',
+    date: '2026-02-12',
+    changes: [
+      'Stats panel now shows capped speed value (+67%) instead of raw modifier when over the movement speed cap',
+    ],
+  },
   {
     version: '0.5.71',
     date: '2026-02-12',
