@@ -97,6 +97,12 @@ export class AudioManager {
     this.playNoise(0.15, 0.5);
   }
 
+  // Short metallic ping for thorns reflection
+  static playThorns(): void {
+    this.playTone(800, 0.06, 'square', 0.3);
+    this.playNoise(0.03, 0.3);
+  }
+
   // Harsh sawtooth warning for player taking damage
   static playPlayerDamage(): void {
     this.playTone(150, 0.15, 'sawtooth', 0.5);

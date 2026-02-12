@@ -164,27 +164,33 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 - Turn rate: `angleDiff * strength * 0.1` radians per frame
 - Higher strength = faster tracking correction
 
-### Armor (Exponential Saturation)
-- Formula: `effective = 1 - e^(-raw * 1.2)`
+### Armor (Exponential Saturation + Soft Cap)
+- Base formula: `base = 1 - e^(-raw * 1.2)`
+- Soft cap: above 50% effective, returns diminish at 85% rate → **max ~92.5%**
+- `if base > 0.50: effective = 0.50 + (base - 0.50) * 0.85`
 - Damage reduction: `actualDamage = incoming * (1 - effective)`
 - Examples:
   - 0.08 raw (Tough Skin) → **9% DR**
-  - 0.20 raw (two commons) → **21% DR**
-  - 0.50 raw → **45% DR**
-  - 1.05 raw (full chain) → **72% DR**
-  - 2.00 raw (heavy stacking) → **91% DR**
-  - 2.50 raw (extreme) → **95% DR**
+  - 0.24 raw (two uncommons) → **25% DR**
+  - 0.48 raw (four uncommons) → **44% DR**
+  - 1.05 raw (full chain) → **68% DR**
+  - 2.00 raw (heavy stacking) → **85% DR**
+  - 3.00 raw (extreme) → **90% DR**
+  - 6.00+ raw → **~92.5% DR (cap)**
 
-### Evasion (Exponential Saturation)
-- Formula: `effective = 1 - e^(-raw * 0.9)`
+### Evasion (Exponential Saturation + Soft Cap)
+- Base formula: `base = 1 - e^(-raw * 0.9)`
+- Soft cap: above 40% effective, returns diminish at 75% rate → **max ~85%**
+- `if base > 0.40: effective = 0.40 + (base - 0.40) * 0.75`
 - Checked BEFORE shields (successful dodge doesn't consume shield charge)
 - Examples:
   - 0.08 raw (Quick Reflexes) → **7% dodge**
-  - 0.20 raw (two commons) → **17% dodge**
-  - 0.50 raw → **36% dodge**
-  - 0.88 raw (full chain) → **55% dodge**
-  - 2.00 raw (heavy stacking) → **83% dodge**
-  - 3.00 raw (extreme) → **93% dodge**
+  - 0.24 raw (two uncommons) → **19% dodge**
+  - 0.48 raw (four uncommons) → **35% dodge**
+  - 0.88 raw (full chain) → **51% dodge**
+  - 2.00 raw (heavy stacking) → **73% dodge**
+  - 3.00 raw (extreme) → **80% dodge**
+  - 6.00+ raw → **~85% dodge (cap)**
 
 ### Shield Charges
 - Absorbs 1 hit per charge

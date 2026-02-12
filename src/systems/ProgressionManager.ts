@@ -16,6 +16,8 @@ export class ProgressionManager {
   // Infinite swarm state
   private infiniteSwarmActive: boolean = false;
   private infiniteSwarmStartTime: number = 0;
+  private swarmPausedTime: number = 0;
+  private swarmPauseStart: number = 0;
   private swarmHPMultiplier: number = 1.0;
   private swarmDamageMultiplier: number = 1.0;
   private currentSpawnInterval: number = INFINITE_SWARM_CONFIG.baseSpawnInterval;
@@ -237,11 +239,31 @@ export class ProgressionManager {
     return this.infiniteSwarmActive;
   }
 
+  // Call when scene pauses (upgrade selection, pause menu)
+  onSwarmPause(currentTime: number): void {
+    if (this.infiniteSwarmActive && this.swarmPauseStart === 0) {
+      this.swarmPauseStart = currentTime;
+    }
+  }
+
+  // Call when scene resumes
+  onSwarmResume(currentTime: number): void {
+    if (this.infiniteSwarmActive && this.swarmPauseStart > 0) {
+      this.swarmPausedTime += currentTime - this.swarmPauseStart;
+      this.swarmPauseStart = 0;
+    }
+  }
+
+  // Effective elapsed swarm time (excluding pauses)
+  private getSwarmElapsed(currentTime: number): number {
+    return currentTime - this.infiniteSwarmStartTime - this.swarmPausedTime;
+  }
+
   // Update infinite swarm difficulty (call each frame)
   updateInfiniteSwarm(currentTime: number, _delta: number): void {
     if (!this.infiniteSwarmActive) return;
 
-    const totalSeconds = (currentTime - this.infiniteSwarmStartTime) / 1000;
+    const totalSeconds = this.getSwarmElapsed(currentTime) / 1000;
     const tiers = totalSeconds / INFINITE_SWARM_CONFIG.statScaleInterval;
 
     // Determine current stage (check from highest to lowest)
@@ -297,7 +319,7 @@ export class ProgressionManager {
 
   getSwarmDuration(currentTime: number): number {
     if (!this.infiniteSwarmActive) return 0;
-    return currentTime - this.infiniteSwarmStartTime;
+    return this.getSwarmElapsed(currentTime);
   }
 
   getCurrentStage(): number {
@@ -323,6 +345,8 @@ export class ProgressionManager {
     this.pendingLevelUps = 0;
     this.infiniteSwarmActive = false;
     this.infiniteSwarmStartTime = 0;
+    this.swarmPausedTime = 0;
+    this.swarmPauseStart = 0;
     this.swarmHPMultiplier = 1.0;
     this.swarmDamageMultiplier = 1.0;
     this.currentSpawnInterval = INFINITE_SWARM_CONFIG.baseSpawnInterval;

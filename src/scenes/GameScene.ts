@@ -190,6 +190,14 @@ export class GameScene extends Phaser.Scene {
 
     // Listen for resume from upgrade scene
     this.events.on('resume', this.onResumeFromUpgrade, this);
+
+    // Pause/resume swarm timer so difficulty doesn't scale while paused
+    this.events.on('pause', () => {
+      this.progressionManager.onSwarmPause(this.time.now);
+    });
+    this.events.on('resume', () => {
+      this.progressionManager.onSwarmResume(this.time.now);
+    });
   }
 
   private getStageColors(wave: number): { platform: number; background: number } {
@@ -943,6 +951,11 @@ export class GameScene extends Phaser.Scene {
     }
     const killed = enemy._uf(damage, hitAngle);
 
+    // Crit floating text
+    if (quill.isCrit && GraphicsSettings.combatText) {
+      this.spawnCritText(enemy.x, enemy.y, Math.floor(damage));
+    }
+
     // Vampirism - stack-based proc chance and flat healing (uses rollProc for Fate's Favor)
     const vampStacks = mods.getModifier('vampirismStrength');
     if (vampStacks > 0) {
@@ -1142,6 +1155,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnCounterText(x: number, y: number, msg: string): void {
+    if (!GraphicsSettings.combatText) return;
     const opacity = this.effectsOpacity;
     if (opacity <= 0) return;
 
@@ -1158,6 +1172,28 @@ export class GameScene extends Phaser.Scene {
       y: text.y - 50,
       alpha: 0,
       duration: 800,
+      ease: 'Power2',
+      onComplete: () => text.destroy(),
+    });
+  }
+
+  private spawnCritText(x: number, y: number, damage: number): void {
+    const opacity = this.effectsOpacity;
+    if (opacity <= 0) return;
+
+    const text = this.add.text(x, y - 30, `CRIT ${damage}`, {
+      fontSize: '14px',
+      fontFamily: 'monospace',
+      color: '#ff6666',
+      stroke: '#000000',
+      strokeThickness: 2,
+    }).setOrigin(0.5).setAlpha(opacity * 0.85);
+
+    this.tweens.add({
+      targets: text,
+      y: text.y - 40,
+      alpha: 0,
+      duration: 700,
       ease: 'Power2',
       onComplete: () => text.destroy(),
     });
@@ -1680,9 +1716,18 @@ export class GameScene extends Phaser.Scene {
     this.isChoosingUpgrade = false;
     this.pendingUpgradeSource = null;
 
-    // Apply any health upgrades
+    // Apply any health upgrades — heal for gains, clamp for reductions
+    const oldMax = this.player.maxHealth;
     const healthBonus = this.upgradeManager.getModifier('maxHealth');
     this.player.maxHealth = PLAYER_CONFIG.maxHealth + healthBonus;
+    const maxDelta = this.player.maxHealth - oldMax;
+    if (maxDelta > 0) {
+      // +HP upgrades also heal by the gained amount
+      this.player.heal(maxDelta);
+    } else if (maxDelta < 0) {
+      // -HP upgrades clamp current health to new max
+      this.player.health = Math.min(this.player.health, this.player.maxHealth);
+    }
 
     // Grant any new shield charges immediately (so mid-wave shield pickups work)
     this.player.syncNewShieldCharges(this.previousMaxShields);
@@ -2538,9 +2583,35 @@ export class GameScene extends Phaser.Scene {
       const damageModifier = this.upgradeManager.getModifier('damage');
       const thornsDamage = baseThorns * (1 + damageModifier);
       const killed = enemy._uf(thornsDamage);
+
+      // Thorns feedback: sound + visual shards
+      AudioManager.playThorns();
+      if (GraphicsSettings.combatText) {
+        this.spawnThornsEffect(enemy.x, enemy.y);
+      }
+
       if (killed) {
         this.handleEnemyKill(enemy);
       }
+    }
+  }
+
+  private spawnThornsEffect(x: number, y: number): void {
+    const shardCount = Math.min(4, GraphicsSettings.deathParticleCount);
+    for (let i = 0; i < shardCount; i++) {
+      const angle = (i / shardCount) * Math.PI * 2 + Math.random() * 0.5;
+      const speed = 40 + Math.random() * 50;
+      const shard = this.acquireRect(x, y, 3, 6, 0x8b6914, this.effectsOpacity);
+      shard.rotation = angle;
+
+      this.tweens.add({
+        targets: shard,
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed,
+        alpha: 0,
+        duration: 350,
+        onComplete: () => this.releaseRect(shard),
+      });
     }
   }
 

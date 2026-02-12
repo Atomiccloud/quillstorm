@@ -14,6 +14,7 @@ interface GraphicsConfig {
   statusOverlayDetail: StatusOverlayDetail;
   screenShake: boolean;
   eliteGlowPulse: boolean;
+  combatText: boolean;
 }
 
 const PRESETS: Record<'low' | 'medium' | 'high', Omit<GraphicsConfig, 'preset'>> = {
@@ -27,6 +28,7 @@ const PRESETS: Record<'low' | 'medium' | 'high', Omit<GraphicsConfig, 'preset'>>
     statusOverlayDetail: 'full',
     screenShake: true,
     eliteGlowPulse: true,
+    combatText: true,
   },
   medium: {
     deathParticleCount: 4,
@@ -38,6 +40,7 @@ const PRESETS: Record<'low' | 'medium' | 'high', Omit<GraphicsConfig, 'preset'>>
     statusOverlayDetail: 'simple',
     screenShake: true,
     eliteGlowPulse: true,
+    combatText: true,
   },
   low: {
     deathParticleCount: 2,
@@ -49,6 +52,7 @@ const PRESETS: Record<'low' | 'medium' | 'high', Omit<GraphicsConfig, 'preset'>>
     statusOverlayDetail: 'tint',
     screenShake: false,
     eliteGlowPulse: false,
+    combatText: false,
   },
 };
 
@@ -143,6 +147,7 @@ export class GraphicsSettings {
   static get statusOverlayDetail(): StatusOverlayDetail { return this.config.statusOverlayDetail; }
   static get screenShake(): boolean { return this.config.screenShake; }
   static get eliteGlowPulse(): boolean { return this.config.eliteGlowPulse; }
+  static get combatText(): boolean { return this.config.combatText; }
 }
 
 // Load on import

@@ -28,6 +28,7 @@ export class Quill extends Phaser.GameObjects.Container {
 
   public damage: number;
   public isEmpowered: boolean = false;
+  public isCrit: boolean = false;
 
   get modifiers(): ModifierSource { return this.upgradeManager; }
 
@@ -250,9 +251,9 @@ export class Quill extends Phaser.GameObjects.Container {
 
     const rawCrit = CRIT_CONFIG.baseCritChance + this.upgradeManager.getModifier('critChance');
     const effectiveCrit = rawCrit / (rawCrit + 1);
-    const isCrit = this.isEmpowered || Math.random() < effectiveCrit;
+    this.isCrit = this.isEmpowered || Math.random() < effectiveCrit;
 
-    if (isCrit) {
+    if (this.isCrit) {
       const critMult = CRIT_CONFIG.baseMultiplier + this.upgradeManager.getModifier('critDamage');
       this.damage *= critMult;
     }

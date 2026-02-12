@@ -599,35 +599,41 @@ procChance = (strength × 0.1) / (1 + strength × 0.1)
 ## Defense Stats
 
 ### Armor (Damage Reduction)
-- **Formula**: Exponential saturation — `reduction = 1 - e^(-raw * 1.2)`
+- **Base formula**: Exponential saturation — `base = 1 - e^(-raw * 1.2)`
+- **Soft cap**: Above 50% effective, returns diminish at 85% rate — max ~92.5%
+- `if base > 0.50: effective = 0.50 + (base - 0.50) * 0.85`
 - **Display**: Shown as flat "Armor" value (e.g., "50 Armor")
 - **Applied**: After shields, before quill state multiplier
-- **Infinitely stackable** — approaches 100% asymptotically
+- **Infinitely stackable** — soft capped at ~92.5% in deep infinite swarm
 
 | Total Armor | Effective Reduction |
 |-------------|---------------------|
 | 8 | 9% |
-| 20 | 21% |
-| 50 | 45% |
-| 105 | 72% |
-| 200 | 91% |
-| 250 | 95% |
+| 24 | 25% |
+| 48 | 44% |
+| 105 | 68% |
+| 200 | 85% |
+| 300 | 90% |
+| 600+ | ~92.5% (cap) |
 
 ### Evasion (Dodge Chance)
-- **Formula**: Exponential saturation — `dodge = 1 - e^(-raw * 0.9)`
+- **Base formula**: Exponential saturation — `base = 1 - e^(-raw * 0.9)`
+- **Soft cap**: Above 40% effective, returns diminish at 75% rate — max ~85%
+- `if base > 0.40: effective = 0.40 + (base - 0.40) * 0.75`
 - **Display**: Shown as flat "Evasion" value (e.g., "50 Evasion")
 - **Applied**: Before shields — a dodge wastes no shield charges
 - **Visual**: "DODGE" floating text when triggered
-- **Infinitely stackable** — approaches 100% asymptotically
+- **Infinitely stackable** — soft capped at ~85% in deep infinite swarm
 
 | Total Evasion | Effective Dodge |
 |---------------|-----------------|
 | 8 | 7% |
-| 20 | 17% |
-| 50 | 36% |
-| 88 | 55% |
-| 200 | 83% |
-| 300 | 93% |
+| 24 | 19% |
+| 48 | 35% |
+| 88 | 51% |
+| 200 | 73% |
+| 300 | 80% |
+| 600+ | ~85% (cap) |
 
 ### Thorns (Damage Reflection)
 - **Sources**: Diamond Hide (+10), Living Bastion (+20)
@@ -790,25 +796,36 @@ The arena changes after boss waves (every 5 waves):
 
 Enemies drop XP orbs on death. Collect them to level up and gain bonus upgrades.
 
+**XP Formula:** `floor(5 × bossMultiplier × (1 + wave × 0.1))`
+
 | XP Source | Base Value | Notes |
 |-----------|------------|-------|
-| Regular enemies | 5 XP | +10% per wave |
-| Boss | 50 XP | 10x multiplier |
+| Regular enemy | 5 XP | +10% per wave (wave 10 = 10 XP, wave 20 = 15 XP) |
+| Boss | 50 XP | 10x multiplier (+wave bonus: 75 XP at wave 5, 100 at wave 10) |
+| Elite enemy | 3x | Triples the regular enemy XP value |
+| Danger bonus | +10%/stack | Additive per danger level (danger 5 = +50% XP) |
 
 **XP Orbs:**
 - Magnetic attraction within 80px
 - Despawn after 15 seconds (warning flash at 12s)
-- Color ranges from cyan (small) to gold (large)
+- Color ranges from cyan (small) to gold (high-value, 20+ XP)
 
-**Level Up Formula:** `XP required = 100 × 1.15^(level-1)`
+**Level Up Formula:** `XP required = 55 × 1.18^(level-1)`
 
 | Level | XP Required |
 |-------|-------------|
-| 2 | 100 |
-| 5 | 152 |
-| 10 | 352 |
-| 15 | 813 |
-| 20 | 1,878 |
+| 2 | 55 |
+| 3 | 65 |
+| 5 | 90 |
+| 10 | 240 |
+| 15 | 530 |
+| 20 | 1,159 |
+
+**Early-Game Pacing:**
+- Wave 1: ~25 XP (5 enemies × 5 XP)
+- Wave 2: ~30 XP (5 enemies × 6 XP) — **first level-up at end of wave 2**
+- Wave 3: ~36 XP — second level-up mid wave 3-4
+- Wave 5 boss: 75 XP — big XP spike
 
 **Level Up Rewards:**
 - Each level up triggers an upgrade selection (separate from wave-end upgrades)
