@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.74';
+export const GAME_VERSION = '0.5.72';
 
 export interface ChangelogEntry {
   version: string;
