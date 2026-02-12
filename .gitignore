@@ -28,5 +28,8 @@ npm-debug.log*
 .vercel
 .env*.local
 
+# Claude Code
+.claude/settings.local.json
+
 # Internal reference docs
 docs/OBFUSCATION_REFERENCE.md
