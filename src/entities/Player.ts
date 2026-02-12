@@ -656,7 +656,7 @@ export class Player extends Phaser.GameObjects.Container {
 
   private spawnDodgeText(): void {
     if (!GraphicsSettings.combatText) return;
-    const opacity = SaveManager.getEffectsOpacity();
+    const opacity = SaveManager.getCombatTextOpacity();
     if (opacity <= 0) return;
 
     // "DODGE" floating text when evasion triggers

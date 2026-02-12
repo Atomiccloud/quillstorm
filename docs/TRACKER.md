@@ -252,6 +252,12 @@ Achievement system with 18 achievements across 4 categories (combat, survival, s
 - [x] Armor diminishing returns rescaled (k: 1.5 → 0.5) — single pick ~13%, heavy investment ~69%
 - [x] Evasion diminishing returns rescaled (k: 2.0 → 0.7) — single pick ~10%, heavy investment ~61%
 
+## Completed (v0.5.71 - Effects Opacity Split)
+
+- [x] Split single effects opacity slider into 4 independent sliders: Combat Text, Particles, Elemental VFX, Status Overlays — `src/ui/SettingsModal.ts`, `src/systems/SaveManager.ts`
+- [x] SaveManager migration: existing effectsOpacity value auto-copies to all 4 new fields
+- [x] GameScene, Player, Enemy updated to use per-category opacity values
+
 ---
 
 ## In Progress: Stage System (Phase 2)

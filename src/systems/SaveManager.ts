@@ -6,6 +6,10 @@ interface SaveData {
   totalRuns: number;
   playerName: string;
   effectsOpacity: number;
+  combatTextOpacity: number;
+  particleOpacity: number;
+  elementalOpacity: number;
+  statusOverlayOpacity: number;
 }
 
 const defaultSave: SaveData = {
@@ -14,6 +18,10 @@ const defaultSave: SaveData = {
   totalRuns: 0,
   playerName: '',
   effectsOpacity: 1.0,
+  combatTextOpacity: 1.0,
+  particleOpacity: 1.0,
+  elementalOpacity: 1.0,
+  statusOverlayOpacity: 1.0,
 };
 
 export class SaveManager {
@@ -23,7 +31,17 @@ export class SaveManager {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        this.data = { ...defaultSave, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        this.data = { ...defaultSave, ...parsed };
+
+        // Migration: copy old single effectsOpacity to all 4 new fields
+        if (parsed.effectsOpacity !== undefined && parsed.combatTextOpacity === undefined) {
+          this.data.combatTextOpacity = parsed.effectsOpacity;
+          this.data.particleOpacity = parsed.effectsOpacity;
+          this.data.elementalOpacity = parsed.effectsOpacity;
+          this.data.statusOverlayOpacity = parsed.effectsOpacity;
+          this.save();
+        }
       }
     } catch {
       this.data = { ...defaultSave };
@@ -69,6 +87,42 @@ export class SaveManager {
 
   static setEffectsOpacity(value: number): void {
     this.data.effectsOpacity = Math.max(0, Math.min(1, value));
+    this.save();
+  }
+
+  static getCombatTextOpacity(): number {
+    return this.data.combatTextOpacity;
+  }
+
+  static setCombatTextOpacity(value: number): void {
+    this.data.combatTextOpacity = Math.max(0, Math.min(1, value));
+    this.save();
+  }
+
+  static getParticleOpacity(): number {
+    return this.data.particleOpacity;
+  }
+
+  static setParticleOpacity(value: number): void {
+    this.data.particleOpacity = Math.max(0, Math.min(1, value));
+    this.save();
+  }
+
+  static getElementalOpacity(): number {
+    return this.data.elementalOpacity;
+  }
+
+  static setElementalOpacity(value: number): void {
+    this.data.elementalOpacity = Math.max(0, Math.min(1, value));
+    this.save();
+  }
+
+  static getStatusOverlayOpacity(): number {
+    return this.data.statusOverlayOpacity;
+  }
+
+  static setStatusOverlayOpacity(value: number): void {
+    this.data.statusOverlayOpacity = Math.max(0, Math.min(1, value));
     this.save();
   }
 

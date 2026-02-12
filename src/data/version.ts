@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.7';
+export const GAME_VERSION = '0.5.71';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,20 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.71',
+    date: '2026-02-12',
+    changes: [
+      'Effects opacity setting split into 4 independent sliders: Combat Text, Particles, Elemental VFX, and Status Overlays',
+      'Quill Storm, Sniper Quills, Nuclear Quills, and Elemental Convergence now stackable up to 3',
+      'Glass God now infinitely stackable',
+      'Sniper Quills rebalanced: pierce 5→3, projectile speed 80%→60%',
+      'Living Bastion buffed: HP +25→+100',
+      'Midas: removed 15% damage bonus',
+      'Wraith Form buffed: evasion 28→35, speed 15%→10%',
+      'Elite Hunter buffed: elite damage 25%→35%',
+    ],
+  },
   {
     version: '0.5.7',
     date: '2026-02-12',

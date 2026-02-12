@@ -48,7 +48,9 @@ export class GameScene extends Phaser.Scene {
   private gameOver: boolean = false;
   private lastSwarmStage: number = 0;  // Track stage changes for transition effects
   private shootingBlocked: boolean = false;  // Prevents accidental shots after upgrade selection
-  private effectsOpacity: number = 1;
+  private combatTextOpacity: number = 1;
+  private particleOpacity: number = 1;
+  private elementalOpacity: number = 1;
 
   // Burrower exclamation mark containers
   private burrowerExclamations: Map<Enemy, Phaser.GameObjects.Container> = new Map();
@@ -114,7 +116,9 @@ export class GameScene extends Phaser.Scene {
     this.progressionManager = new ProgressionManager(this.upgradeManager);
     this.quillManager = new QuillManager(this, this.upgradeManager);
 
-    this.effectsOpacity = SaveManager.getEffectsOpacity();
+    this.combatTextOpacity = SaveManager.getCombatTextOpacity();
+    this.particleOpacity = SaveManager.getParticleOpacity();
+    this.elementalOpacity = SaveManager.getElementalOpacity();
 
     SessionManager.startSession();
     AchievementManager.startRun();
@@ -624,9 +628,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnMagnetPulseRing(): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.particleOpacity <= 0) return;
     const ring = this.acquireCircle(this.player.x, this.player.y, 10, 0x8888ff, 0);
-    ring.setStrokeStyle(3, 0x6666ff, this.effectsOpacity * 0.7);
+    ring.setStrokeStyle(3, 0x6666ff, this.particleOpacity * 0.7);
     this.tweens.add({
       targets: ring,
       scale: 20,
@@ -1156,7 +1160,7 @@ export class GameScene extends Phaser.Scene {
 
   private spawnCounterText(x: number, y: number, msg: string): void {
     if (!GraphicsSettings.combatText) return;
-    const opacity = this.effectsOpacity;
+    const opacity = this.combatTextOpacity;
     if (opacity <= 0) return;
 
     const text = this.add.text(x, y - 30, msg, {
@@ -1178,7 +1182,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnCritText(x: number, y: number, damage: number): void {
-    const opacity = this.effectsOpacity;
+    if (!GraphicsSettings.combatText) return;
+    const opacity = this.combatTextOpacity;
     if (opacity <= 0) return;
 
     const text = this.add.text(x, y - 30, `CRIT ${damage}`, {
@@ -1274,11 +1279,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnDeathParticles(x: number, y: number): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.particleOpacity <= 0) return;
 
     const particleCount = GraphicsSettings.deathParticleCount;
     for (let i = 0; i < particleCount; i++) {
-      const particle = this.acquireCircle(x, y, 4, 0xff4444, this.effectsOpacity);
+      const particle = this.acquireCircle(x, y, 4, 0xff4444, this.particleOpacity);
 
       const angle = (i / particleCount) * Math.PI * 2;
       const speed = 100 + Math.random() * 100;
@@ -1298,11 +1303,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   private spawnExplosionEffect(x: number, y: number, radius: number): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.particleOpacity <= 0) return;
 
     // Expanding ring
     const ring = this.acquireCircle(x, y, 10, 0xff8800, 0);
-    ring.setStrokeStyle(4, 0xff4400, this.effectsOpacity);
+    ring.setStrokeStyle(4, 0xff4400, this.particleOpacity);
 
     this.tweens.add({
       targets: ring,
@@ -1314,7 +1319,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Inner flash
-    const flash = this.acquireCircle(x, y, radius * 0.3, 0xffff00, 0.6 * this.effectsOpacity);
+    const flash = this.acquireCircle(x, y, radius * 0.3, 0xffff00, 0.6 * this.particleOpacity);
     this.tweens.add({
       targets: flash,
       scale: 0,
@@ -1326,7 +1331,7 @@ export class GameScene extends Phaser.Scene {
     // Spark particles
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2;
-      const spark = this.acquireCircle(x, y, 3, 0xff6600, this.effectsOpacity);
+      const spark = this.acquireCircle(x, y, 3, 0xff6600, this.particleOpacity);
 
       this.tweens.add({
         targets: spark,
@@ -1707,7 +1712,9 @@ export class GameScene extends Phaser.Scene {
 
   private onResumeFromUpgrade(): void {
     // Re-read effects opacity in case it was changed in pause menu
-    this.effectsOpacity = SaveManager.getEffectsOpacity();
+    this.combatTextOpacity = SaveManager.getCombatTextOpacity();
+    this.particleOpacity = SaveManager.getParticleOpacity();
+    this.elementalOpacity = SaveManager.getElementalOpacity();
 
     // Only proceed if we were actually choosing an upgrade (not resuming from pause)
     if (!this.isChoosingUpgrade) return;
@@ -2253,10 +2260,10 @@ export class GameScene extends Phaser.Scene {
 
   /** Visual arc for chain lightning between two points */
   private spawnChainLightningEffect(x1: number, y1: number, x2: number, y2: number): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.elementalOpacity <= 0) return;
 
     const graphics = this.add.graphics();
-    graphics.lineStyle(2, STATUS_EFFECT_CONFIG.shock.color, this.effectsOpacity);
+    graphics.lineStyle(2, STATUS_EFFECT_CONFIG.shock.color, this.elementalOpacity);
 
     // Jagged lightning bolt (3-5 segments)
     const segments = 4;
@@ -2313,9 +2320,9 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Steam visual
-    if (this.effectsOpacity > 0) {
+    if (this.elementalOpacity > 0) {
       const steam = this.acquireCircle(ex, ey, 10, 0xccddff, 0);
-      steam.setStrokeStyle(3, 0xaabbdd, this.effectsOpacity * 0.6);
+      steam.setStrokeStyle(3, 0xaabbdd, this.elementalOpacity * 0.6);
       this.tweens.add({
         targets: steam,
         radius: radius,
@@ -2438,11 +2445,11 @@ export class GameScene extends Phaser.Scene {
 
   /** Fire explosion visual */
   private spawnFireExplosionEffect(x: number, y: number, radius: number): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.elementalOpacity <= 0) return;
 
     // Orange expanding ring
     const ring = this.acquireCircle(x, y, 10, 0xff6600, 0);
-    ring.setStrokeStyle(4, STATUS_EFFECT_CONFIG.burn.color, this.effectsOpacity);
+    ring.setStrokeStyle(4, STATUS_EFFECT_CONFIG.burn.color, this.elementalOpacity);
 
     this.tweens.add({
       targets: ring,
@@ -2463,7 +2470,7 @@ export class GameScene extends Phaser.Scene {
         px, py,
         3 + Math.random() * 3,
         Phaser.Math.Between(0, 1) ? 0xff6600 : 0xff4400,
-        this.effectsOpacity
+        this.elementalOpacity
       );
 
       this.tweens.add({
@@ -2479,13 +2486,13 @@ export class GameScene extends Phaser.Scene {
 
   /** Poison spread tendrils visual */
   private spawnPoisonSpreadEffect(x: number, y: number, range: number): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.elementalOpacity <= 0) return;
 
     const count = GraphicsSettings.elementalParticleCount;
     if (count <= 0) return;
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * Math.PI * 2;
-      const particle = this.acquireCircle(x, y, 4, STATUS_EFFECT_CONFIG.poison.color, this.effectsOpacity);
+      const particle = this.acquireCircle(x, y, 4, STATUS_EFFECT_CONFIG.poison.color, this.elementalOpacity);
 
       this.tweens.add({
         targets: particle,
@@ -2505,8 +2512,8 @@ export class GameScene extends Phaser.Scene {
 
     // Visual cloud
     const cloudGraphics = this.add.graphics();
-    if (this.effectsOpacity > 0) {
-      cloudGraphics.fillStyle(STATUS_EFFECT_CONFIG.poison.color, this.effectsOpacity * 0.3);
+    if (this.elementalOpacity > 0) {
+      cloudGraphics.fillStyle(STATUS_EFFECT_CONFIG.poison.color, this.elementalOpacity * 0.3);
       cloudGraphics.fillCircle(x, y, radius);
     }
 
@@ -2543,11 +2550,11 @@ export class GameScene extends Phaser.Scene {
 
   /** Ice shatter visual */
   private spawnShatterEffect(x: number, y: number, radius: number): void {
-    if (this.effectsOpacity <= 0) return;
+    if (this.elementalOpacity <= 0) return;
 
     // Blue expanding ring
     const ring = this.acquireCircle(x, y, 10, 0x88ccff, 0);
-    ring.setStrokeStyle(3, STATUS_EFFECT_CONFIG.freeze.color, this.effectsOpacity);
+    ring.setStrokeStyle(3, STATUS_EFFECT_CONFIG.freeze.color, this.elementalOpacity);
 
     this.tweens.add({
       targets: ring,
@@ -2562,7 +2569,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < shardCount; i++) {
       const angle = (i / Math.max(1, shardCount)) * Math.PI * 2;
       const speed = 60 + Math.random() * 80;
-      const shard = this.acquireRect(x, y, 4, 8, STATUS_EFFECT_CONFIG.freeze.color, this.effectsOpacity);
+      const shard = this.acquireRect(x, y, 4, 8, STATUS_EFFECT_CONFIG.freeze.color, this.elementalOpacity);
       shard.rotation = angle;
 
       this.tweens.add({
@@ -2601,7 +2608,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < shardCount; i++) {
       const angle = (i / shardCount) * Math.PI * 2 + Math.random() * 0.5;
       const speed = 40 + Math.random() * 50;
-      const shard = this.acquireRect(x, y, 3, 6, 0x8b6914, this.effectsOpacity);
+      const shard = this.acquireRect(x, y, 3, 6, 0x8b6914, this.particleOpacity);
       shard.rotation = angle;
 
       this.tweens.add({
