@@ -1614,7 +1614,7 @@ export class Enemy extends Phaser.GameObjects.Container {
   }
 
   private drawStatusOverlays(w: number, h: number): void {
-    const opacity = SaveManager.getEffectsOpacity();
+    const opacity = SaveManager.getStatusOverlayOpacity();
     if (opacity <= 0) return;
 
     const detail = GraphicsSettings.statusOverlayDetail;

@@ -11,6 +11,15 @@ const QUALITY_DESCRIPTIONS: Record<QualityPreset, string> = {
   low: 'Minimal effects for best performance — no glow, trails, or shake',
 };
 
+type OpacityCategory = 'combatText' | 'particle' | 'elemental' | 'statusOverlay';
+
+const OPACITY_SLIDERS: { category: OpacityCategory; label: string }[] = [
+  { category: 'combatText', label: 'Combat Text' },
+  { category: 'particle', label: 'Particles' },
+  { category: 'elemental', label: 'Elemental VFX' },
+  { category: 'statusOverlay', label: 'Status Overlays' },
+];
+
 export class SettingsModal extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Rectangle;
   private panel: Phaser.GameObjects.Rectangle;
@@ -22,9 +31,9 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   private muteButton!: Phaser.GameObjects.Rectangle;
   private muteText!: Phaser.GameObjects.Text;
 
-  // Effects controls
-  private effectsFill!: Phaser.GameObjects.Rectangle;
-  private effectsText!: Phaser.GameObjects.Text;
+  // Per-category opacity controls
+  private opacityFills = new Map<OpacityCategory, Phaser.GameObjects.Rectangle>();
+  private opacityTexts = new Map<OpacityCategory, Phaser.GameObjects.Text>();
 
   // Graphics controls
   private qualityButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; preset: QualityPreset }[] = [];
@@ -32,7 +41,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
   // Slider drag tracking
   private isDraggingVolume: boolean = false;
-  private isDraggingEffects: boolean = false;
+  private draggingCategory: OpacityCategory | null = null;
   private barX: number;
   private barWidth: number = 200;
 
@@ -44,7 +53,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
     const panelWidth = 600;
-    const panelHeight = 480;
+    const panelHeight = 570;
 
     this.barX = centerX + 30;
 
@@ -90,13 +99,15 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     this.createSectionHeader(scene, leftX, contentTop, 'Audio');
     this.createVolumeControls(scene, leftX, contentTop + 42);
 
-    // --- Section 2: Effects ---
+    // --- Section 2: Effects (4 sliders) ---
     const effectsY = contentTop + 130;
     this.createSectionHeader(scene, leftX, effectsY, 'Effects');
-    this.createEffectsControls(scene, leftX, effectsY + 42);
+    OPACITY_SLIDERS.forEach((s, i) => {
+      this.createCategorySlider(scene, leftX, effectsY + 36 + i * 32, s.label, s.category);
+    });
 
     // --- Section 3: Graphics Quality ---
-    const graphicsY = effectsY + 130;
+    const graphicsY = effectsY + 36 + OPACITY_SLIDERS.length * 32 + 24;
     this.createSectionHeader(scene, leftX, graphicsY, 'Graphics Quality');
     this.createQualityControls(scene, centerX, graphicsY + 48);
 
@@ -104,12 +115,12 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!this.visible) return;
       if (this.isDraggingVolume) this.updateVolumeFromPointer(pointer);
-      if (this.isDraggingEffects) this.updateEffectsFromPointer(pointer);
+      if (this.draggingCategory) this.updateCategoryFromPointer(pointer, this.draggingCategory);
     });
 
     scene.input.on('pointerup', () => {
       this.isDraggingVolume = false;
-      this.isDraggingEffects = false;
+      this.draggingCategory = null;
     });
 
     // Initially hidden
@@ -196,51 +207,71 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     });
   }
 
-  private createEffectsControls(scene: Phaser.Scene, leftX: number, y: number): void {
-    // Effects label
-    const label = scene.add.text(leftX, y, 'Effects Opacity', {
-      fontSize: '16px',
+  private createCategorySlider(
+    scene: Phaser.Scene, leftX: number, y: number,
+    label: string, category: OpacityCategory
+  ): void {
+    const sliderLabel = scene.add.text(leftX, y, label, {
+      fontSize: '14px',
       fontFamily: 'Arial, sans-serif',
-      color: '#cccccc',
+      color: '#aaaaaa',
     }).setOrigin(0, 0.5);
-    this.add(label);
+    this.add(sliderLabel);
 
-    // Effects bar background
-    const barHeight = 14;
+    const barHeight = 12;
     const barBg = scene.add.rectangle(this.barX, y, this.barWidth, barHeight, 0x333333);
     barBg.setInteractive({ useHandCursor: true });
     this.add(barBg);
 
-    // Effects bar fill
-    const currentEffects = SaveManager.getEffectsOpacity();
-    this.effectsFill = scene.add.rectangle(
+    const currentValue = this.getCategoryValue(category);
+    const fill = scene.add.rectangle(
       this.barX - this.barWidth / 2, y,
-      currentEffects * this.barWidth, barHeight,
+      currentValue * this.barWidth, barHeight,
       0x4a6741
     ).setOrigin(0, 0.5);
-    this.add(this.effectsFill);
+    this.add(fill);
 
-    // Effects percentage text
-    this.effectsText = scene.add.text(this.barX + this.barWidth / 2 + 12, y, `${Math.round(currentEffects * 100)}%`, {
-      fontSize: '14px',
+    const pctText = scene.add.text(this.barX + this.barWidth / 2 + 12, y,
+      `${Math.round(currentValue * 100)}%`, {
+      fontSize: '13px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0, 0.5);
-    this.add(this.effectsText);
+    this.add(pctText);
 
-    // Description
-    const desc = scene.add.text(leftX, y + 22, 'Controls visibility of combat effects like damage numbers and particles', {
-      fontSize: '12px',
-      fontFamily: 'Arial, sans-serif',
-      color: '#777777',
-    });
-    this.add(desc);
+    this.opacityFills.set(category, fill);
+    this.opacityTexts.set(category, pctText);
 
-    // Bar click/drag
     barBg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.isDraggingEffects = true;
-      this.updateEffectsFromPointer(pointer);
+      this.draggingCategory = category;
+      this.updateCategoryFromPointer(pointer, category);
     });
+  }
+
+  private getCategoryValue(category: OpacityCategory): number {
+    switch (category) {
+      case 'combatText': return SaveManager.getCombatTextOpacity();
+      case 'particle': return SaveManager.getParticleOpacity();
+      case 'elemental': return SaveManager.getElementalOpacity();
+      case 'statusOverlay': return SaveManager.getStatusOverlayOpacity();
+    }
+  }
+
+  private setCategoryValue(category: OpacityCategory, value: number): void {
+    switch (category) {
+      case 'combatText': SaveManager.setCombatTextOpacity(value); break;
+      case 'particle': SaveManager.setParticleOpacity(value); break;
+      case 'elemental': SaveManager.setElementalOpacity(value); break;
+      case 'statusOverlay': SaveManager.setStatusOverlayOpacity(value); break;
+    }
+  }
+
+  private updateCategoryFromPointer(pointer: Phaser.Input.Pointer, category: OpacityCategory): void {
+    const relativeX = pointer.x - (this.barX - this.barWidth / 2);
+    const newValue = Phaser.Math.Clamp(relativeX / this.barWidth, 0, 1);
+    this.setCategoryValue(category, newValue);
+    this.opacityFills.get(category)!.width = newValue * this.barWidth;
+    this.opacityTexts.get(category)!.setText(`${Math.round(newValue * 100)}%`);
   }
 
   private createQualityControls(scene: Phaser.Scene, centerX: number, y: number): void {
@@ -316,14 +347,6 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     this.volumeText.setText(`${Math.round(newVolume * 100)}%`);
   }
 
-  private updateEffectsFromPointer(pointer: Phaser.Input.Pointer): void {
-    const relativeX = pointer.x - (this.barX - this.barWidth / 2);
-    const newOpacity = Phaser.Math.Clamp(relativeX / this.barWidth, 0, 1);
-    SaveManager.setEffectsOpacity(newOpacity);
-    this.effectsFill.width = newOpacity * this.barWidth;
-    this.effectsText.setText(`${Math.round(newOpacity * 100)}%`);
-  }
-
   private updateMuteDisplay(muted: boolean): void {
     this.muteButton.setFillStyle(muted ? 0x884444 : 0x448844);
     this.muteText.setText(muted ? 'MUTE' : 'ON');
@@ -336,9 +359,11 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     this.volumeText.setText(`${Math.round(vol * 100)}%`);
     this.updateMuteDisplay(AudioManager.getMuted());
 
-    const effects = SaveManager.getEffectsOpacity();
-    this.effectsFill.width = effects * this.barWidth;
-    this.effectsText.setText(`${Math.round(effects * 100)}%`);
+    for (const { category } of OPACITY_SLIDERS) {
+      const val = this.getCategoryValue(category);
+      this.opacityFills.get(category)!.width = val * this.barWidth;
+      this.opacityTexts.get(category)!.setText(`${Math.round(val * 100)}%`);
+    }
 
     this.refreshQualityButtons();
 
