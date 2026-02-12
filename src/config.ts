@@ -348,14 +348,22 @@ export const STATUS_EFFECT_CONFIG = {
   },
 };
 
-// Armor configuration - exponential saturation: effective = 1 - e^(-raw * scale)
+// Armor configuration - exponential saturation with soft cap
+// Base: 1 - e^(-raw * scale), then above threshold: threshold + (excess * penalty)
+// Soft cap limits deep infinite swarm stacking to ~92.5% max
 export const ARMOR_CONFIG = {
-  scale: 1.2,                   // raw 0.08 → 9%, raw 0.5 → 45%, raw 1.05 → 72%, raw 2.0 → 91%, raw 2.5 → 95%
+  scale: 1.2,                   // raw 0.08 → 9%, raw 0.5 → 45%, raw 1.05 → 72%
+  softCapThreshold: 0.50,       // Diminishing returns kick in above 50% effective
+  softCapPenalty: 0.85,          // 85% of excess above threshold → max ~92.5%
 };
 
-// Evasion configuration - exponential saturation: effective = 1 - e^(-raw * scale)
+// Evasion configuration - exponential saturation with soft cap
+// Base: 1 - e^(-raw * scale), then above threshold: threshold + (excess * penalty)
+// Soft cap limits deep infinite swarm stacking to ~85% max
 export const EVASION_CONFIG = {
-  scale: 0.9,                   // raw 0.08 → 7%, raw 0.5 → 36%, raw 0.88 → 55%, raw 2.0 → 83%, raw 3.0 → 93%
+  scale: 0.9,                   // raw 0.08 → 7%, raw 0.5 → 36%, raw 0.88 → 55%
+  softCapThreshold: 0.40,       // Diminishing returns kick in above 40% effective
+  softCapPenalty: 0.75,          // 75% of excess above threshold → max ~85%
 };
 
 export const MAGNET_PULSE_CONFIG = {
@@ -462,8 +470,8 @@ export const COLORS = {
 
 // XP and level progression
 export const XP_CONFIG = {
-  baseXPToLevel: 100,        // XP needed for first level up
-  xpScalingFactor: 1.15,     // Each level needs 15% more XP
+  baseXPToLevel: 55,         // XP needed for first level up (retuned: level-up by end of wave 2)
+  xpScalingFactor: 1.18,     // Each level needs 18% more XP (steeper curve keeps late-game on par)
   xpDropBase: 5,             // Base XP per enemy
   xpDropBossMultiplier: 10,  // Bosses give 10x XP
   xpOrbMagnetRange: 80,      // Pixels before orb auto-collects

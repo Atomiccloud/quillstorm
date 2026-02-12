@@ -721,16 +721,18 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-armor)"></span>Armor (Damage Reduction)</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">1 - e^(-raw * 1.2)</code>
+          Base: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">1 - e^(-raw * 1.2)</code> &nbsp;
+          Soft cap above 50% &rarr; max <strong style="color:var(--text)">~92.5%</strong>
         </p>
         <table class="info-table">
           <tr><th>Armor</th><th>Reduction</th></tr>
           <tr><td>8</td><td>9%</td></tr>
-          <tr><td>20</td><td>21%</td></tr>
-          <tr><td>50</td><td>45%</td></tr>
-          <tr><td>105</td><td>72%</td></tr>
-          <tr><td>200</td><td>91%</td></tr>
-          <tr><td>250</td><td>95%</td></tr>
+          <tr><td>24</td><td>25%</td></tr>
+          <tr><td>48</td><td>44%</td></tr>
+          <tr><td>105</td><td>68%</td></tr>
+          <tr><td>200</td><td>85%</td></tr>
+          <tr><td>300</td><td>90%</td></tr>
+          <tr><td>600+</td><td>~92.5% (cap)</td></tr>
         </table>
       </div>
 
@@ -738,16 +740,18 @@
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-evasion)"></span>Evasion (Dodge Chance)</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">1 - e^(-raw * 0.9)</code>
+          Base: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">1 - e^(-raw * 0.9)</code> &nbsp;
+          Soft cap above 40% &rarr; max <strong style="color:var(--text)">~85%</strong>
         </p>
         <table class="info-table">
           <tr><th>Evasion</th><th>Dodge</th></tr>
           <tr><td>8</td><td>7%</td></tr>
-          <tr><td>20</td><td>17%</td></tr>
-          <tr><td>50</td><td>36%</td></tr>
-          <tr><td>88</td><td>55%</td></tr>
-          <tr><td>200</td><td>83%</td></tr>
-          <tr><td>300</td><td>93%</td></tr>
+          <tr><td>24</td><td>19%</td></tr>
+          <tr><td>48</td><td>35%</td></tr>
+          <tr><td>88</td><td>51%</td></tr>
+          <tr><td>200</td><td>73%</td></tr>
+          <tr><td>300</td><td>80%</td></tr>
+          <tr><td>600+</td><td>~85% (cap)</td></tr>
         </table>
       </div>
 

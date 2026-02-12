@@ -403,9 +403,10 @@ Elemental status effects remain useful throughout infinite swarm but their relat
 - **Best late-game element** due to multiplicative scaling
 
 ### Defense Stats
-- **Armor**: Percentage reduction stays relevant at all HP levels — 50% armor always halves incoming damage
-- **Evasion**: Dodge chance becomes more valuable as individual hits grow larger
+- **Armor**: Soft capped at ~92.5% — heavy stacking reduces damage but can't make you invincible
+- **Evasion**: Soft capped at ~85% — 15% of hits always get through no matter how much you stack
 - **Thorns**: Flat damage reflection falls off against scaling HP but provides free chip damage
+- **Combined**: At max caps, each hit deals ~7.5% damage and 15% of hits land — enough to eventually overwhelm
 
 ### Proc Reroll (Fate's Favor)
 - 30% reroll chance applies to ALL procs, making it increasingly valuable as you stack more elemental upgrades

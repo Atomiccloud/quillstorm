@@ -289,21 +289,26 @@ export class StatsPanel {
     const shieldCharges = this.upgradeManager.getModifier('shieldCharges');
     if (shieldCharges !== 0) defense.push({ name: 'Shields', value: `${shieldCharges} charges` });
 
-    // Display armor/evasion with effective percentages (exponential saturation)
-    // Armor: effective = 1 - e^(-raw * scale)
+    // Display armor/evasion with effective percentages (exponential saturation + soft cap)
     const armor = this.upgradeManager.getModifier('armor');
     if (armor > 0) {
       const rawDisplay = Math.round(armor * 100);
-      const effectiveArmor = 1 - Math.exp(-armor * ARMOR_CONFIG.scale);
+      let effectiveArmor = 1 - Math.exp(-armor * ARMOR_CONFIG.scale);
+      if (effectiveArmor > ARMOR_CONFIG.softCapThreshold) {
+        effectiveArmor = ARMOR_CONFIG.softCapThreshold + (effectiveArmor - ARMOR_CONFIG.softCapThreshold) * ARMOR_CONFIG.softCapPenalty;
+      }
       const effectiveDisplay = Math.round(effectiveArmor * 100);
       defense.push({ name: 'Armor', value: `${rawDisplay} (${effectiveDisplay}%)` });
     }
 
-    // Evasion: effective = 1 - e^(-raw * scale)
+    // Evasion with soft cap
     const evasion = this.upgradeManager.getModifier('evasion');
     if (evasion > 0) {
       const rawDisplay = Math.round(evasion * 100);
-      const effectiveEvasion = 1 - Math.exp(-evasion * EVASION_CONFIG.scale);
+      let effectiveEvasion = 1 - Math.exp(-evasion * EVASION_CONFIG.scale);
+      if (effectiveEvasion > EVASION_CONFIG.softCapThreshold) {
+        effectiveEvasion = EVASION_CONFIG.softCapThreshold + (effectiveEvasion - EVASION_CONFIG.softCapThreshold) * EVASION_CONFIG.softCapPenalty;
+      }
       const effectiveDisplay = Math.round(effectiveEvasion * 100);
       defense.push({ name: 'Evasion', value: `${rawDisplay} (${effectiveDisplay}%)` });
     }

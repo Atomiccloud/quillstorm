@@ -13,11 +13,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     version: '0.5.7',
     date: '2026-02-12',
     changes: [
+      'Retuned early XP curve — first level-up now comes at end of wave 2 instead of mid-wave 4',
       'Crit overhaul — base 5% crit chance and 2.5x crit damage from the start (no upgrades needed)',
       'All crit upgrades now boost both crit chance and crit damage',
       'Crit chance per upgrade increased across all rarities',
       'Stats panel now shows effective crit % and total crit multiplier for clarity',
       'Upgrade cards show crit as flat rating instead of misleading percentage',
+      'Crit hits now show floating damage text on enemies',
+      'Thorns reflection now has visual shard burst and sound effect',
+      'Combat text (crit, dodge, counter) can be disabled on low graphics preset',
+      'Fixed infinite swarm timer and difficulty scaling advancing while paused or choosing upgrades',
+      '+Max HP upgrades now also heal by the gained amount; -HP upgrades clamp health to new max',
+      'Armor and evasion now have soft caps — armor maxes at ~92.5%, evasion at ~85% (prevents infinite swarm invincibility)',
     ],
   },
   {

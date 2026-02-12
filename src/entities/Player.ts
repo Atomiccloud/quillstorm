@@ -569,9 +569,12 @@ export class Player extends Phaser.GameObjects.Container {
     if (this._pf) return false;
 
     // Evasion check - before shields so a dodge doesn't waste a charge
-    // Exponential saturation: effective = 1 - e^(-raw * scale)
+    // Exponential saturation with soft cap above threshold
     const rawEvasion = this.upgradeManager.getModifier('evasion');
-    const evasion = rawEvasion > 0 ? 1 - Math.exp(-rawEvasion * EVASION_CONFIG.scale) : 0;
+    let evasion = rawEvasion > 0 ? 1 - Math.exp(-rawEvasion * EVASION_CONFIG.scale) : 0;
+    if (evasion > EVASION_CONFIG.softCapThreshold) {
+      evasion = EVASION_CONFIG.softCapThreshold + (evasion - EVASION_CONFIG.softCapThreshold) * EVASION_CONFIG.softCapPenalty;
+    }
     if (evasion > 0 && Math.random() < evasion) {
       this.spawnDodgeText();
       this._lastDodged = true;
@@ -608,9 +611,12 @@ export class Player extends Phaser.GameObjects.Container {
       return false; // No damage taken
     }
 
-    // Apply armor damage reduction (exponential saturation)
+    // Apply armor damage reduction (exponential saturation with soft cap)
     const rawArmor = this.upgradeManager.getModifier('armor');
-    const armor = rawArmor > 0 ? 1 - Math.exp(-rawArmor * ARMOR_CONFIG.scale) : 0;
+    let armor = rawArmor > 0 ? 1 - Math.exp(-rawArmor * ARMOR_CONFIG.scale) : 0;
+    if (armor > ARMOR_CONFIG.softCapThreshold) {
+      armor = ARMOR_CONFIG.softCapThreshold + (armor - ARMOR_CONFIG.softCapThreshold) * ARMOR_CONFIG.softCapPenalty;
+    }
     const armorReduced = armor > 0 ? amount * (1 - armor) : amount;
 
     const state = this.getQuillState();
@@ -649,6 +655,7 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   private spawnDodgeText(): void {
+    if (!GraphicsSettings.combatText) return;
     const opacity = SaveManager.getEffectsOpacity();
     if (opacity <= 0) return;
 
