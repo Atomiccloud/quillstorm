@@ -28,7 +28,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Seeker Quills** | Uncommon | homing 0.3 | -- | C |
 | **Fortune Seeker** | Uncommon | prosperity +10 | -- | B |
 | **Reckless** | Uncommon | danger +1 | -- | B |
-| **Elite Hunter** | Uncommon | eliteDmg +25% | -- | D |
+| **Elite Hunter** | Uncommon | eliteDmg +35% | -- | C |
 | **Static Quills** | Uncommon | shock +2 | -- | B |
 | **Frost Tips** | Uncommon | freeze +2 | -- | B |
 | **Ember Quills** | Uncommon | burn +2 | -- | A |
@@ -73,22 +73,22 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Plague Bearer** | Epic | poison +3, spread on death | -- | A |
 | **Diamond Hide** | Epic | armor +0.22, thorns +12 | -- | B |
 | **Phantom Porcupine** | Epic | evasion +0.22, speed +10% | -- | B |
-| **Quill Storm** | Legendary | fireRate +100%, projCount +2, dmg -10% | 1 | S |
-| **Sniper Quills** | Legendary | dmg +100%, pierce +5, rate -30%, speed +80% | 1 | S |
+| **Quill Storm** | Legendary | fireRate +100%, projCount +2, dmg -10% | 3 | S |
+| **Sniper Quills** | Legendary | dmg +100%, pierce +3, rate -30%, speed +60% | 3 | S |
 | **Pinball Wizard** | Legendary | bounce +5, dmg +30%, projSpeed +30% | 1 | A |
 | **Quill Infinity** | Legendary | maxQuills +50, regen +100% | 1 | A |
-| **Glass God** | Legendary | dmg +150%, crit +100%, critDmg +1.0, HP -50 | 1 | S |
-| **Nuclear Quills** | Legendary | explosion 150px, dmg +80%, rate -30% | 1 | S |
+| **Glass God** | Legendary | dmg +150%, crit +100%, critDmg +1.0, HP -50 | -- | S |
+| **Nuclear Quills** | Legendary | explosion 150px, dmg +80%, rate -30% | 3 | S |
 | **Porcupine Army** | Legendary | companion +4 | 1 | A |
 | **Vampire Lord** | Legendary | vampirism +5, damage +50% | 1 | A |
 | **Immortal Fortress** | Legendary | shield +4, HP +100 | -- | A |
-| **Midas** | Legendary | prosperity +40, damage +15% | 1 | A |
+| **Midas** | Legendary | prosperity +40 | -- | A |
 | **Storm Caller** | Legendary | shock +5, chain +3 | -- | A |
 | **Absolute Zero** | Legendary | freeze +5, shatter 50% maxHP | -- | S |
 | **Hellfire** | Legendary | burn +5, fireExplosion 80px | -- | S |
 | **Pandemic** | Legendary | poison +5, cloud 50px | -- | A |
-| **Living Bastion** | Legendary | armor +0.45, thorns +24, HP +25 | -- | A |
-| **Wraith Form** | Legendary | evasion +0.28, speed +15% | -- | A |
+| **Living Bastion** | Legendary | armor +0.45, thorns +24, HP +100 | -- | A |
+| **Wraith Form** | Legendary | evasion +0.35, speed +10% | -- | A |
 | **Lodestone** | Legendary | magnetPulse 1 | 1 | A |
 | **Expanded Options** | Mythic | upgradeChoices +1 | 1 | S |
 | **Fate's Favor** | Mythic | rerollChance 30% | 1 | A |
@@ -228,7 +228,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 - T2: Stacks grow (+1/2s). T3: Death spreads stacks to 2 nearby. T4: Execute <15% HP (non-boss) + poison cloud.
 
 **Dual-Element Combos** (Epic): Tempest (shock+ice), Wildfire (burn+poison), Frostfire (burn+ice), Venomshock (shock+poison).
-**Elemental Convergence** (Legendary): +3 all elements, 20% chance for secondary proc.
+**Elemental Convergence** (Legendary, max 3): +3 all elements, 20% chance for secondary proc.
 
 ### Prosperity
 - Affects chest drop chance (logarithmic curve, caps at ~14%)
@@ -311,7 +311,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `seeker_quills` | Seeker Quills | homing 0.3 | C | Mild tracking. Doesn't add damage. |
 | `fortune_seeker` | Fortune Seeker | prosperity +10 | B | Solid luck boost. |
 | `danger_1` | Reckless | danger +1 | B | Risk/reward. |
-| `elite_hunter` | Elite Hunter | eliteDmg +0.25 | D | Only useful vs elites. Dead pick otherwise. |
+| `elite_hunter` | Elite Hunter | eliteDmg +0.35 | C | Only useful vs elites. Decent value at 35%. |
 | `static_quills` | Static Quills | shock +2 | B | 17% stun chance. |
 | `frost_tips` | Frost Tips | freeze +2 | B | 17% freeze chance. |
 | `ember_quills` | Ember Quills | burn +2 | A | 17% chance, DoT scales with damage modifier. |
@@ -371,19 +371,19 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 
 | ID | Name | Effects | Tier | Notes |
 |----|------|---------|------|-------|
-| `machine_gun` | Quill Storm | fireRate +1.0, projCount +2, dmg -0.10 | S | Bullet hell mode. |
-| `sniper` | Sniper Quills | dmg +1.0, pierce +5, rate -0.30, projSpeed +0.80 | S | One-shot build. |
+| `machine_gun` | Quill Storm | fireRate +1.0, projCount +2, dmg -0.10 | S | Bullet hell mode. Stackable x3. |
+| `sniper` | Sniper Quills | dmg +1.0, pierce +3, rate -0.30, projSpeed +0.60 | S | One-shot build. Stackable x3. |
 | `bouncy_doom` | Pinball Wizard | bounce +5, dmg +0.30, projSpeed +0.30 | A | Chaos mode. Enclosed areas = insane. |
 | `infinite_quills` | Quill Infinity | maxQuills +50, regen +1.0 | A | Never run out. Enables everything. |
-| `glass_god` | Glass God | dmg +1.5, crit +1.0, critDmg +1.0, HP -50 | S | Glass cannon supreme. |
-| `nuclear_quills` | Nuclear Quills | explosion 150px, dmg +0.80, rate -0.30 | S | Screen-clearing explosions. |
+| `glass_god` | Glass God | dmg +1.5, crit +1.0, critDmg +1.0, HP -50 | S | Glass cannon supreme. Stackable. |
+| `nuclear_quills` | Nuclear Quills | explosion 150px, dmg +0.80, rate -0.30 | S | Screen-clearing explosions. Stackable x3. |
 | `porcupine_army` | Porcupine Army | companion +4 | A | Army of helpers. |
 | `vampire_lord` | Vampire Lord | vampirism +5, damage +0.50 | A | Overwhelming sustain + damage. True legendary power. |
 | `immortal_fortress` | Immortal Fortress | shield +4, HP +100 | A | Nearly unkillable. |
-| `midas` | Midas | prosperity +40, damage +0.15 | A | Max luck. |
-| `elemental_convergence` | Elemental Convergence | all elements +3 | S | Universal elemental. 20% secondary proc. |
-| `living_bastion` | Living Bastion | armor +0.45, thorns +24, HP +25 | A | Ultimate tank. |
-| `wraith_form` | Wraith Form | evasion +0.28, speed +0.15 | A | Ultimate dodge build. 90% dodge counter chance. |
+| `midas` | Midas | prosperity +40 | A | Max luck. |
+| `elemental_convergence` | Elemental Convergence | all elements +3 | S | Universal elemental. 20% secondary proc. Stackable x3. |
+| `living_bastion` | Living Bastion | armor +0.45, thorns +24, HP +100 | A | Ultimate tank. |
+| `wraith_form` | Wraith Form | evasion +0.35, speed +0.10 | A | Ultimate dodge build. 90% dodge counter chance. |
 | `lodestone` | Lodestone | magnetPulse 1 | A | Magnetic pulse every 12s pulls all pickups. Passive chest magnet. |
 
 ### Mythic (3)
@@ -398,9 +398,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 
 ## Identified Weak Upgrades (D-Tier)
 
-Most previously weak upgrades have been buffed in the v0.5.2 balance pass:
-
-1. **Elite Hunter** - 25% bonus to elites only. Dead pick when no elites are on screen. Niche by design.
+Most previously weak upgrades have been buffed in balance passes. No D-tier upgrades remain.
 
 ---
 

@@ -262,15 +262,15 @@ export const UPGRADES: Upgrade[] = [
     description: 'Unleash a torrent of quills! Massive fire rate boost.',
     rarity: 'legendary',
     effects: { fireRate: 1.0, projectileCount: 2, damage: -0.1 },
-    maxStacks: 1,
+    maxStacks: 3,
   },
   {
     id: 'sniper',
     name: 'Sniper Quills',
     description: 'Slower but devastating piercing shots.',
     rarity: 'legendary',
-    effects: { damage: 1.0, piercing: 5, fireRate: -0.3, projectileSpeed: 0.8 },
-    maxStacks: 1,
+    effects: { damage: 1.0, piercing: 3, fireRate: -0.3, projectileSpeed: 0.6 },
+    maxStacks: 3,
   },
   {
     id: 'bouncy_doom',
@@ -294,7 +294,6 @@ export const UPGRADES: Upgrade[] = [
     description: 'Incredible power, but you become very fragile.',
     rarity: 'legendary',
     effects: { damage: 1.5, critChance: 1.0, critDamage: 1.0, maxHealth: -50 },
-    maxStacks: 1,
   },
 
   // ===== NEW UPGRADES - PHASE 8 =====
@@ -401,7 +400,7 @@ export const UPGRADES: Upgrade[] = [
     description: 'Devastating explosions, but slower firing.',
     rarity: 'legendary',
     effects: { explosionRadius: 150, damage: 0.8, fireRate: -0.3 },
-    maxStacks: 1,
+    maxStacks: 3,
   },
   {
     id: 'porcupine_army',
@@ -461,7 +460,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Midas',
     description: 'Everything you touch turns to gold! Maximum prosperity.',
     rarity: 'legendary',
-    effects: { prosperity: 40, damage: 0.15 },
+    effects: { prosperity: 40 },
   },
 
   // === DANGER LEVEL UPGRADES ===
@@ -493,7 +492,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Elite Hunter',
     description: 'Deal bonus damage to elite enemies.',
     rarity: 'uncommon',
-    effects: { eliteDamageBonus: 0.25 },
+    effects: { eliteDamageBonus: 0.35 },
   },
   {
     id: 'elite_slayer',
@@ -604,6 +603,7 @@ export const UPGRADES: Upgrade[] = [
     description: 'Master all elements. Procs have 20% chance to trigger a second element.',
     rarity: 'legendary',
     effects: { shockStrength: 3, freezeStrength: 3, burnStrength: 3, poisonStrength: 3 },
+    maxStacks: 3,
   },
 
   // === DEFENSE UPGRADES - ARMOR ===
@@ -640,9 +640,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'living_bastion',
     name: 'Living Bastion',
-    description: 'Become an unstoppable fortress. +45 Armor, +24 Thorns, +25 HP.',
+    description: 'Become an unstoppable fortress. +45 Armor, +24 Thorns, +100 HP.',
     rarity: 'legendary',
-    effects: { armor: 0.45, thorns: 24, maxHealth: 25 },
+    effects: { armor: 0.45, thorns: 24, maxHealth: 100 },
   },
 
   // === DEFENSE UPGRADES - EVASION ===
@@ -679,9 +679,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'wraith_form',
     name: 'Wraith Form',
-    description: 'Become intangible. +28 Evasion, +15% Speed.',
+    description: 'Become intangible. +35 Evasion, +10% Speed.',
     rarity: 'legendary',
-    effects: { evasion: 0.28, moveSpeed: 0.15 },
+    effects: { evasion: 0.35, moveSpeed: 0.10 },
   },
   {
     id: 'lodestone',
