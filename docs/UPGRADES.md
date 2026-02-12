@@ -20,7 +20,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Razor Quills** | Uncommon | damage +20% | -- | A |
 | **Rapid Fire** | Uncommon | fireRate +25% | -- | A |
 | **Quill Overload** | Uncommon | maxQuills +10 | -- | B |
-| **Vital Points** | Uncommon | critChance +10% | -- | A |
+| **Vital Points** | Uncommon | critChance +15%, critDmg +0.15 | -- | A |
 | **Double Shot** | Uncommon | projCount +1 | 4 | S |
 | **Strong Legs** | Uncommon | jumpHeight +20% | -- | B |
 | **Combat Training** | Uncommon | damage +10%, moveSpeed +10% | -- | B |
@@ -37,7 +37,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Acrobat** | Uncommon | evasion +0.12 | -- | B |
 | **Piercing Quills** | Rare | piercing +1 | 5 | S |
 | **Bouncing Quills** | Rare | bouncing +2 | 3 | B |
-| **Deadly Precision** | Rare | critChance +15%, critDmg +0.5 | -- | A |
+| **Deadly Precision** | Rare | critChance +25%, critDmg +0.5 | -- | A |
 | **Lethal Quills** | Rare | damage +35% | -- | A |
 | **Triple Shot** | Rare | projCount +2 | 2 | S |
 | **Endless Quills** | Rare | maxQuills +15, regen +30% | -- | B |
@@ -58,7 +58,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Impaling Quills** | Epic | piercing +3 | 2 | S |
 | **Shotgun Burst** | Epic | projCount +4 | 2 | S |
 | **Berserker** | Epic | fireRate +50%, speed +30%, dmg -20% | -- | A |
-| **Critical Master** | Epic | critChance +25%, critDmg +1.0 | -- | S |
+| **Critical Master** | Epic | critChance +50%, critDmg +1.0 | -- | S |
 | **Armored Porcupine** | Epic | HP +50, maxQuills +20 | -- | B |
 | **Speed Demon** | Epic | moveSpeed +40%, projSpeed +50% | -- | B |
 | **Devastation** | Epic | explosion 100px, damage +40% | -- | S |
@@ -77,7 +77,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Sniper Quills** | Legendary | dmg +100%, pierce +5, rate -30%, speed +80% | 1 | S |
 | **Pinball Wizard** | Legendary | bounce +5, dmg +30%, projSpeed +30% | 1 | A |
 | **Quill Infinity** | Legendary | maxQuills +50, regen +100% | 1 | A |
-| **Glass God** | Legendary | dmg +150%, crit +30%, critDmg +1.0, HP -50 | 1 | S |
+| **Glass God** | Legendary | dmg +150%, crit +100%, critDmg +1.0, HP -50 | 1 | S |
 | **Nuclear Quills** | Legendary | explosion 150px, dmg +80%, rate -30% | 1 | S |
 | **Porcupine Army** | Legendary | companion +4 | 1 | A |
 | **Vampire Lord** | Legendary | vampirism +5, damage +50% | 1 | A |
@@ -144,14 +144,15 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 - Collides with world bounds only
 
 ### Critical Hits
-- Base crit chance: **0%**
+- Base crit chance: **5%** (0.05 raw, ~4.8% effective)
 - Effective chance (diminishing returns): `rawCrit / (rawCrit + 1)`
-  - 0.10 raw = 9% effective
-  - 0.25 raw = 20% effective
-  - 0.50 raw = 33% effective
-  - 1.00 raw = 50% effective
-- Base crit multiplier: **2x**
-- critDamage modifier adds to multiplier: `2 + critDamageModifier`
+  - 0.05 raw = 4.8% effective (base, no upgrades)
+  - 0.20 raw = 16.7% effective (base + 1 Vital Points)
+  - 0.45 raw = 31.0% effective (base + VP + Deadly Precision)
+  - 0.95 raw = 48.7% effective (base + VP + DP + Critical Master)
+  - 1.95 raw = 66.1% effective (base + all four crit upgrades)
+- Base crit multiplier: **2.5x**
+- critDamage modifier adds to multiplier: `2.5 + critDamageModifier`
 
 ### Explosion Radius
 - Triggers on quill impact when modifier > 0
@@ -296,7 +297,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `damage_2` | Razor Quills | damage +0.20 | A | Strong. |
 | `fire_rate_2` | Rapid Fire | fireRate +0.25 | A | Strong. |
 | `max_quills_2` | Quill Overload | maxQuills +10 | B | Good sustain. |
-| `crit_1` | Vital Points | critChance +0.10 | A | 9% effective crit. First step into crit builds. |
+| `crit_1` | Vital Points | critChance +0.15, critDmg +0.15 | A | 17% effective crit. First step into crit builds. |
 | `multi_1` | Double Shot | projCount +1 | S | Direct 2x DPS (costs 2x quills). Build-defining. |
 | `jump_1` | Strong Legs | jumpHeight +0.20 | B | Platform navigation, vertical dodging. Feels good. |
 | `combo_damage_speed` | Combat Training | damage +0.10, moveSpeed +0.10 | B | Jack of all trades. Neither bonus is exciting alone. |
@@ -318,7 +319,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 |----|------|---------|------|-------|
 | `pierce_1` | Piercing Quills | piercing +1 | S | Multi-hit (same enemy possible). Insanely strong. |
 | `bounce_1` | Bouncing Quills | bouncing +2 | B | Layout-dependent. Great in enclosed areas. |
-| `crit_2` | Deadly Precision | crit +0.15, critDmg +0.5 | A | Serious crit investment. |
+| `crit_2` | Deadly Precision | crit +0.25, critDmg +0.5 | A | Serious crit investment. |
 | `damage_3` | Lethal Quills | damage +0.35 | A | Big damage spike. |
 | `multi_2` | Triple Shot | projCount +2 | S | Massive DPS jump. |
 | `sustain_1` | Endless Quills | maxQuills +15, regen +0.30 | B | Sustain package for multi-shot builds. |
@@ -344,7 +345,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `pierce_2` | Impaling Quills | piercing +3 | S | +3 pierce is absurd value. |
 | `multi_3` | Shotgun Burst | projCount +4 | S | 5 quills per shot. Devastating. |
 | `berserker` | Berserker | fireRate +0.50, speed +0.30, dmg -0.20 | A | Speed build enabler. The -20% damage is offset by rate. |
-| `crit_master` | Critical Master | crit +0.25, critDmg +1.0 | S | 20% effective crit at 3x+ multiplier. |
+| `crit_master` | Critical Master | crit +0.50, critDmg +1.0 | S | 49% effective crit at 3.5x+ multiplier. |
 | `tank` | Armored Porcupine | HP +50, maxQuills +20 | B | Tanky sustain. |
 | `speed_demon` | Speed Demon | speed +0.40, projSpeed +0.50 | B | Pure mobility. Fun but no damage. |
 | `devastation` | Devastation | explosion 100px, damage +0.40 | S | Huge AoE + big damage. |
@@ -368,7 +369,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `sniper` | Sniper Quills | dmg +1.0, pierce +5, rate -0.30, projSpeed +0.80 | S | One-shot build. |
 | `bouncy_doom` | Pinball Wizard | bounce +5, dmg +0.30, projSpeed +0.30 | A | Chaos mode. Enclosed areas = insane. |
 | `infinite_quills` | Quill Infinity | maxQuills +50, regen +1.0 | A | Never run out. Enables everything. |
-| `glass_god` | Glass God | dmg +1.5, crit +0.30, critDmg +1.0, HP -50 | S | Glass cannon supreme. |
+| `glass_god` | Glass God | dmg +1.5, crit +1.0, critDmg +1.0, HP -50 | S | Glass cannon supreme. |
 | `nuclear_quills` | Nuclear Quills | explosion 150px, dmg +0.80, rate -0.30 | S | Screen-clearing explosions. |
 | `porcupine_army` | Porcupine Army | companion +4 | A | Army of helpers. |
 | `vampire_lord` | Vampire Lord | vampirism +5, damage +0.50 | A | Overwhelming sustain + damage. True legendary power. |
@@ -410,5 +411,5 @@ Most previously weak upgrades have been buffed in the v0.5.2 balance pass:
 | Projectile speed | 800 px/s |
 | Quill size | 20 x 6 px |
 | Player HP | 100 |
-| Crit chance | 0% |
-| Crit multiplier | 2x |
+| Crit chance | 5% (effective ~4.8%) |
+| Crit multiplier | 2.5x |

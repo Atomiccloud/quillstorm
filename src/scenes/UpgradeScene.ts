@@ -288,11 +288,11 @@ export class UpgradeScene extends Phaser.Scene {
       effects.push(`Quill Size: +${Math.round(val * 100)}%`);
     }
     if (upgrade.effects.critChance) {
-      effects.push(`Crit: +${Math.round(upgrade.effects.critChance * 100)}%`);
+      effects.push(`Crit: +${Math.round(upgrade.effects.critChance * 100)}`);
     }
     if (upgrade.effects.critDamage) {
       const val = upgrade.effects.critDamage;
-      effects.push(`Crit Dmg: +${Math.round(val * 100)}%`);
+      effects.push(`Crit Dmg: +${val.toFixed(2)}x`);
     }
     if (upgrade.effects.piercing) {
       effects.push(`Pierce: +${upgrade.effects.piercing} enemies`);

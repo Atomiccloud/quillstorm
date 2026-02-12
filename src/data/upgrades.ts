@@ -128,9 +128,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'crit_1',
     name: 'Vital Points',
-    description: 'Chance to deal critical damage.',
+    description: 'Chance to deal increased critical damage.',
     rarity: 'uncommon',
-    effects: { critChance: 0.1 },
+    effects: { critChance: 0.15, critDamage: 0.15 },
   },
   {
     id: 'multi_1',
@@ -177,7 +177,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Deadly Precision',
     description: 'Increased critical hit chance and damage.',
     rarity: 'rare',
-    effects: { critChance: 0.15, critDamage: 0.5 },
+    effects: { critChance: 0.25, critDamage: 0.5 },
   },
   {
     id: 'damage_3',
@@ -238,7 +238,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Critical Master',
     description: 'High crit chance with devastating crits.',
     rarity: 'epic',
-    effects: { critChance: 0.25, critDamage: 1.0 },
+    effects: { critChance: 0.5, critDamage: 1.0 },
   },
   {
     id: 'tank',
@@ -293,7 +293,7 @@ export const UPGRADES: Upgrade[] = [
     name: 'Glass God',
     description: 'Incredible power, but you become very fragile.',
     rarity: 'legendary',
-    effects: { damage: 1.5, critChance: 0.3, critDamage: 1.0, maxHealth: -50 },
+    effects: { damage: 1.5, critChance: 1.0, critDamage: 1.0, maxHealth: -50 },
     maxStacks: 1,
   },
 

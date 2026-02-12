@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.6';
+export const GAME_VERSION = '0.5.7';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,17 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.5.7',
+    date: '2026-02-12',
+    changes: [
+      'Crit overhaul — base 5% crit chance and 2.5x crit damage from the start (no upgrades needed)',
+      'All crit upgrades now boost both crit chance and crit damage',
+      'Crit chance per upgrade increased across all rarities',
+      'Stats panel now shows effective crit % and total crit multiplier for clarity',
+      'Upgrade cards show crit as flat rating instead of misleading percentage',
+    ],
+  },
   {
     version: '0.5.6',
     date: '2026-02-12',
