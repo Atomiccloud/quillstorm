@@ -763,7 +763,7 @@ export class GameOverScene extends Phaser.Scene {
   private createDeathRecapPanel(stats: SessionStats): void {
     if (!stats.hitLog || stats.hitLog.length === 0) return;
 
-    const PANEL_WIDTH = 200;
+    const PANEL_WIDTH = 310;
     const PANEL_PADDING = 12;
     const LINE_HEIGHT = 22;
     const hasKilledBy = !!stats.killedBy;
