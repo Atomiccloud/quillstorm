@@ -3,7 +3,7 @@
 
 export class AudioManager {
   private static context: AudioContext | null = null;
-  private static masterVolume: number = 0.2;
+  private static masterVolume: number = 0.15;
   private static isMuted: boolean = false;
 
   static initialize(): void {
@@ -32,7 +32,7 @@ export class AudioManager {
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, this.context.currentTime + delay);
 
-    const volume = this.masterVolume * volumeMultiplier;
+    const volume = this.getEffectiveVolume() * volumeMultiplier;
     gainNode.gain.setValueAtTime(volume, this.context.currentTime + delay);
     gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + delay + duration);
 
@@ -58,7 +58,7 @@ export class AudioManager {
     noise.buffer = buffer;
 
     const gainNode = this.context.createGain();
-    const volume = this.masterVolume * volumeMultiplier * 0.3;
+    const volume = this.getEffectiveVolume() * volumeMultiplier * 0.3;
     gainNode.gain.setValueAtTime(volume, this.context.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
 
@@ -247,6 +247,12 @@ export class AudioManager {
   }
 
   // ============ Volume Control ============
+
+  // Raw oscillators are inherently loud; apply exponential curve so the
+  // slider feels natural and scale down overall output.
+  private static getEffectiveVolume(): number {
+    return this.masterVolume * this.masterVolume * 0.3;
+  }
 
   static setVolume(volume: number): void {
     this.masterVolume = Math.max(0, Math.min(1, volume));
