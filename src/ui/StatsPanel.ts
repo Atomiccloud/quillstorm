@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, COLORS, DANGER_CONFIG, ELITE_CONFIG, ELEMENTAL_EVOLUTION_CONFIG, ARMOR_CONFIG, EVASION_CONFIG, DODGE_COUNTER_CONFIG, CRIT_CONFIG, PLAYER_CONFIG } from '../config';
 import { UpgradeManager } from '../systems/UpgradeManager';
+import { MobileDetector } from '../systems/MobileDetector';
 
 export class StatsPanel {
   private scene: Phaser.Scene;
@@ -25,6 +26,11 @@ export class StatsPanel {
   private scrollOffset: number = 0;
   private totalContentHeight: number = 0;
   private scrollListener?: (event: WheelEvent) => void;
+
+  // Touch-drag scroll state
+  private touchDragging: boolean = false;
+  private touchStartY: number = 0;
+  private touchStartScroll: number = 0;
 
   constructor(scene: Phaser.Scene, upgradeManager: UpgradeManager) {
     this.scene = scene;
@@ -53,12 +59,13 @@ export class StatsPanel {
     this.container.addAt(this.background, 0);
 
     // Title (fixed, not scrollable)
+    const mob = MobileDetector.showVirtualControls;
     this.titleText = this.scene.add.text(
       this.PANEL_PADDING,
       this.PANEL_PADDING,
       'STATS',
       {
-        fontSize: '20px',
+        fontSize: mob ? '26px' : '20px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#ffd700',
         stroke: '#000000',
@@ -90,6 +97,32 @@ export class StatsPanel {
     };
 
     this.scene.game.canvas.addEventListener('wheel', this.scrollListener);
+
+    // Touch-drag scrolling for mobile
+    if (MobileDetector.isTouchDevice) {
+      this.scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (!this.isVisible) return;
+        const localX = pointer.x - this.container.x;
+        const localY = pointer.y - this.container.y;
+        if (localX >= 0 && localX <= this.PANEL_WIDTH && localY >= 0 && localY <= this.MAX_PANEL_HEIGHT) {
+          this.touchDragging = true;
+          this.touchStartY = pointer.y;
+          this.touchStartScroll = this.scrollOffset;
+        }
+      });
+
+      this.scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        if (!this.touchDragging) return;
+        const delta = this.touchStartY - pointer.y;
+        const maxScroll = Math.max(0, this.totalContentHeight - this.MAX_PANEL_HEIGHT + this.PANEL_PADDING * 2 + 40);
+        this.scrollOffset = Phaser.Math.Clamp(this.touchStartScroll + delta, 0, maxScroll);
+        this.updateScrollPosition();
+      });
+
+      this.scene.input.on('pointerup', () => {
+        this.touchDragging = false;
+      });
+    }
   }
 
   private updateScrollPosition(): void {
@@ -133,6 +166,8 @@ export class StatsPanel {
     this.statTexts.forEach(text => text.destroy());
     this.statTexts = [];
 
+    const mob = MobileDetector.showVirtualControls;
+
     // Get all stats organized by category
     const stats = this.getOrganizedStats();
 
@@ -148,7 +183,7 @@ export class StatsPanel {
         yOffset,
         category.name,
         {
-          fontSize: '12px',
+          fontSize: mob ? '16px' : '12px',
           fontFamily: 'Arial',
           color: '#888888',
         }
@@ -165,7 +200,7 @@ export class StatsPanel {
           yOffset,
           item.name,
           {
-            fontSize: '14px',
+            fontSize: mob ? '18px' : '14px',
             fontFamily: 'Arial',
             color: '#ffffff',
           }
@@ -180,7 +215,7 @@ export class StatsPanel {
           yOffset,
           item.value,
           {
-            fontSize: '14px',
+            fontSize: mob ? '18px' : '14px',
             fontFamily: 'Arial',
             color: valueColor,
           }

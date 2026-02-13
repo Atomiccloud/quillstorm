@@ -22,6 +22,8 @@ import { DamageHitRecord, KilledByInfo } from './GameOverScene';
 import { GraphicsSettings } from '../systems/GraphicsSettings';
 import { AchievementManager } from '../systems/AchievementManager';
 import { Achievement } from '../data/achievements';
+import { MobileDetector } from '../systems/MobileDetector';
+import { VirtualJoystick } from '../ui/VirtualJoystick';
 
 export class GameScene extends Phaser.Scene {
   private player!: Player;
@@ -103,6 +105,13 @@ export class GameScene extends Phaser.Scene {
   private restartTimer: number = 0;
   private restartText: Phaser.GameObjects.Text | null = null;
 
+  // Mobile touch controls
+  private virtualJoystick: VirtualJoystick | null = null;
+  private aimPointerId: number = -1;
+  public mobileAimX: number = 0;
+  public mobileAimY: number = 0;
+  public isMobileAiming: boolean = false;
+
   constructor() {
     super({ key: 'GameScene' });
   }
@@ -182,6 +191,11 @@ export class GameScene extends Phaser.Scene {
 
     // Set up input
     this.setupInput();
+
+    // Create virtual joystick on mobile
+    if (MobileDetector.showVirtualControls) {
+      this.virtualJoystick = new VirtualJoystick(this);
+    }
 
     // Start first wave
     this.time.delayedCall(1000, () => {
@@ -382,26 +396,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setupInput(): void {
-    // Shooting with mouse
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
+    if (MobileDetector.showVirtualControls) {
+      this.setupTouchInput();
+    } else {
+      this.setupMouseInput();
+    }
 
-      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      if (this.player.shoot(worldPoint.x, worldPoint.y)) {
-        AudioManager.playShoot();
-      }
-    });
-
-    // Hold to shoot continuously
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.isDown || this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
-
-      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-      if (this.player.shoot(worldPoint.x, worldPoint.y)) {
-        AudioManager.playShoot();
-      }
-    });
-
+    // Keyboard shortcuts (work on both desktop and mobile with keyboard)
     // Escape to pause
     this.input.keyboard?.on('keydown-ESC', () => {
       if (this.gameOver || this.isChoosingUpgrade) return;
@@ -439,6 +440,55 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** Desktop: click/drag to aim and shoot */
+  private setupMouseInput(): void {
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
+
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      if (this.player.shoot(worldPoint.x, worldPoint.y)) {
+        AudioManager.playShoot();
+      }
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!pointer.isDown || this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
+
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      if (this.player.shoot(worldPoint.x, worldPoint.y)) {
+        AudioManager.playShoot();
+      }
+    });
+  }
+
+  /** Mobile: any touch not captured by joystick becomes the aim pointer + auto-fires */
+  private setupTouchInput(): void {
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
+      if (this.virtualJoystick?.isTrackingPointer(pointer.id)) return;
+
+      this.aimPointerId = pointer.id;
+      this.isMobileAiming = true;
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      this.mobileAimX = worldPoint.x;
+      this.mobileAimY = worldPoint.y;
+    });
+
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.id !== this.aimPointerId || !this.isMobileAiming) return;
+      const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+      this.mobileAimX = worldPoint.x;
+      this.mobileAimY = worldPoint.y;
+    });
+
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.id === this.aimPointerId) {
+        this.isMobileAiming = false;
+        this.aimPointerId = -1;
+      }
+    });
+  }
+
   private showMuteIndicator(muted: boolean): void {
     const text = this.add.text(
       GAME_CONFIG.width / 2,
@@ -472,6 +522,16 @@ export class GameScene extends Phaser.Scene {
         this.restartPending = false;
         this.restartText?.destroy();
         this.restartText = null;
+      }
+    }
+
+    // Mobile: pass joystick input to player and handle auto-fire
+    if (this.virtualJoystick) {
+      this.player.setJoystickInput(this.virtualJoystick.forceX, this.virtualJoystick.forceY);
+      if (this.isMobileAiming && !this.shootingBlocked && !this.isChoosingUpgrade) {
+        if (this.player.shoot(this.mobileAimX, this.mobileAimY)) {
+          AudioManager.playShoot();
+        }
       }
     }
 

@@ -43,6 +43,10 @@ export class Player extends Phaser.GameObjects.Container {
   private lastTrailTime: number = 0;
   private trailInterval: number = 50; // ms between trail particles
 
+  // Mobile joystick input
+  private joystickX: number = 0;
+  private joystickY: number = 0;
+
   // Coyote time tracking
   private coyoteTimer: number = 0;
   private _jumping: boolean = false;
@@ -187,6 +191,12 @@ export class Player extends Phaser.GameObjects.Container {
     });
   }
 
+  /** Set joystick input from mobile virtual controls */
+  setJoystickInput(x: number, y: number): void {
+    this.joystickX = x;
+    this.joystickY = y;
+  }
+
   private handleMovement(delta: number): void {
     const state = this.getQuillState();
     const stateConfig = QUILL_CONFIG.states[state];
@@ -206,9 +216,9 @@ export class Player extends Phaser.GameObjects.Container {
       this.coyoteTimer -= delta;
     }
 
-    // Horizontal movement
-    const leftPressed = this.cursors.left.isDown || this.wasd.A.isDown;
-    const rightPressed = this.cursors.right.isDown || this.wasd.D.isDown;
+    // Horizontal movement (keyboard + joystick)
+    const leftPressed = this.cursors.left.isDown || this.wasd.A.isDown || this.joystickX < -0.3;
+    const rightPressed = this.cursors.right.isDown || this.wasd.D.isDown || this.joystickX > 0.3;
 
     if (leftPressed) {
       this.body.setVelocityX(-baseSpeed * controlMult);
@@ -243,7 +253,7 @@ export class Player extends Phaser.GameObjects.Container {
     }
 
     // Jumping (with coyote time + variable height)
-    const jumpPressed = this.cursors.up.isDown || this.wasd.W.isDown || this.cursors.space.isDown;
+    const jumpPressed = this.cursors.up.isDown || this.wasd.W.isDown || this.cursors.space.isDown || this.joystickY < -0.5;
     const canJump = onGround || this.coyoteTimer > 0;
     if (jumpPressed && canJump && !this._jumping) {
       const jumpMult = 1 + this.upgradeManager.getModifier('jumpHeight');
@@ -761,6 +771,11 @@ export class Player extends Phaser.GameObjects.Container {
   }
 
   getAimAngle(): number {
+    // On mobile, use the scene's stored aim position to avoid reading the joystick pointer
+    const gameScene = this.scene as any;
+    if (gameScene.isMobileAiming) {
+      return Phaser.Math.Angle.Between(this.x, this.y, gameScene.mobileAimX, gameScene.mobileAimY);
+    }
     const pointer = this.scene.input.activePointer;
     const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
     return Phaser.Math.Angle.Between(this.x, this.y, worldPoint.x, worldPoint.y);

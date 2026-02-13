@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
+import { MobileDetector } from '../systems/MobileDetector';
 
 export class NameInputModal extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Rectangle;
@@ -24,6 +25,7 @@ export class NameInputModal extends Phaser.GameObjects.Container {
 
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
+    const m = MobileDetector.showVirtualControls;
 
     // Semi-transparent background
     this.background = scene.add.rectangle(
@@ -38,13 +40,13 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     this.add(this.background);
 
     // Modal panel
-    this.panel = scene.add.rectangle(centerX, centerY, 400, 230, 0x2a2a3a);
+    this.panel = scene.add.rectangle(centerX, centerY, m ? 500 : 400, m ? 280 : 230, 0x2a2a3a);
     this.panel.setStrokeStyle(2, 0x4a6741);
     this.add(this.panel);
 
     // Title
-    this.titleText = scene.add.text(centerX, centerY - 70, 'Submit to Leaderboard', {
-      fontSize: '22px',
+    this.titleText = scene.add.text(centerX, centerY - (m ? 90 : 70), 'Submit to Leaderboard', {
+      fontSize: m ? '30px' : '22px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     });
@@ -54,8 +56,8 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     // Create DOM input element
     this.inputContainer = document.createElement('div');
     this.inputContainer.style.position = 'absolute';
-    this.inputContainer.style.width = '280px';
-    this.inputContainer.style.height = '40px';
+    this.inputContainer.style.width = m ? '360px' : '280px';
+    this.inputContainer.style.height = m ? '52px' : '40px';
 
     this.inputElement = document.createElement('input');
     this.inputElement.type = 'text';
@@ -63,7 +65,7 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     this.inputElement.placeholder = 'Your name...';
     this.inputElement.style.width = '100%';
     this.inputElement.style.height = '100%';
-    this.inputElement.style.fontSize = '18px';
+    this.inputElement.style.fontSize = m ? '24px' : '18px';
     this.inputElement.style.padding = '8px 12px';
     this.inputElement.style.border = '2px solid #4a6741';
     this.inputElement.style.borderRadius = '4px';
@@ -101,12 +103,15 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     document.body.appendChild(this.inputContainer);
 
     // Submit button
-    this.submitButton = scene.add.rectangle(centerX - 70, centerY + 50, 120, 40, 0x4a6741);
+    const btnY = centerY + (m ? 70 : 50);
+    const btnW = m ? 160 : 120;
+    const btnH = m ? 56 : 40;
+    this.submitButton = scene.add.rectangle(centerX - (m ? 90 : 70), btnY, btnW, btnH, 0x4a6741);
     this.submitButton.setInteractive({ useHandCursor: true });
     this.add(this.submitButton);
 
-    this.submitText = scene.add.text(centerX - 70, centerY + 50, 'SUBMIT', {
-      fontSize: '18px',
+    this.submitText = scene.add.text(centerX - (m ? 90 : 70), btnY, 'SUBMIT', {
+      fontSize: m ? '26px' : '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     });
@@ -114,12 +119,12 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     this.add(this.submitText);
 
     // Skip button
-    this.skipButton = scene.add.rectangle(centerX + 70, centerY + 50, 120, 40, 0x555555);
+    this.skipButton = scene.add.rectangle(centerX + (m ? 90 : 70), btnY, btnW, btnH, 0x555555);
     this.skipButton.setInteractive({ useHandCursor: true });
     this.add(this.skipButton);
 
-    this.skipText = scene.add.text(centerX + 70, centerY + 50, 'SKIP', {
-      fontSize: '18px',
+    this.skipText = scene.add.text(centerX + (m ? 90 : 70), btnY, 'SKIP', {
+      fontSize: m ? '26px' : '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#aaaaaa',
     });
@@ -127,33 +132,35 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     this.add(this.skipText);
 
     // Error text (hidden by default)
-    this.errorText = scene.add.text(centerX, centerY + 85, '', {
-      fontSize: '14px',
+    this.errorText = scene.add.text(centerX, btnY + (m ? 45 : 35), '', {
+      fontSize: m ? '20px' : '14px',
       color: '#ff6666',
     });
     this.errorText.setOrigin(0.5);
     this.add(this.errorText);
 
     // Button interactions
-    this.submitButton.on('pointerover', () => {
-      this.submitButton.setFillStyle(0x5a7751);
-    });
-
-    this.submitButton.on('pointerout', () => {
-      this.submitButton.setFillStyle(0x4a6741);
-    });
+    if (!MobileDetector.isTouchDevice) {
+      this.submitButton.on('pointerover', () => {
+        this.submitButton.setFillStyle(0x5a7751);
+      });
+      this.submitButton.on('pointerout', () => {
+        this.submitButton.setFillStyle(0x4a6741);
+      });
+    }
 
     this.submitButton.on('pointerdown', () => {
       this.handleSubmit();
     });
 
-    this.skipButton.on('pointerover', () => {
-      this.skipButton.setFillStyle(0x666666);
-    });
-
-    this.skipButton.on('pointerout', () => {
-      this.skipButton.setFillStyle(0x555555);
-    });
+    if (!MobileDetector.isTouchDevice) {
+      this.skipButton.on('pointerover', () => {
+        this.skipButton.setFillStyle(0x666666);
+      });
+      this.skipButton.on('pointerout', () => {
+        this.skipButton.setFillStyle(0x555555);
+      });
+    }
 
     this.skipButton.on('pointerdown', () => {
       AudioManager.playButtonClick();
@@ -185,7 +192,8 @@ export class NameInputModal extends Phaser.GameObjects.Container {
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
 
-    const inputX = rect.left + (centerX - 140) * scaleX;
+    const inputW = MobileDetector.showVirtualControls ? 180 : 140;
+    const inputX = rect.left + (centerX - inputW) * scaleX;
     const inputY = rect.top + (centerY - 20) * scaleY;
 
     this.inputContainer.style.left = `${inputX}px`;

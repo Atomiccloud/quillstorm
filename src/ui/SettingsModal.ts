@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { SaveManager } from '../systems/SaveManager';
 import { GraphicsSettings, QualityPreset } from '../systems/GraphicsSettings';
+import { MobileDetector } from '../systems/MobileDetector';
 
 const QUALITY_DESCRIPTIONS: Record<QualityPreset, string> = {
   auto: 'Automatically adjusts quality based on performance',
@@ -74,8 +75,9 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     this.add(this.panel);
 
     // Title
+    const mob = MobileDetector.showVirtualControls;
     const title = scene.add.text(centerX, centerY - panelHeight / 2 + 30, 'Settings', {
-      fontSize: '28px',
+      fontSize: mob ? '39px' : '28px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -83,11 +85,13 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
     // Close button (X)
     const closeButton = scene.add.text(centerX + panelWidth / 2 - 30, centerY - panelHeight / 2 + 30, '\u2715', {
-      fontSize: '24px',
+      fontSize: mob ? '34px' : '24px',
       color: '#888888',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-    closeButton.on('pointerover', () => closeButton.setColor('#ffffff'));
-    closeButton.on('pointerout', () => closeButton.setColor('#888888'));
+    if (!MobileDetector.isTouchDevice) {
+      closeButton.on('pointerover', () => closeButton.setColor('#ffffff'));
+      closeButton.on('pointerout', () => closeButton.setColor('#888888'));
+    }
     closeButton.on('pointerdown', () => this.close());
     this.add(closeButton);
 
@@ -129,8 +133,9 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   }
 
   private createSectionHeader(scene: Phaser.Scene, x: number, y: number, label: string): void {
+    const mob = MobileDetector.showVirtualControls;
     const text = scene.add.text(x, y, label, {
-      fontSize: '18px',
+      fontSize: mob ? '25px' : '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffd700',
     });
@@ -148,16 +153,18 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   }
 
   private createVolumeControls(scene: Phaser.Scene, leftX: number, y: number): void {
+    const mob = MobileDetector.showVirtualControls;
+
     // Volume label
     const label = scene.add.text(leftX, y, 'Volume', {
-      fontSize: '16px',
+      fontSize: mob ? '22px' : '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#cccccc',
     }).setOrigin(0, 0.5);
     this.add(label);
 
-    // Volume bar background
-    const barHeight = 14;
+    // Volume bar background (larger hit area on mobile)
+    const barHeight = mob ? 24 : 14;
     const barBg = scene.add.rectangle(this.barX, y, this.barWidth, barHeight, 0x333333);
     barBg.setInteractive({ useHandCursor: true });
     this.add(barBg);
@@ -173,7 +180,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
     // Volume percentage text
     this.volumeText = scene.add.text(this.barX + this.barWidth / 2 + 12, y, `${Math.round(currentVolume * 100)}%`, {
-      fontSize: '14px',
+      fontSize: mob ? '20px' : '14px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0, 0.5);
@@ -182,12 +189,12 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     // Mute button
     const muteX = this.barX + this.barWidth / 2 + 70;
     const isMuted = AudioManager.getMuted();
-    this.muteButton = scene.add.rectangle(muteX, y, 50, 26, isMuted ? 0x884444 : 0x448844);
+    this.muteButton = scene.add.rectangle(muteX, y, mob ? 65 : 50, mob ? 36 : 26, isMuted ? 0x884444 : 0x448844);
     this.muteButton.setInteractive({ useHandCursor: true });
     this.add(this.muteButton);
 
     this.muteText = scene.add.text(muteX, y, isMuted ? 'MUTE' : 'ON', {
-      fontSize: '12px',
+      fontSize: mob ? '17px' : '12px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -211,14 +218,15 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     scene: Phaser.Scene, leftX: number, y: number,
     label: string, category: OpacityCategory
   ): void {
+    const mob = MobileDetector.showVirtualControls;
     const sliderLabel = scene.add.text(leftX, y, label, {
-      fontSize: '14px',
+      fontSize: mob ? '20px' : '14px',
       fontFamily: 'Arial, sans-serif',
       color: '#aaaaaa',
     }).setOrigin(0, 0.5);
     this.add(sliderLabel);
 
-    const barHeight = 12;
+    const barHeight = mob ? 22 : 12;
     const barBg = scene.add.rectangle(this.barX, y, this.barWidth, barHeight, 0x333333);
     barBg.setInteractive({ useHandCursor: true });
     this.add(barBg);
@@ -233,7 +241,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
     const pctText = scene.add.text(this.barX + this.barWidth / 2 + 12, y,
       `${Math.round(currentValue * 100)}%`, {
-      fontSize: '13px',
+      fontSize: mob ? '18px' : '13px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0, 0.5);
@@ -275,6 +283,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   }
 
   private createQualityControls(scene: Phaser.Scene, centerX: number, y: number): void {
+    const mob = MobileDetector.showVirtualControls;
     const presets: { label: string; value: QualityPreset }[] = [
       { label: 'AUTO', value: 'auto' },
       { label: 'HIGH', value: 'high' },
@@ -283,7 +292,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     ];
 
     const btnWidth = 110;
-    const btnHeight = 36;
+    const btnHeight = mob ? 48 : 36;
     const gap = 12;
     const totalWidth = presets.length * btnWidth + (presets.length - 1) * gap;
     const startX = centerX - totalWidth / 2 + btnWidth / 2;
@@ -299,7 +308,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
       this.add(bg);
 
       const text = scene.add.text(bx, y, p.label, {
-        fontSize: '14px',
+        fontSize: mob ? '20px' : '14px',
         fontFamily: 'Arial Black, sans-serif',
         color: isActive ? '#ffffff' : '#888888',
       }).setOrigin(0.5);
@@ -307,12 +316,14 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
       this.qualityButtons.push({ bg, text, preset: p.value });
 
-      bg.on('pointerover', () => {
-        if (GraphicsSettings.getPreset() !== p.value) bg.setFillStyle(0x444444);
-      });
-      bg.on('pointerout', () => {
-        bg.setFillStyle(GraphicsSettings.getPreset() === p.value ? 0x4a6741 : 0x333333);
-      });
+      if (!MobileDetector.isTouchDevice) {
+        bg.on('pointerover', () => {
+          if (GraphicsSettings.getPreset() !== p.value) bg.setFillStyle(0x444444);
+        });
+        bg.on('pointerout', () => {
+          bg.setFillStyle(GraphicsSettings.getPreset() === p.value ? 0x4a6741 : 0x333333);
+        });
+      }
       bg.on('pointerdown', () => {
         AudioManager.playButtonClick();
         GraphicsSettings.setPreset(p.value);
@@ -322,7 +333,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
     // Description text below buttons
     this.qualityDescription = scene.add.text(centerX, y + btnHeight / 2 + 16, QUALITY_DESCRIPTIONS[currentPreset], {
-      fontSize: '14px',
+      fontSize: mob ? '20px' : '14px',
       fontFamily: 'Arial, sans-serif',
       color: '#999999',
     }).setOrigin(0.5, 0);
