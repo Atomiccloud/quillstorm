@@ -50,6 +50,13 @@ export class VirtualJoystick extends Phaser.GameObjects.Container {
     return this.isActive && this.trackingPointerId === id;
   }
 
+  /** Returns true if the given game-space coordinates are inside the joystick capture zone */
+  isInCaptureZone(x: number, y: number): boolean {
+    const dx = x - JOYSTICK_CONFIG.x;
+    const dy = y - JOYSTICK_CONFIG.y;
+    return Math.sqrt(dx * dx + dy * dy) <= JOYSTICK_CONFIG.captureRadius;
+  }
+
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
     if (this.isActive) return; // Already tracking a finger
 

@@ -5,6 +5,8 @@ import { SaveManager } from '../systems/SaveManager';
 import { GraphicsSettings, QualityPreset } from '../systems/GraphicsSettings';
 import { MobileDetector } from '../systems/MobileDetector';
 
+type ShootMode = 'auto' | 'tap';
+
 const QUALITY_DESCRIPTIONS: Record<QualityPreset, string> = {
   auto: 'Automatically adjusts quality based on performance',
   high: 'Full visual effects, particles, glow, and screen shake',
@@ -40,6 +42,9 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   private qualityButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; preset: QualityPreset }[] = [];
   private qualityDescription!: Phaser.GameObjects.Text;
 
+  // Shoot mode controls (mobile only)
+  private shootModeButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; mode: ShootMode }[] = [];
+
   // Slider drag tracking
   private isDraggingVolume: boolean = false;
   private draggingCategory: OpacityCategory | null = null;
@@ -54,7 +59,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
     const panelWidth = 600;
-    const panelHeight = 570;
+    const panelHeight = MobileDetector.showVirtualControls ? 640 : 570;
 
     this.barX = centerX + 30;
 
@@ -114,6 +119,13 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     const graphicsY = effectsY + 36 + OPACITY_SLIDERS.length * 32 + 24;
     this.createSectionHeader(scene, leftX, graphicsY, 'Graphics Quality');
     this.createQualityControls(scene, centerX, graphicsY + 48);
+
+    // --- Section 4: Shoot Mode (mobile only) ---
+    if (MobileDetector.showVirtualControls) {
+      const shootY = graphicsY + 130;
+      this.createSectionHeader(scene, leftX, shootY, 'Shoot Mode');
+      this.createShootModeControls(scene, centerX, shootY + 42);
+    }
 
     // Drag handlers at scene level for smooth slider dragging
     scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -340,6 +352,54 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     this.add(this.qualityDescription);
   }
 
+  private createShootModeControls(scene: Phaser.Scene, centerX: number, y: number): void {
+    const modes: { label: string; desc: string; value: ShootMode }[] = [
+      { label: 'AUTO-FIRE', desc: 'Hold to aim, fires continuously', value: 'auto' },
+      { label: 'TAP-TO-SHOOT', desc: 'Tap to fire once at that spot', value: 'tap' },
+    ];
+
+    const btnWidth = 180;
+    const btnHeight = 48;
+    const gap = 16;
+    const totalWidth = modes.length * btnWidth + (modes.length - 1) * gap;
+    const startX = centerX - totalWidth / 2 + btnWidth / 2;
+
+    const currentMode: ShootMode = SaveManager.getAutoShoot() ? 'auto' : 'tap';
+
+    modes.forEach((m, i) => {
+      const bx = startX + i * (btnWidth + gap);
+      const isActive = m.value === currentMode;
+
+      const bg = scene.add.rectangle(bx, y, btnWidth, btnHeight, isActive ? 0x4a6741 : 0x333333);
+      bg.setInteractive({ useHandCursor: true });
+      this.add(bg);
+
+      const text = scene.add.text(bx, y, m.label, {
+        fontSize: '18px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: isActive ? '#ffffff' : '#888888',
+      }).setOrigin(0.5);
+      this.add(text);
+
+      this.shootModeButtons.push({ bg, text, mode: m.value });
+
+      bg.on('pointerdown', () => {
+        AudioManager.playButtonClick();
+        SaveManager.setAutoShoot(m.value === 'auto');
+        this.refreshShootModeButtons();
+      });
+    });
+  }
+
+  private refreshShootModeButtons(): void {
+    const currentMode: ShootMode = SaveManager.getAutoShoot() ? 'auto' : 'tap';
+    this.shootModeButtons.forEach(b => {
+      const active = b.mode === currentMode;
+      b.bg.setFillStyle(active ? 0x4a6741 : 0x333333);
+      b.text.setColor(active ? '#ffffff' : '#888888');
+    });
+  }
+
   private refreshQualityButtons(): void {
     const currentPreset = GraphicsSettings.getPreset();
     this.qualityButtons.forEach(b => {
@@ -377,6 +437,7 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     }
 
     this.refreshQualityButtons();
+    this.refreshShootModeButtons();
 
     this.setVisible(true);
   }
