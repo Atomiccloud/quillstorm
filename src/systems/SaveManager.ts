@@ -10,6 +10,7 @@ interface SaveData {
   particleOpacity: number;
   elementalOpacity: number;
   statusOverlayOpacity: number;
+  autoShoot: boolean;
 }
 
 const defaultSave: SaveData = {
@@ -22,6 +23,7 @@ const defaultSave: SaveData = {
   particleOpacity: 1.0,
   elementalOpacity: 1.0,
   statusOverlayOpacity: 1.0,
+  autoShoot: true,
 };
 
 export class SaveManager {
@@ -123,6 +125,15 @@ export class SaveManager {
 
   static setStatusOverlayOpacity(value: number): void {
     this.data.statusOverlayOpacity = Math.max(0, Math.min(1, value));
+    this.save();
+  }
+
+  static getAutoShoot(): boolean {
+    return this.data.autoShoot;
+  }
+
+  static setAutoShoot(value: boolean): void {
+    this.data.autoShoot = value;
     this.save();
   }
 

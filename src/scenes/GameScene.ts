@@ -189,13 +189,15 @@ export class GameScene extends Phaser.Scene {
     // Set up collisions
     this.setupCollisions();
 
-    // Set up input
-    this.setupInput();
-
-    // Create virtual joystick on mobile
+    // Create virtual joystick on mobile BEFORE setupInput so its pointerdown
+    // listener fires first — otherwise GameScene's aim handler sees the pointer
+    // before the joystick can claim it, causing joystick touches to shoot.
     if (MobileDetector.showVirtualControls) {
       this.virtualJoystick = new VirtualJoystick(this);
     }
+
+    // Set up input
+    this.setupInput();
 
     // Start first wave
     this.time.delayedCall(1000, () => {
@@ -465,13 +467,22 @@ export class GameScene extends Phaser.Scene {
   private setupTouchInput(): void {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.gameOver || this.isChoosingUpgrade || this.shootingBlocked) return;
+      // Skip if joystick owns this pointer OR the touch is in the joystick zone
       if (this.virtualJoystick?.isTrackingPointer(pointer.id)) return;
+      if (this.virtualJoystick?.isInCaptureZone(pointer.x, pointer.y)) return;
 
       this.aimPointerId = pointer.id;
       this.isMobileAiming = true;
       const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
       this.mobileAimX = worldPoint.x;
       this.mobileAimY = worldPoint.y;
+
+      // Tap-to-shoot: fire once immediately on touch down
+      if (!SaveManager.getAutoShoot()) {
+        if (this.player.shoot(this.mobileAimX, this.mobileAimY)) {
+          AudioManager.playShoot();
+        }
+      }
     });
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -528,7 +539,7 @@ export class GameScene extends Phaser.Scene {
     // Mobile: pass joystick input to player and handle auto-fire
     if (this.virtualJoystick) {
       this.player.setJoystickInput(this.virtualJoystick.forceX, this.virtualJoystick.forceY);
-      if (this.isMobileAiming && !this.shootingBlocked && !this.isChoosingUpgrade) {
+      if (SaveManager.getAutoShoot() && this.isMobileAiming && !this.shootingBlocked && !this.isChoosingUpgrade) {
         if (this.player.shoot(this.mobileAimX, this.mobileAimY)) {
           AudioManager.playShoot();
         }
