@@ -65,6 +65,46 @@ Single source of truth for all completed and planned work.
 
 ---
 
+## Completed (v0.6.0 - Mobile Support)
+
+### Mobile Foundation
+- [x] MobileDetector utility (gates all mobile behavior) — `src/systems/MobileDetector.ts`
+- [x] PWA manifest, service worker, icons — `public/manifest.json`, `public/sw.js`
+- [x] Mobile viewport meta tags, touch-action CSS — `index.html`
+- [x] Portrait orientation warning overlay
+- [x] Multi-touch pointer support (3 active pointers)
+- [x] Landscape orientation lock attempt
+
+### Touch Controls
+- [x] Custom virtual joystick (no plugin) — `src/ui/VirtualJoystick.ts`
+- [x] Joystick integration with Player movement (deadzones: 0.3 horizontal, 0.5 vertical)
+- [x] Touch aim system with auto-fire — `src/scenes/GameScene.ts`
+- [x] Multi-touch pointer routing (joystick finger vs aim finger)
+- [x] Mobile aim angle fix for Player and HUD aim line
+- [x] Mobile pause button (top-right HUD)
+- [x] Mobile stats toggle button (top-right HUD)
+
+### UI Scaling
+- [x] HUD font scaling (~1.5x), wider health/quill/XP bars — `src/ui/HUD.ts`
+- [x] Upgrade card scaling (240x340 on mobile, 1.4x fonts) — `src/scenes/UpgradeScene.ts`
+- [x] Menu button scaling (1.3x wider/taller) — `src/scenes/MenuScene.ts`
+- [x] Touch controls hint text on menu
+- [x] Fullscreen button on mobile menu
+- [x] Hover effect removal on touch devices (all scenes)
+- [x] Secondary scene scaling (BossReward, GameOver, Pause, Leaderboard, Shop, Settings, StatsPanel)
+
+### Performance
+- [x] Mobile defaults to auto graphics quality — `src/systems/GraphicsSettings.ts`
+- [x] 40% particle reduction on mobile
+
+### Documentation
+- [x] Mobile support docs — `docs/MOBILE.md`
+- [x] CLAUDE.md quick links and key files updated
+- [x] TRACKER.md updated
+- [x] Version bump and changelog entry
+
+---
+
 ## Completed (v0.4.0)
 
 - [x] Fingerprint collision fix (PR #26, merged)

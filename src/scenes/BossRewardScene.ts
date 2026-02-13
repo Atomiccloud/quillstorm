@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG, BOSS_REWARD_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
+import { MobileDetector } from '../systems/MobileDetector';
 
 interface BossRewardSceneData {
   wave: number;
@@ -36,8 +37,9 @@ export class BossRewardScene extends Phaser.Scene {
     overlay.setInteractive();
 
     // Title
+    const mob = MobileDetector.showVirtualControls;
     this.add.text(centerX, centerY - 200, `BOSS DEFEATED`, {
-      fontSize: '42px',
+      fontSize: mob ? '59px' : '42px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffd700',
       stroke: '#000000',
@@ -45,13 +47,13 @@ export class BossRewardScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.add.text(centerX, centerY - 150, `Wave ${data.wave} Clear`, {
-      fontSize: '22px',
+      fontSize: mob ? '31px' : '22px',
       fontFamily: 'Arial, sans-serif',
       color: '#cccccc',
     }).setOrigin(0.5);
 
     this.add.text(centerX, centerY - 110, 'Choose your reward:', {
-      fontSize: '20px',
+      fontSize: mob ? '28px' : '20px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
@@ -90,6 +92,7 @@ export class BossRewardScene extends Phaser.Scene {
     title: string, subtitle: string, description: string,
     color: number, data: BossRewardSceneData,
   ): void {
+    const mob = MobileDetector.showVirtualControls;
     const card = this.add.rectangle(x, y, width, height, 0x2a2a3e)
       .setStrokeStyle(3, color)
       .setInteractive({ useHandCursor: true });
@@ -98,7 +101,7 @@ export class BossRewardScene extends Phaser.Scene {
     this.add.rectangle(x, y - height / 2 + 30, width - 10, 50, color, 0.3);
 
     this.add.text(x, y - height / 2 + 30, title, {
-      fontSize: '24px',
+      fontSize: mob ? '34px' : '24px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -121,28 +124,30 @@ export class BossRewardScene extends Phaser.Scene {
 
     // Subtitle
     this.add.text(x, y + 30, subtitle, {
-      fontSize: '18px',
+      fontSize: mob ? '25px' : '18px',
       fontFamily: 'Arial, sans-serif',
       color: '#dddddd',
     }).setOrigin(0.5);
 
     // Description
     this.add.text(x, y + 80, description, {
-      fontSize: '14px',
+      fontSize: mob ? '20px' : '14px',
       color: '#999999',
       align: 'center',
       wordWrap: { width: width - 30 },
     }).setOrigin(0.5);
 
     // Hover
-    card.on('pointerover', () => {
-      card.setFillStyle(0x3a3a4e);
-      card.setScale(1.02);
-    });
-    card.on('pointerout', () => {
-      card.setFillStyle(0x2a2a3e);
-      card.setScale(1);
-    });
+    if (!MobileDetector.isTouchDevice) {
+      card.on('pointerover', () => {
+        card.setFillStyle(0x3a3a4e);
+        card.setScale(1.02);
+      });
+      card.on('pointerout', () => {
+        card.setFillStyle(0x2a2a3e);
+        card.setScale(1);
+      });
+    }
 
     card.on('pointerdown', () => {
       if (!this.inputEnabled) return;
@@ -173,8 +178,9 @@ export class BossRewardScene extends Phaser.Scene {
     overlay.setInteractive();
 
     // Title
+    const mob = MobileDetector.showVirtualControls;
     this.add.text(centerX, centerY - 200, 'RESTORATION', {
-      fontSize: '42px',
+      fontSize: mob ? '59px' : '42px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#44ff44',
       stroke: '#000000',
@@ -182,7 +188,7 @@ export class BossRewardScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.add.text(centerX, centerY - 150, 'Choose one:', {
-      fontSize: '22px',
+      fontSize: mob ? '31px' : '22px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
@@ -246,6 +252,7 @@ export class BossRewardScene extends Phaser.Scene {
     title: string, subtitle: string, effectText: string,
     color: number, choice: BossRewardChoice,
   ): void {
+    const mob = MobileDetector.showVirtualControls;
     const card = this.add.rectangle(x, y, width, height, 0x2a2a3e)
       .setStrokeStyle(3, color)
       .setInteractive({ useHandCursor: true });
@@ -254,7 +261,7 @@ export class BossRewardScene extends Phaser.Scene {
     this.add.rectangle(x, y - height / 2 + 25, width - 10, 40, color, 0.3);
 
     this.add.text(x, y - height / 2 + 25, title, {
-      fontSize: '18px',
+      fontSize: mob ? '25px' : '18px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -283,7 +290,7 @@ export class BossRewardScene extends Phaser.Scene {
 
     // Subtitle
     this.add.text(x, y + 40, subtitle, {
-      fontSize: '16px',
+      fontSize: mob ? '22px' : '16px',
       color: '#dddddd',
       align: 'center',
       wordWrap: { width: width - 20 },
@@ -291,21 +298,23 @@ export class BossRewardScene extends Phaser.Scene {
 
     // Effect preview
     this.add.text(x, y + height / 2 - 50, effectText, {
-      fontSize: '15px',
+      fontSize: mob ? '21px' : '15px',
       color: '#88ff88',
       fontFamily: 'Arial, sans-serif',
       align: 'center',
     }).setOrigin(0.5);
 
     // Hover
-    card.on('pointerover', () => {
-      card.setFillStyle(0x3a3a4e);
-      card.setScale(1.02);
-    });
-    card.on('pointerout', () => {
-      card.setFillStyle(0x2a2a3e);
-      card.setScale(1);
-    });
+    if (!MobileDetector.isTouchDevice) {
+      card.on('pointerover', () => {
+        card.setFillStyle(0x3a3a4e);
+        card.setScale(1.02);
+      });
+      card.on('pointerout', () => {
+        card.setFillStyle(0x2a2a3e);
+        card.setScale(1);
+      });
+    }
 
     card.on('pointerdown', () => {
       if (!this.inputEnabled) return;

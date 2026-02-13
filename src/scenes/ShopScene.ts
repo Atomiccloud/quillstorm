@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { getCosmeticManager, CosmeticManager } from '../systems/CosmeticManager';
 import { PlayerDataManager } from '../systems/PlayerDataManager';
+import { MobileDetector } from '../systems/MobileDetector';
 import {
   Cosmetic,
   CosmeticCategory,
@@ -56,9 +57,11 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private createHeader(): void {
+    const mob = MobileDetector.showVirtualControls;
+
     // Title
     this.add.text(GAME_CONFIG.width / 2, 40, 'SHOP', {
-      fontSize: '48px',
+      fontSize: mob ? '67px' : '48px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
       stroke: '#000000',
@@ -70,19 +73,21 @@ export class ShopScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.add.text(80, 40, '< BACK', {
-      fontSize: '18px',
+      fontSize: mob ? '23px' : '18px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    backButton.on('pointerover', () => backButton.setFillStyle(0x666666));
-    backButton.on('pointerout', () => backButton.setFillStyle(0x555555));
+    if (!MobileDetector.isTouchDevice) {
+      backButton.on('pointerover', () => backButton.setFillStyle(0x666666));
+      backButton.on('pointerout', () => backButton.setFillStyle(0x555555));
+    }
     backButton.on('pointerdown', () => this.goBack());
 
     // Pinecone counter
     const pineconeCount = this.cosmeticManager.getPinecones();
     this.pineconeText = this.add.text(GAME_CONFIG.width - 30, 40, `${pineconeCount}`, {
-      fontSize: '24px',
+      fontSize: mob ? '31px' : '24px',
       fontFamily: 'Arial, sans-serif',
       color: '#daa520',
     }).setOrigin(1, 0.5);
@@ -93,6 +98,7 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private createCategoryTabs(): void {
+    const mob = MobileDetector.showVirtualControls;
     const categories: { id: CosmeticCategory; label: string }[] = [
       { id: 'skin', label: 'Skins' },
       { id: 'hat', label: 'Hats' },
@@ -113,22 +119,24 @@ export class ShopScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       this.add.text(x, y, cat.label, {
-        fontSize: '18px',
+        fontSize: mob ? '23px' : '18px',
         fontFamily: 'Arial, sans-serif',
         color: isActive ? '#ffffff' : '#aaaaaa',
       }).setOrigin(0.5);
 
-      button.on('pointerover', () => {
-        if (cat.id !== this.currentCategory) {
-          button.setFillStyle(0x444455);
-        }
-      });
+      if (!MobileDetector.isTouchDevice) {
+        button.on('pointerover', () => {
+          if (cat.id !== this.currentCategory) {
+            button.setFillStyle(0x444455);
+          }
+        });
 
-      button.on('pointerout', () => {
-        if (cat.id !== this.currentCategory) {
-          button.setFillStyle(0x333344);
-        }
-      });
+        button.on('pointerout', () => {
+          if (cat.id !== this.currentCategory) {
+            button.setFillStyle(0x333344);
+          }
+        });
+      }
 
       button.on('pointerdown', () => {
         AudioManager.playButtonClick();
@@ -177,6 +185,7 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private createCard(cosmetic: Cosmetic, x: number, y: number, width: number, height: number): void {
+    const mob = MobileDetector.showVirtualControls;
     const container = this.add.container(x, y);
 
     const isUnlocked = this.cosmeticManager.isUnlocked(cosmetic.id);
@@ -197,7 +206,7 @@ export class ShopScene extends Phaser.Scene {
 
     // Name (below preview)
     const name = this.add.text(0, -10, cosmetic.name, {
-      fontSize: '16px',
+      fontSize: mob ? '21px' : '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -205,7 +214,7 @@ export class ShopScene extends Phaser.Scene {
 
     // Description
     const desc = this.add.text(0, 10, cosmetic.description, {
-      fontSize: '14px',
+      fontSize: mob ? '18px' : '14px',
       fontFamily: 'Arial, sans-serif',
       color: '#aaaaaa',
       wordWrap: { width: width - 16 },
@@ -241,7 +250,7 @@ export class ShopScene extends Phaser.Scene {
 
       // Show achievement hint below the button
       const hint = this.add.text(0, buttonY + 25, unlock.description, {
-        fontSize: '10px',
+        fontSize: mob ? '13px' : '10px',
         fontFamily: 'Arial, sans-serif',
         color: '#ffaa00',
         wordWrap: { width: width - 10 },
@@ -250,24 +259,27 @@ export class ShopScene extends Phaser.Scene {
       container.add(hint);
     }
 
-    const button = this.add.rectangle(0, buttonY, width - 30, 32, buttonColor);
+    const btnH = mob ? 42 : 32;
+    const button = this.add.rectangle(0, buttonY, width - 30, btnH, buttonColor);
     if (buttonEnabled) {
       button.setInteractive({ useHandCursor: true });
     }
     container.add(button);
 
     const btnTextObj = this.add.text(0, buttonY, buttonText, {
-      fontSize: '14px',
+      fontSize: mob ? '18px' : '14px',
       fontFamily: 'Arial, sans-serif',
       color: buttonEnabled ? '#ffffff' : '#888888',
     }).setOrigin(0.5);
     container.add(btnTextObj);
 
     if (buttonEnabled) {
-      button.on('pointerover', () => {
-        button.setFillStyle(Phaser.Display.Color.ValueToColor(buttonColor).brighten(20).color);
-      });
-      button.on('pointerout', () => button.setFillStyle(buttonColor));
+      if (!MobileDetector.isTouchDevice) {
+        button.on('pointerover', () => {
+          button.setFillStyle(Phaser.Display.Color.ValueToColor(buttonColor).brighten(20).color);
+        });
+        button.on('pointerout', () => button.setFillStyle(buttonColor));
+      }
       button.on('pointerdown', () => {
         this.onCardAction(cosmetic);
       });

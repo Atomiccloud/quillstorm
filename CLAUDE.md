@@ -44,6 +44,8 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 - **Death tracking** → Hit logging + "Killed By" display: tracking in `src/scenes/GameScene.ts` recordPlayerHit(), display in `src/scenes/GameOverScene.ts` (banner, death recap panel, TIME row)
 - **Infinite swarm timer** → Live survival timer in `src/ui/HUD.ts` swarmTimerText, uses `ProgressionManager.getSwarmDuration()` and `getStageTint()` for 4-stage color
 - **Meta-progression (planned)** → Stages, mutators, and perk slots tracked in `docs/TRACKER.md` and plan file
+- **Mobile support** → See [docs/MOBILE.md](docs/MOBILE.md), detection in `src/systems/MobileDetector.ts`, joystick in `src/ui/VirtualJoystick.ts`
+- **PWA config** → `public/manifest.json`, `public/sw.js`, `public/icons/`
 
 ### Understanding Systems
 - **Overall architecture** → See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -96,6 +98,9 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 | API: upgrade lookup | `api/_lib/upgrades.ts` |
 | API: player sync | `api/player/sync.ts` |
 | API: purchases | `api/player/purchase.ts` |
+| Mobile detection | `src/systems/MobileDetector.ts` |
+| Virtual joystick | `src/ui/VirtualJoystick.ts` |
+| PWA manifest | `public/manifest.json` |
 
 ## Common Tasks
 

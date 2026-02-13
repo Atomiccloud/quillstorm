@@ -34,8 +34,16 @@ const config: Phaser.Types.Core.GameConfig = {
     height: GAME_CONFIG.height,
     parent: 'game-container',
   },
+  input: {
+    activePointers: 3, // Enable multi-touch (joystick + aim + extra)
+  },
 };
 
 new Phaser.Game(config);
+
+// Attempt landscape lock on mobile
+if ((screen.orientation as any)?.lock) {
+  (screen.orientation as any).lock('landscape').catch(() => {});
+}
 
 inject();

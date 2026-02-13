@@ -1,3 +1,5 @@
+import { MobileDetector } from './MobileDetector';
+
 const STORAGE_KEY = 'quillstorm_graphics';
 
 export type QualityPreset = 'low' | 'medium' | 'high' | 'auto';
@@ -76,7 +78,8 @@ export class GraphicsSettings {
     } catch {
       // Storage not available
     }
-    this.setPreset('high', false);
+    // Mobile devices default to auto (starts high, downgrades based on FPS)
+    this.setPreset(MobileDetector.isMobile ? 'auto' : 'high', false);
   }
 
   static save(): void {
@@ -137,10 +140,11 @@ export class GraphicsSettings {
     return false;
   }
 
-  // Accessors for individual settings
-  static get deathParticleCount(): number { return this.config.deathParticleCount; }
-  static get elementalParticleCount(): number { return this.config.elementalParticleCount; }
-  static get shatterParticleCount(): number { return this.config.shatterParticleCount; }
+  // Accessors for individual settings (reduced on mobile for performance)
+  private static mobileParticleMult = MobileDetector.isMobile ? 0.6 : 1;
+  static get deathParticleCount(): number { return Math.ceil(this.config.deathParticleCount * this.mobileParticleMult); }
+  static get elementalParticleCount(): number { return Math.ceil(this.config.elementalParticleCount * this.mobileParticleMult); }
+  static get shatterParticleCount(): number { return Math.ceil(this.config.shatterParticleCount * this.mobileParticleMult); }
   static get glowEffects(): boolean { return this.config.glowEffects; }
   static get pulseEffects(): boolean { return this.config.pulseEffects; }
   static get trailParticles(): boolean { return this.config.trailParticles; }

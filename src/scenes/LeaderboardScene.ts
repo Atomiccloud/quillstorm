@@ -3,6 +3,7 @@ import { GAME_CONFIG } from '../config';
 import { LeaderboardManager } from '../systems/LeaderboardManager';
 import { LeaderboardPanel } from '../ui/LeaderboardPanel';
 import { AudioManager } from '../systems/AudioManager';
+import { MobileDetector } from '../systems/MobileDetector';
 
 type TabType = 'global' | 'weekly' | 'notable';
 
@@ -30,6 +31,7 @@ export class LeaderboardScene extends Phaser.Scene {
     this.returnScene = data?.returnScene || 'MenuScene';
     this.returnData = data?.gameData;
     const centerX = GAME_CONFIG.width / 2;
+    const mob = MobileDetector.showVirtualControls;
 
     // Background
     this.add.rectangle(
@@ -42,7 +44,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
     // Title
     this.add.text(centerX, 40, 'LEADERBOARD', {
-      fontSize: '36px',
+      fontSize: mob ? '47px' : '36px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -51,13 +53,15 @@ export class LeaderboardScene extends Phaser.Scene {
     const backButton = this.add.rectangle(80, 40, 120, 40, 0x555555);
     backButton.setInteractive({ useHandCursor: true });
     this.add.text(80, 40, '< BACK', {
-      fontSize: '18px',
+      fontSize: mob ? '23px' : '18px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    backButton.on('pointerover', () => backButton.setFillStyle(0x666666));
-    backButton.on('pointerout', () => backButton.setFillStyle(0x555555));
+    if (!MobileDetector.isTouchDevice) {
+      backButton.on('pointerover', () => backButton.setFillStyle(0x666666));
+      backButton.on('pointerout', () => backButton.setFillStyle(0x555555));
+    }
     backButton.on('pointerdown', () => {
       AudioManager.playButtonClick();
       if (this.returnScene === 'GameOverScene' && this.returnData) {
@@ -77,7 +81,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
     // Weekly reset timer
     this.resetTimerText = this.add.text(centerX, 135, '', {
-      fontSize: '14px',
+      fontSize: mob ? '18px' : '14px',
       color: '#666666',
     });
     this.resetTimerText.setOrigin(0.5);
@@ -95,7 +99,7 @@ export class LeaderboardScene extends Phaser.Scene {
 
     // No entries hint
     this.add.text(centerX, GAME_CONFIG.height - 50, 'Play to get on the leaderboard!', {
-      fontSize: '16px',
+      fontSize: mob ? '21px' : '16px',
       color: '#666666',
     }).setOrigin(0.5);
 
@@ -112,6 +116,7 @@ export class LeaderboardScene extends Phaser.Scene {
   }
 
   private createTabButton(x: number, y: number, label: string, tab: TabType): Phaser.GameObjects.Container {
+    const mob = MobileDetector.showVirtualControls;
     const container = this.add.container(x, y);
 
     const bg = this.add.rectangle(0, 0, 140, 36, 0x333333);
@@ -119,7 +124,7 @@ export class LeaderboardScene extends Phaser.Scene {
     container.add(bg);
 
     const text = this.add.text(0, 0, label, {
-      fontSize: '16px',
+      fontSize: mob ? '21px' : '16px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     });

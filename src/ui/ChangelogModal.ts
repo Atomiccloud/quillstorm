@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../config';
 import { AudioManager } from '../systems/AudioManager';
 import { CHANGELOG } from '../data/version';
+import { MobileDetector } from '../systems/MobileDetector';
 
 export class ChangelogModal extends Phaser.GameObjects.Container {
   private background: Phaser.GameObjects.Rectangle;
@@ -11,7 +12,10 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
   private scrollY: number = 0;
   private maxScrollY: number = 0;
   private contentHeight: number = 0;
+  private panelHeight: number = 0;
   private onCloseCallback: () => void;
+  private touchStartY: number = 0;
+  private touchScrollY: number = 0;
 
   constructor(scene: Phaser.Scene, onClose: () => void) {
     super(scene, 0, 0);
@@ -20,8 +24,9 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
 
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
-    const panelWidth = 500;
-    const panelHeight = 450;
+    const m = MobileDetector.showVirtualControls;
+    const panelWidth = m ? 600 : 500;
+    const panelHeight = m ? 500 : 450;
 
     // Semi-transparent background
     this.background = scene.add.rectangle(
@@ -37,6 +42,7 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
     this.add(this.background);
 
     // Modal panel
+    this.panelHeight = panelHeight;
     this.panel = scene.add.rectangle(centerX, centerY, panelWidth, panelHeight, 0x1a1a2e);
     this.panel.setStrokeStyle(2, 0x4a6741);
     this.panel.setInteractive(); // Prevent clicks from passing through
@@ -44,7 +50,7 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
 
     // Title
     const title = scene.add.text(centerX, centerY - panelHeight / 2 + 30, 'Changelog', {
-      fontSize: '24px',
+      fontSize: m ? '34px' : '24px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     });
@@ -53,13 +59,15 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
 
     // Close button (X)
     const closeButton = scene.add.text(centerX + panelWidth / 2 - 30, centerY - panelHeight / 2 + 30, '✕', {
-      fontSize: '24px',
+      fontSize: m ? '34px' : '24px',
       color: '#888888',
     });
     closeButton.setOrigin(0.5);
     closeButton.setInteractive({ useHandCursor: true });
-    closeButton.on('pointerover', () => closeButton.setColor('#ffffff'));
-    closeButton.on('pointerout', () => closeButton.setColor('#888888'));
+    if (!MobileDetector.isTouchDevice) {
+      closeButton.on('pointerover', () => closeButton.setColor('#ffffff'));
+      closeButton.on('pointerout', () => closeButton.setColor('#888888'));
+    }
     closeButton.on('pointerdown', () => this.close());
     this.add(closeButton);
 
@@ -86,32 +94,32 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
     CHANGELOG.forEach((entry, index) => {
       // Version header
       const versionText = scene.add.text(0, yOffset, `v${entry.version}`, {
-        fontSize: '18px',
+        fontSize: m ? '26px' : '18px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#ffd700',
       });
       this.scrollContainer.add(versionText);
 
-      const dateText = scene.add.text(80, yOffset + 2, entry.date, {
-        fontSize: '14px',
+      const dateText = scene.add.text(m ? 100 : 80, yOffset + 2, entry.date, {
+        fontSize: m ? '20px' : '14px',
         color: '#888888',
       });
       this.scrollContainer.add(dateText);
 
-      yOffset += 28;
+      yOffset += m ? 36 : 28;
 
       // Changes list
       entry.changes.forEach((change) => {
         const bullet = scene.add.text(10, yOffset, '•', {
-          fontSize: '14px',
+          fontSize: m ? '20px' : '14px',
           color: '#88ff88',
         });
         this.scrollContainer.add(bullet);
 
-        const changeText = scene.add.text(25, yOffset, change, {
-          fontSize: '14px',
+        const changeText = scene.add.text(m ? 30 : 25, yOffset, change, {
+          fontSize: m ? '20px' : '14px',
           color: '#cccccc',
-          wordWrap: { width: contentWidth - 40 },
+          wordWrap: { width: contentWidth - (m ? 50 : 40) },
         });
         this.scrollContainer.add(changeText);
 
@@ -141,8 +149,8 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
 
     // Scroll hint if content is scrollable
     if (this.maxScrollY > 0) {
-      const scrollHint = scene.add.text(centerX, centerY + panelHeight / 2 - 25, 'Scroll to see more ↓', {
-        fontSize: '12px',
+      const scrollHint = scene.add.text(centerX, centerY + panelHeight / 2 - 25, m ? 'Drag to scroll ↓' : 'Scroll to see more ↓', {
+        fontSize: m ? '18px' : '12px',
         color: '#666666',
       });
       scrollHint.setOrigin(0.5);
@@ -156,19 +164,34 @@ export class ChangelogModal extends Phaser.GameObjects.Container {
       }
     });
 
+    // Touch-drag scrolling
+    if (MobileDetector.isTouchDevice) {
+      this.panel.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        this.touchStartY = pointer.y;
+        this.touchScrollY = this.scrollY;
+      });
+      scene.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        if (this.visible && pointer.isDown) {
+          const dy = this.touchStartY - pointer.y;
+          this.scrollY = Phaser.Math.Clamp(this.touchScrollY + dy, 0, this.maxScrollY);
+          this.scrollContainer.y = (GAME_CONFIG.height / 2 - panelHeight / 2 + 60) - this.scrollY;
+        }
+      });
+    }
+
     // Initially hidden
     this.setVisible(false);
   }
 
   private scroll(delta: number): void {
     this.scrollY = Phaser.Math.Clamp(this.scrollY + delta, 0, this.maxScrollY);
-    this.scrollContainer.y = (GAME_CONFIG.height / 2 - 450 / 2 + 60) - this.scrollY;
+    this.scrollContainer.y = (GAME_CONFIG.height / 2 - this.panelHeight / 2 + 60) - this.scrollY;
   }
 
   show(): void {
     this.setVisible(true);
     this.scrollY = 0;
-    this.scrollContainer.y = GAME_CONFIG.height / 2 - 450 / 2 + 60;
+    this.scrollContainer.y = GAME_CONFIG.height / 2 - this.panelHeight / 2 + 60;
   }
 
   close(): void {

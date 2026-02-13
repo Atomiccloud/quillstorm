@@ -8,6 +8,7 @@ import { ProgressionManager } from '../systems/ProgressionManager';
 import { SaveManager } from '../systems/SaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import { GraphicsSettings } from '../systems/GraphicsSettings';
+import { MobileDetector } from '../systems/MobileDetector';
 
 export class HUD {
   private scene: Phaser.Scene;
@@ -57,14 +58,18 @@ export class HUD {
   }
 
   private createUI(): void {
+    const m = MobileDetector.showVirtualControls;
+    // On mobile, right-side HUD elements shift left to make room for pause/stats buttons
+    const rightEdge = m ? GAME_CONFIG.width - 80 : GAME_CONFIG.width - 20;
+
     // Health bar
     this.healthBar = this.scene.add.graphics();
     this.healthBar.setScrollFactor(0);
     this.healthBar.setDepth(100);
 
     // Health text (shows current/max HP)
-    this.healthText = this.scene.add.text(120, 30, '', {
-      fontSize: '14px',
+    this.healthText = this.scene.add.text(m ? 160 : 120, 30, '', {
+      fontSize: m ? '22px' : '14px',
       fontFamily: 'Arial',
       color: '#ffffff',
       stroke: '#000000',
@@ -78,44 +83,44 @@ export class HUD {
 
     // Wave text
     this.waveText = this.scene.add.text(GAME_CONFIG.width / 2, 20, 'Wave 1', {
-      fontSize: '28px',
+      fontSize: m ? '42px' : '28px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
       stroke: '#000000',
-      strokeThickness: 4,
+      strokeThickness: m ? 5 : 4,
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100);
 
     // Enemy count
-    this.enemyText = this.scene.add.text(GAME_CONFIG.width / 2, 55, 'Enemies: 0', {
-      fontSize: '18px',
+    this.enemyText = this.scene.add.text(GAME_CONFIG.width / 2, m ? 70 : 55, 'Enemies: 0', {
+      fontSize: m ? '28px' : '18px',
       color: '#ff6666',
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100);
 
     // Score
-    this.scoreText = this.scene.add.text(GAME_CONFIG.width - 20, 20, 'Score: 0', {
-      fontSize: '24px',
+    this.scoreText = this.scene.add.text(rightEdge, 20, 'Score: 0', {
+      fontSize: m ? '36px' : '24px',
       fontFamily: 'Arial',
       color: '#ffff00',
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
 
     // High score
     const highScore = SaveManager.getHighScore();
-    this.highScoreText = this.scene.add.text(GAME_CONFIG.width - 20, 50, `Best: ${highScore}`, {
-      fontSize: '16px',
+    this.highScoreText = this.scene.add.text(rightEdge, m ? 60 : 50, `Best: ${highScore}`, {
+      fontSize: m ? '24px' : '16px',
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
 
     // Pinecone counter (currency)
-    this.pineconeText = this.scene.add.text(GAME_CONFIG.width - 20, 75, '0', {
-      fontSize: '18px',
+    this.pineconeText = this.scene.add.text(rightEdge, m ? 90 : 75, '0', {
+      fontSize: m ? '28px' : '18px',
       fontFamily: 'Arial',
       color: '#daa520', // Goldenrod
     }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
 
     // Quill state text (NAKED warning, shown to right of quill count)
-    this.stateText = this.scene.add.text(170, 68, '', {
-      fontSize: '14px',
+    this.stateText = this.scene.add.text(m ? 230 : 170, m ? 80 : 68, '', {
+      fontSize: m ? '22px' : '14px',
       color: '#ff4444',
     }).setScrollFactor(0).setDepth(100).setVisible(false);
 
@@ -129,8 +134,8 @@ export class HUD {
     this.xpBar.setDepth(100);
 
     // Level text (beneath XP bar)
-    this.levelText = this.scene.add.text(20, 100, 'Level 1', {
-      fontSize: '16px',
+    this.levelText = this.scene.add.text(20, m ? 115 : 100, 'Level 1', {
+      fontSize: m ? '24px' : '16px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffd700',
       stroke: '#000000',
@@ -139,16 +144,16 @@ export class HUD {
 
     // Infinite swarm indicator (hidden by default)
     this.infiniteSwarmText = this.scene.add.text(GAME_CONFIG.width / 2, 20, 'INFINITE SWARM', {
-      fontSize: '28px',
+      fontSize: m ? '42px' : '28px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ff0000',
       stroke: '#000000',
-      strokeThickness: 4,
+      strokeThickness: m ? 5 : 4,
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100).setVisible(false);
 
     // Swarm survival timer (hidden by default, shown during infinite swarm)
-    this.swarmTimerText = this.scene.add.text(GAME_CONFIG.width / 2, 52, '', {
-      fontSize: '20px',
+    this.swarmTimerText = this.scene.add.text(GAME_CONFIG.width / 2, m ? 70 : 52, '', {
+      fontSize: m ? '30px' : '20px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
       stroke: '#000000',
@@ -156,13 +161,54 @@ export class HUD {
     }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(100).setVisible(false);
 
     // Quill count (directly beneath quill bar)
-    this.quillText = this.scene.add.text(20, 70, 'Quills: 30/30', {
-      fontSize: '14px',
+    this.quillText = this.scene.add.text(20, m ? 80 : 70, 'Quills: 30/30', {
+      fontSize: m ? '22px' : '14px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
       stroke: '#000000',
       strokeThickness: 2,
     }).setOrigin(0, 0).setScrollFactor(0).setDepth(100);
+
+    // Mobile: pause and stats toggle buttons
+    if (MobileDetector.showVirtualControls) {
+      this.createMobileButtons();
+    }
+  }
+
+  private createMobileButtons(): void {
+    // Pause button (top-right)
+    const pauseBtn = this.scene.add.graphics();
+    pauseBtn.setScrollFactor(0).setDepth(110);
+    pauseBtn.fillStyle(0x333333, 0.5);
+    pauseBtn.fillRoundedRect(GAME_CONFIG.width - 60, 10, 50, 50, 8);
+    // Draw pause icon (two vertical bars)
+    pauseBtn.fillStyle(0xffffff, 0.8);
+    pauseBtn.fillRect(GAME_CONFIG.width - 48, 20, 8, 30);
+    pauseBtn.fillRect(GAME_CONFIG.width - 32, 20, 8, 30);
+
+    const pauseHit = this.scene.add.rectangle(GAME_CONFIG.width - 35, 35, 50, 50)
+      .setScrollFactor(0).setDepth(110).setInteractive().setAlpha(0.001);
+    pauseHit.on('pointerdown', () => {
+      this.scene.scene.pause();
+      this.scene.scene.launch('PauseScene', { upgradeManager: (this.scene as any).upgradeManager });
+    });
+
+    // Stats toggle button (left of pause)
+    const statsBtn = this.scene.add.graphics();
+    statsBtn.setScrollFactor(0).setDepth(110);
+    statsBtn.fillStyle(0x333333, 0.5);
+    statsBtn.fillRoundedRect(GAME_CONFIG.width - 120, 10, 50, 50, 8);
+    // Draw stats icon (three horizontal lines)
+    statsBtn.fillStyle(0xffffff, 0.8);
+    statsBtn.fillRect(GAME_CONFIG.width - 108, 22, 26, 4);
+    statsBtn.fillRect(GAME_CONFIG.width - 108, 32, 26, 4);
+    statsBtn.fillRect(GAME_CONFIG.width - 108, 42, 26, 4);
+
+    const statsHit = this.scene.add.rectangle(GAME_CONFIG.width - 95, 35, 50, 50)
+      .setScrollFactor(0).setDepth(110).setInteractive().setAlpha(0.001);
+    statsHit.on('pointerdown', () => {
+      (this.scene as any).statsPanel?.toggle();
+    });
   }
 
   setProgressionManager(manager: ProgressionManager): void {
@@ -196,8 +242,8 @@ export class HUD {
       this.healthBar.clear();
       const x = 20;
       const y = 20;
-      const width = 200;
-      const height = 20;
+      const width = MobileDetector.showVirtualControls ? 280 : 200;
+      const height = MobileDetector.showVirtualControls ? 28 : 20;
 
       // Background
       this.healthBar.fillStyle(0x333333);
@@ -229,9 +275,9 @@ export class HUD {
 
       this.quillBar.clear();
       const x = 20;
-      const y = 50;
-      const width = 200;
-      const height = 16;
+      const y = MobileDetector.showVirtualControls ? 56 : 50;
+      const width = MobileDetector.showVirtualControls ? 280 : 200;
+      const height = MobileDetector.showVirtualControls ? 22 : 16;
 
       // Background
       this.quillBar.fillStyle(COLORS.ui.quillBarBg);
@@ -280,9 +326,9 @@ export class HUD {
 
       this.xpBar.clear();
       const x = 20;
-      const y = 90;
-      const width = 200;
-      const height = 8;
+      const y = MobileDetector.showVirtualControls ? 103 : 90;
+      const width = MobileDetector.showVirtualControls ? 280 : 200;
+      const height = MobileDetector.showVirtualControls ? 10 : 8;
 
       // Background
       this.xpBar.fillStyle(0x222244);
@@ -411,8 +457,18 @@ export class HUD {
     const state = this.player.getQuillState();
     if (state === 'naked') return;
 
-    const pointer = this.scene.input.activePointer;
-    const worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    // On mobile, use the stored aim position; on desktop, use the active pointer
+    const gameScene = this.scene as any;
+    let worldPoint: { x: number; y: number };
+    if (gameScene.isMobileAiming) {
+      worldPoint = { x: gameScene.mobileAimX, y: gameScene.mobileAimY };
+    } else if (gameScene.isMobileAiming === false && gameScene.virtualJoystick) {
+      // Mobile but not aiming — don't draw aim line
+      return;
+    } else {
+      const pointer = this.scene.input.activePointer;
+      worldPoint = this.scene.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    }
 
     // Draw dotted line from player to cursor
     this.aimLine.lineStyle(2, 0xffffff, 0.3);

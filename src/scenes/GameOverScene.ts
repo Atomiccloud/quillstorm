@@ -11,6 +11,7 @@ import { AchievementManager } from '../systems/AchievementManager';
 import { Achievement } from '../data/achievements';
 import { NameInputModal } from '../ui/NameInputModal';
 import { StatsPanel } from '../ui/StatsPanel';
+import { MobileDetector } from '../systems/MobileDetector';
 
 type DamageSourceCategory = 'contact' | 'rolling' | 'burrower' | 'bomberZone' | 'projectile' | 'stormLightning';
 
@@ -90,6 +91,7 @@ export class GameOverScene extends Phaser.Scene {
       PlayerDataManager.syncToServer();
     }
 
+    const mob = MobileDetector.showVirtualControls;
     const title = data.victory ? 'VICTORY!' : 'GAME OVER';
     const titleColor = data.victory ? '#ffaa00' : '#ffffff';
 
@@ -100,13 +102,13 @@ export class GameOverScene extends Phaser.Scene {
 
     // Title with glow effect — positioned near top
     this.add.text(centerX + 3, 68, title, {
-      fontSize: '64px',
+      fontSize: mob ? '90px' : '64px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#000000',
     }).setOrigin(0.5).setAlpha(0.5);
 
     this.add.text(centerX, 65, title, {
-      fontSize: '64px',
+      fontSize: mob ? '90px' : '64px',
       fontFamily: 'Arial Black, sans-serif',
       color: titleColor,
       stroke: '#000000',
@@ -119,7 +121,7 @@ export class GameOverScene extends Phaser.Scene {
     // New high score banner
     if (data.isNewHighScore) {
       const banner = this.add.text(centerX, contentY, 'NEW HIGH SCORE!', {
-        fontSize: '28px',
+        fontSize: mob ? '39px' : '28px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#ffff00',
         stroke: '#000000',
@@ -142,7 +144,7 @@ export class GameOverScene extends Phaser.Scene {
         const ach = data.newAchievements[i];
 
         const achText = this.add.text(centerX, contentY + i * 28, `ACHIEVEMENT: ${ach.name}`, {
-          fontSize: '15px',
+          fontSize: mob ? '21px' : '15px',
           fontFamily: 'Arial Black, sans-serif',
           color: '#ffdd00',
           stroke: '#000000',
@@ -178,32 +180,32 @@ export class GameOverScene extends Phaser.Scene {
 
     // Panel header
     this.add.text(centerX, panelY + 16, 'THIS RUN', {
-      fontSize: '14px',
+      fontSize: mob ? '20px' : '14px',
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(0.5);
 
     // Wave and Score side by side
     this.add.text(centerX - 60, panelY + 45, 'WAVE', {
-      fontSize: '12px',
+      fontSize: mob ? '17px' : '12px',
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(0.5);
 
     this.add.text(centerX - 60, panelY + 68, `${data.wave}`, {
-      fontSize: '32px',
+      fontSize: mob ? '45px' : '32px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
 
     this.add.text(centerX + 60, panelY + 45, 'SCORE', {
-      fontSize: '12px',
+      fontSize: mob ? '17px' : '12px',
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(0.5);
 
     this.add.text(centerX + 60, panelY + 68, `${data.score.toLocaleString()}`, {
-      fontSize: '28px',
+      fontSize: mob ? '39px' : '28px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -219,13 +221,13 @@ export class GameOverScene extends Phaser.Scene {
 
       // Kills
       this.add.text(centerX - 60, panelY + 105, 'KILLS', {
-        fontSize: '12px',
+        fontSize: mob ? '17px' : '12px',
         fontFamily: 'Arial',
         color: '#888888',
       }).setOrigin(0.5);
 
       this.add.text(centerX - 60, panelY + 125, `${stats.totalKills}`, {
-        fontSize: '24px',
+        fontSize: mob ? '34px' : '24px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#ff8844',
       }).setOrigin(0.5);
@@ -237,13 +239,13 @@ export class GameOverScene extends Phaser.Scene {
         : `${Math.round(stats.damageTaken)}`;
 
       this.add.text(centerX + 60, panelY + 105, dmgLabel, {
-        fontSize: '12px',
+        fontSize: mob ? '17px' : '12px',
         fontFamily: 'Arial',
         color: '#888888',
       }).setOrigin(0.5);
 
       this.add.text(centerX + 60, panelY + 125, dmgValue, {
-        fontSize: '24px',
+        fontSize: mob ? '34px' : '24px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#ff4444',
       }).setOrigin(0.5);
@@ -255,7 +257,7 @@ export class GameOverScene extends Phaser.Scene {
         dividerG2.lineBetween(panelX + 20, panelY + 145, panelX + panelWidth - 20, panelY + 145);
 
         this.add.text(centerX, panelY + 157, 'WAVE TIME', {
-          fontSize: '12px',
+          fontSize: mob ? '17px' : '12px',
           fontFamily: 'Arial',
           color: '#888888',
         }).setOrigin(0.5);
@@ -264,7 +266,7 @@ export class GameOverScene extends Phaser.Scene {
         const mins = Math.floor(totalSec / 60);
         const secs = totalSec % 60;
         this.add.text(centerX, panelY + 175, `${mins}:${secs.toString().padStart(2, '0')}`, {
-          fontSize: '24px',
+          fontSize: mob ? '34px' : '24px',
           fontFamily: 'Arial Black, sans-serif',
           color: '#4488ff',
         }).setOrigin(0.5);
@@ -294,7 +296,7 @@ export class GameOverScene extends Phaser.Scene {
       );
 
       this.add.text(centerX - 15, pineY, `+${data.sessionPinecones}`, {
-        fontSize: '22px',
+        fontSize: mob ? '31px' : '22px',
         fontFamily: 'Arial Black, sans-serif',
         color: '#daa520',
       }).setOrigin(0, 0.5);
@@ -303,7 +305,7 @@ export class GameOverScene extends Phaser.Scene {
     // Rank display (hidden initially)
     const rankY = panelY + panelHeight + (data.sessionPinecones ? 50 : 20);
     this.rankText = this.add.text(centerX, rankY, '', {
-      fontSize: '18px',
+      fontSize: mob ? '25px' : '18px',
       fontFamily: 'Arial',
       color: '#88ff88',
     });
@@ -311,7 +313,7 @@ export class GameOverScene extends Phaser.Scene {
 
     // Status text for submission
     this.statusText = this.add.text(centerX, rankY + 25, '', {
-      fontSize: '14px',
+      fontSize: mob ? '20px' : '14px',
       color: '#666666',
     });
     this.statusText.setOrigin(0.5);
@@ -326,19 +328,19 @@ export class GameOverScene extends Phaser.Scene {
       divider.lineBetween(centerX - 100, bestY - 10, centerX + 100, bestY - 10);
 
       this.add.text(centerX, bestY, 'PERSONAL BEST', {
-        fontSize: '12px',
+        fontSize: mob ? '17px' : '12px',
         fontFamily: 'Arial',
         color: '#666666',
       }).setOrigin(0.5);
 
       this.add.text(centerX - 50, bestY + 22, `${data.highScore.toLocaleString()}`, {
-        fontSize: '18px',
+        fontSize: mob ? '25px' : '18px',
         fontFamily: 'Arial',
         color: '#aaaaaa',
       }).setOrigin(0.5);
 
       this.add.text(centerX + 50, bestY + 22, `Wave ${data.highestWave}`, {
-        fontSize: '18px',
+        fontSize: mob ? '25px' : '18px',
         fontFamily: 'Arial',
         color: '#aaaaaa',
       }).setOrigin(0.5);
@@ -360,7 +362,7 @@ export class GameOverScene extends Phaser.Scene {
     const achCount = AchievementManager.getEarnedCount();
     const achTotal = AchievementManager.getTotalCount();
     this.add.text(GAME_CONFIG.width - 16, 16, `Achievements: ${achCount}/${achTotal}`, {
-      fontSize: '13px',
+      fontSize: mob ? '18px' : '13px',
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(1, 0);
@@ -368,11 +370,11 @@ export class GameOverScene extends Phaser.Scene {
     // Hints at bottom (combined into one line)
     const hintsY = GAME_CONFIG.height - 40;
     const hints = data.upgradeManager
-      ? 'R: Restart  |  TAB: Toggle Panels'
-      : 'R: Restart';
+      ? (mob ? 'Tap RETRY to restart' : 'R: Restart  |  TAB: Toggle Panels')
+      : (mob ? 'Tap RETRY to restart' : 'R: Restart');
 
     this.add.text(centerX, hintsY, hints, {
-      fontSize: '15px',
+      fontSize: mob ? '21px' : '15px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
@@ -415,15 +417,19 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   private createButtons(): void {
+    const mob = MobileDetector.showVirtualControls;
     const centerX = GAME_CONFIG.width / 2;
     const buttonY = GAME_CONFIG.height - 100;
+    const btnW = mob ? 140 : 100;
+    const btnH = mob ? 56 : 40;
+    const btnFontSize = mob ? '22px' : '16px';
 
     // Retry button (green accent)
-    const retryButton = this.add.rectangle(centerX - 120, buttonY, 100, 40, 0x4a6741)
+    const retryButton = this.add.rectangle(centerX - 120, buttonY, btnW, btnH, 0x4a6741)
       .setInteractive({ useHandCursor: true });
     retryButton.setStrokeStyle(2, 0x6a8761);
     this.add.text(centerX - 120, buttonY, 'RETRY', {
-      fontSize: '16px',
+      fontSize: btnFontSize,
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -431,11 +437,11 @@ export class GameOverScene extends Phaser.Scene {
     this.buttonsContainer.add(retryButton);
 
     // Leaderboard button (blue accent)
-    const leaderboardButton = this.add.rectangle(centerX, buttonY, 100, 40, 0x444477)
+    const leaderboardButton = this.add.rectangle(centerX, buttonY, btnW, btnH, 0x444477)
       .setInteractive({ useHandCursor: true });
     leaderboardButton.setStrokeStyle(2, 0x5555aa);
     this.add.text(centerX, buttonY, 'RANKS', {
-      fontSize: '16px',
+      fontSize: btnFontSize,
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -443,11 +449,11 @@ export class GameOverScene extends Phaser.Scene {
     this.buttonsContainer.add(leaderboardButton);
 
     // Menu button (gray)
-    const menuButton = this.add.rectangle(centerX + 120, buttonY, 100, 40, 0x555555)
+    const menuButton = this.add.rectangle(centerX + 120, buttonY, btnW, btnH, 0x555555)
       .setInteractive({ useHandCursor: true });
     menuButton.setStrokeStyle(2, 0x777777);
     this.add.text(centerX + 120, buttonY, 'MENU', {
-      fontSize: '16px',
+      fontSize: btnFontSize,
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5);
@@ -455,8 +461,10 @@ export class GameOverScene extends Phaser.Scene {
     this.buttonsContainer.add(menuButton);
 
     // Button interactions (only work when input is enabled)
-    retryButton.on('pointerover', () => retryButton.setFillStyle(0x5a7751));
-    retryButton.on('pointerout', () => retryButton.setFillStyle(0x4a6741));
+    if (!MobileDetector.isTouchDevice) {
+      retryButton.on('pointerover', () => retryButton.setFillStyle(0x5a7751));
+      retryButton.on('pointerout', () => retryButton.setFillStyle(0x4a6741));
+    }
     retryButton.on('pointerdown', () => {
       if (!this.inputEnabled) return;
       AudioManager.playButtonClick();
@@ -464,8 +472,10 @@ export class GameOverScene extends Phaser.Scene {
       this.scene.start('GameScene');
     });
 
-    leaderboardButton.on('pointerover', () => leaderboardButton.setFillStyle(0x555588));
-    leaderboardButton.on('pointerout', () => leaderboardButton.setFillStyle(0x444477));
+    if (!MobileDetector.isTouchDevice) {
+      leaderboardButton.on('pointerover', () => leaderboardButton.setFillStyle(0x555588));
+      leaderboardButton.on('pointerout', () => leaderboardButton.setFillStyle(0x444477));
+    }
     leaderboardButton.on('pointerdown', () => {
       if (!this.inputEnabled) return;
       AudioManager.playButtonClick();
@@ -476,8 +486,10 @@ export class GameOverScene extends Phaser.Scene {
       });
     });
 
-    menuButton.on('pointerover', () => menuButton.setFillStyle(0x666666));
-    menuButton.on('pointerout', () => menuButton.setFillStyle(0x555555));
+    if (!MobileDetector.isTouchDevice) {
+      menuButton.on('pointerover', () => menuButton.setFillStyle(0x666666));
+      menuButton.on('pointerout', () => menuButton.setFillStyle(0x555555));
+    }
     menuButton.on('pointerdown', () => {
       if (!this.inputEnabled) return;
       AudioManager.playButtonClick();

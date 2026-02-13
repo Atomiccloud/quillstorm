@@ -6,6 +6,7 @@ import { PlayerDataManager } from '../systems/PlayerDataManager';
 import { GAME_VERSION } from '../data/version';
 import { ChangelogModal } from '../ui/ChangelogModal';
 import { SettingsModal } from '../ui/SettingsModal';
+import { MobileDetector } from '../systems/MobileDetector';
 
 export class MenuScene extends Phaser.Scene {
   private changelogModal!: ChangelogModal;
@@ -27,10 +28,11 @@ export class MenuScene extends Phaser.Scene {
 
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
+    const m = MobileDetector.showVirtualControls;
 
     // Title
     this.add.text(centerX, centerY - 280, 'QUILLSTORM', {
-      fontSize: '72px',
+      fontSize: m ? '90px' : '72px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
       stroke: '#000000',
@@ -39,7 +41,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Subtitle
     this.add.text(centerX, centerY - 215, 'A Porcupine Roguelike', {
-      fontSize: '24px',
+      fontSize: m ? '34px' : '24px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
@@ -48,7 +50,9 @@ export class MenuScene extends Phaser.Scene {
 
     // Play button
     const playBtnY = centerY + 150;
-    this.createRoundedButton(centerX, playBtnY, 220, 56, 12, 0x4a6741, 0x5a7751, 'PLAY', '30px', () => {
+    const playW = m ? 280 : 220;
+    const playH = m ? 70 : 56;
+    this.createRoundedButton(centerX, playBtnY, playW, playH, 12, 0x4a6741, 0x5a7751, 'PLAY', m ? '40px' : '30px', () => {
       AudioManager.resume();
       AudioManager.playButtonClick();
       this.scene.start('GameScene');
@@ -56,40 +60,44 @@ export class MenuScene extends Phaser.Scene {
 
     // Shop and Leaderboard side by side
     const secondRowY = playBtnY + 85;
-    const btnWidth = 190;
+    const btnWidth = m ? 240 : 190;
+    const btnHeight = m ? 56 : 46;
     const gap = 20;
 
-    this.createRoundedButton(centerX - btnWidth / 2 - gap / 2, secondRowY, btnWidth, 46, 10, 0x8b4513, 0xa0522d, 'SHOP', '20px', () => {
+    this.createRoundedButton(centerX - btnWidth / 2 - gap / 2, secondRowY, btnWidth, btnHeight, 10, 0x8b4513, 0xa0522d, 'SHOP', m ? '28px' : '20px', () => {
       AudioManager.playButtonClick();
       this.scene.start('ShopScene');
     });
 
-    this.createRoundedButton(centerX + btnWidth / 2 + gap / 2, secondRowY, btnWidth, 46, 10, 0x444477, 0x555588, 'LEADERBOARD', '20px', () => {
+    this.createRoundedButton(centerX + btnWidth / 2 + gap / 2, secondRowY, btnWidth, btnHeight, 10, 0x444477, 0x555588, 'LEADERBOARD', m ? '28px' : '20px', () => {
       AudioManager.playButtonClick();
       this.scene.start('LeaderboardScene', { returnScene: 'MenuScene' });
     });
 
     // Settings button
     const settingsY = secondRowY + 75;
-    this.createRoundedButton(centerX, settingsY, 160, 46, 10, 0x555555, 0x666666, 'SETTINGS', '20px', () => {
+    this.createRoundedButton(centerX, settingsY, m ? 220 : 160, btnHeight, 10, 0x555555, 0x666666, 'SETTINGS', m ? '28px' : '20px', () => {
       AudioManager.playButtonClick();
       this.settingsModal.show();
     });
 
     // Account button (top right)
-    const accountButton = this.add.rectangle(GAME_CONFIG.width - 80, 35, 130, 40, 0x555577)
+    const acctX = m ? GAME_CONFIG.width - 100 : GAME_CONFIG.width - 80;
+    const accountButton = this.add.rectangle(acctX, 35, m ? 160 : 130, m ? 50 : 40, 0x555577)
       .setInteractive({ useHandCursor: true })
       .setDepth(10);
 
-    const accountText = this.add.text(GAME_CONFIG.width - 80, 35,
+    const accountText = this.add.text(acctX, 35,
       AuthManager.isSignedIn() ? AuthManager.getDisplayName() : 'Account', {
-      fontSize: '16px',
+      fontSize: m ? '22px' : '16px',
       fontFamily: 'Arial, sans-serif',
       color: '#ffffff',
     }).setOrigin(0.5).setDepth(11);
 
-    accountButton.on('pointerover', () => accountButton.setFillStyle(0x666688));
-    accountButton.on('pointerout', () => accountButton.setFillStyle(0x555577));
+    if (!MobileDetector.isTouchDevice) {
+      accountButton.on('pointerover', () => accountButton.setFillStyle(0x666688));
+      accountButton.on('pointerout', () => accountButton.setFillStyle(0x555577));
+    }
     accountButton.on('pointerdown', () => {
       AudioManager.playButtonClick();
       this.scene.start('LoginScene');
@@ -105,19 +113,31 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // Controls info
-    this.add.text(centerX, GAME_CONFIG.height - 40, 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  Tab: Stats  |  M: Mute', {
-      fontSize: '14px',
+    const controlsHint = m
+      ? 'Joystick: Move  |  Touch: Aim & Shoot'
+      : 'WASD / Arrows: Move  |  Space: Jump  |  Mouse: Aim & Shoot  |  Tab: Stats  |  M: Mute';
+    this.add.text(centerX, GAME_CONFIG.height - 40, controlsHint, {
+      fontSize: m ? '20px' : '14px',
       color: '#666666',
     }).setOrigin(0.5);
 
+    // Fullscreen button (mobile only)
+    if (m) {
+      this.createRoundedButton(80, GAME_CONFIG.height - 40, 140, 40, 8, 0x444444, 0x555555, 'FULLSCREEN', '16px', () => {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      });
+    }
+
     // Version number (bottom right, clickable for changelog)
     const versionText = this.add.text(GAME_CONFIG.width - 15, GAME_CONFIG.height - 15, `v${GAME_VERSION}`, {
-      fontSize: '14px',
+      fontSize: m ? '20px' : '14px',
       color: '#555555',
     }).setOrigin(1, 1).setInteractive({ useHandCursor: true });
 
-    versionText.on('pointerover', () => versionText.setColor('#888888'));
-    versionText.on('pointerout', () => versionText.setColor('#555555'));
+    if (!MobileDetector.isTouchDevice) {
+      versionText.on('pointerover', () => versionText.setColor('#888888'));
+      versionText.on('pointerout', () => versionText.setColor('#555555'));
+    }
     versionText.on('pointerdown', () => {
       AudioManager.playButtonClick();
       this.changelogModal.show();
@@ -160,8 +180,10 @@ export class MenuScene extends Phaser.Scene {
       color: '#ffffff',
     }).setOrigin(0.5);
 
-    hitZone.on('pointerover', () => drawBtn(hoverColor));
-    hitZone.on('pointerout', () => drawBtn(color));
+    if (!MobileDetector.isTouchDevice) {
+      hitZone.on('pointerover', () => drawBtn(hoverColor));
+      hitZone.on('pointerout', () => drawBtn(color));
+    }
     hitZone.on('pointerdown', onClick);
   }
 }

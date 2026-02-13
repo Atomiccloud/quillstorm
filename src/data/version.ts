@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.5.72';
+export const GAME_VERSION = '0.6.0';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.0',
+    date: '2026-02-13',
+    changes: [
+      'Mobile support — play Quillstorm on your phone!',
+      'Virtual joystick for movement (left thumb), touch to aim and auto-fire (right side)',
+      'Progressive Web App (PWA) — add to home screen for fullscreen experience',
+      'All UI scales for mobile readability (larger fonts, wider bars, bigger buttons)',
+      'Mobile pause and stats toggle buttons in HUD',
+      'Portrait orientation warning — rotate to landscape to play',
+      'Mobile devices default to auto graphics quality with reduced particles',
+      'Fullscreen button on mobile menu',
+      'Desktop experience is completely unchanged',
+    ],
+  },
   {
     version: '0.5.72',
     date: '2026-02-12',

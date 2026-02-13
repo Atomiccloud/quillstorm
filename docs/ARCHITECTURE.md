@@ -122,6 +122,30 @@ All game entities extend `Phaser.GameObjects.Container`:
 - Changes after boss waves
 - Minor position jitter for variety
 
+### Mobile Support
+
+**MobileDetector** (`src/systems/MobileDetector.ts`) - Static utility class:
+- Detects mobile devices via UA + touch + screen size
+- `showVirtualControls` flag gates all mobile behavior
+- `uiScale` provides font/element multiplier (1.5x on mobile, 1.0x desktop)
+- Desktop behavior is completely unaffected
+
+**VirtualJoystick** (`src/ui/VirtualJoystick.ts`) - Touch movement:
+- Phaser Container with outer ring + inner thumb
+- Tracks specific pointer ID for multi-touch isolation
+- Outputs normalized forceX/forceY with deadzones
+- Created by GameScene only when `showVirtualControls` is true
+
+**Touch Aim** (in `GameScene.setupTouchInput()`):
+- Any touch not captured by joystick becomes the aim pointer
+- Auto-fires continuously toward aim position
+- Scene-level `mobileAimX`/`mobileAimY` consumed by Player and HUD
+
+**PWA** (`public/manifest.json`, `public/sw.js`):
+- Installable web app with fullscreen display
+- Landscape orientation preference
+- Cache-first service worker for offline shell
+
 **LeaderboardManager** - Online leaderboards:
 - Submits scores to Vercel Edge Functions
 - Generates SHA256 checksum for validation

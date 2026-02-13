@@ -6,6 +6,7 @@ import { ProgressionManager } from '../systems/ProgressionManager';
 import { AudioManager } from '../systems/AudioManager';
 import { SessionManager } from '../systems/SessionManager';
 import { StatsPanel } from '../ui/StatsPanel';
+import { MobileDetector } from '../systems/MobileDetector';
 
 interface UpgradeSceneData {
   upgradeManager: UpgradeManager;
@@ -45,14 +46,16 @@ export class UpgradeScene extends Phaser.Scene {
     const titleText = this.getTitleForSource(source, data.wave);
     const titleColor = this.getTitleColorForSource(source);
 
+    const m = MobileDetector.showVirtualControls;
+
     this.add.text(centerX, 100, titleText, {
-      fontSize: '36px',
+      fontSize: m ? '50px' : '36px',
       fontFamily: 'Arial Black, sans-serif',
       color: titleColor,
     }).setOrigin(0.5);
 
-    this.add.text(centerX, 150, 'Choose an upgrade:', {
-      fontSize: '24px',
+    this.add.text(centerX, m ? 160 : 150, 'Choose an upgrade:', {
+      fontSize: m ? '34px' : '24px',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
@@ -83,9 +86,9 @@ export class UpgradeScene extends Phaser.Scene {
     const upgrades = getRandomUpgrades(totalChoices, this.upgradeManager, options);
 
     // Display upgrade cards
-    const cardWidth = 280;
-    const cardHeight = 380;
-    const cardSpacing = 40;
+    const cardWidth = m ? 240 : 280;
+    const cardHeight = m ? 340 : 380;
+    const cardSpacing = m ? 20 : 40;
     const totalWidth = (cardWidth * upgrades.length) + (cardSpacing * (upgrades.length - 1));
     const startX = centerX - totalWidth / 2 + cardWidth / 2;
 
@@ -102,6 +105,7 @@ export class UpgradeScene extends Phaser.Scene {
 
   createUpgradeCard(x: number, y: number, width: number, height: number, upgrade: Upgrade): void {
     const rarityColor = COLORS.rarity[upgrade.rarity];
+    const m = MobileDetector.showVirtualControls;
 
     // Card background
     const card = this.add.rectangle(x, y, width, height, 0x2a2a3e)
@@ -113,7 +117,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     // Rarity text
     this.add.text(x, y - height / 2 + 25, upgrade.rarity.toUpperCase(), {
-      fontSize: '14px',
+      fontSize: m ? '20px' : '14px',
       fontFamily: 'Arial',
       color: '#' + rarityColor.toString(16).padStart(6, '0'),
     }).setOrigin(0.5);
@@ -123,7 +127,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     // Name
     this.add.text(x, y - 30, upgrade.name, {
-      fontSize: '22px',
+      fontSize: m ? '30px' : '22px',
       fontFamily: 'Arial Black, sans-serif',
       color: '#ffffff',
       wordWrap: { width: width - 30 },
@@ -132,7 +136,7 @@ export class UpgradeScene extends Phaser.Scene {
 
     // Description
     this.add.text(x, y + 40, upgrade.description, {
-      fontSize: '16px',
+      fontSize: m ? '22px' : '16px',
       color: '#cccccc',
       wordWrap: { width: width - 30 },
       align: 'center',
@@ -141,22 +145,24 @@ export class UpgradeScene extends Phaser.Scene {
     // Effect preview
     const effectText = this.getEffectPreview(upgrade);
     this.add.text(x, y + height / 2 - 50, effectText, {
-      fontSize: '14px',
+      fontSize: m ? '20px' : '14px',
       color: '#88ff88',
       wordWrap: { width: width - 30 },
       align: 'center',
     }).setOrigin(0.5);
 
-    // Hover effects
-    card.on('pointerover', () => {
-      card.setFillStyle(0x3a3a4e);
-      card.setScale(1.02);
-    });
+    // Hover effects (disabled on touch devices to prevent sticky states)
+    if (!MobileDetector.isTouchDevice) {
+      card.on('pointerover', () => {
+        card.setFillStyle(0x3a3a4e);
+        card.setScale(1.02);
+      });
 
-    card.on('pointerout', () => {
-      card.setFillStyle(0x2a2a3e);
-      card.setScale(1);
-    });
+      card.on('pointerout', () => {
+        card.setFillStyle(0x2a2a3e);
+        card.setScale(1);
+      });
+    }
 
     card.on('pointerdown', () => {
       this.selectUpgrade(upgrade);
