@@ -39,13 +39,17 @@
       }
 
       /* Mobile: full-bleed, no border */
-      @media (max-width: 1024px) and (hover: none) and (pointer: coarse) {
+      /* Use multiple queries for broad device coverage */
+      @media (max-width: 1024px) and (hover: none),
+             (max-width: 1024px) and (pointer: coarse),
+             (max-height: 500px) and (pointer: coarse) {
         #game-container {
           width: 100vw;
           height: 100vh;
           border: none;
           border-radius: 0;
           box-shadow: none;
+          aspect-ratio: auto;
         }
       }
 
@@ -77,7 +81,8 @@
         0%, 100% { transform: rotate(0deg); }
         50% { transform: rotate(90deg); }
       }
-      @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+      @media (orientation: portrait) and (hover: none),
+             (orientation: portrait) and (pointer: coarse) {
         #portrait-warning { display: flex; }
         #game-container { display: none; }
       }

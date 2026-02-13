@@ -13,16 +13,19 @@ export class MobileDetector {
   static get isTouchDevice(): boolean {
     if (this._isTouchDevice === null) {
       this._isTouchDevice =
-        navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+        navigator.maxTouchPoints > 0 ||
+        'ontouchstart' in window ||
+        'ontouchstart' in document.documentElement;
     }
     return this._isTouchDevice;
   }
 
   /** True when the screen is small enough to qualify as a phone/small tablet */
   static get isSmallScreen(): boolean {
-    // Use innerWidth/innerHeight so Chrome DevTools device emulation works
-    const w = Math.max(window.innerWidth, window.innerHeight);
-    return w < 1024;
+    // Check both viewport and physical screen — either being small counts
+    const viewport = Math.max(window.innerWidth, window.innerHeight);
+    const screen = Math.max(window.screen.width, window.screen.height);
+    return Math.min(viewport, screen) < 1400;
   }
 
   /** True on mobile devices — combines UA heuristic + touch + screen size */
@@ -30,8 +33,25 @@ export class MobileDetector {
     // Cache result on first call — detection runs once at startup
     if (this._isMobile === null) {
       const ua = navigator.userAgent;
-      const uaMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-      this._isMobile = uaMobile || (this.isTouchDevice && this.isSmallScreen);
+      // 'Mobi' catches most mobile browsers including Chrome reduced UA
+      // ("...Mobile Safari/537.36") and Firefox Mobile
+      const uaMobile = /Android|iPhone|iPad|iPod|Mobi|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+      // Modern UA Client Hints API (Chrome 90+)
+      const uaDataMobile = (navigator as any).userAgentData?.mobile === true;
+      this._isMobile = uaMobile || uaDataMobile || (this.isTouchDevice && this.isSmallScreen);
+
+      // Log detection for debugging on real devices
+      console.log('[MobileDetector]', {
+        result: this._isMobile,
+        uaMobile,
+        uaDataMobile,
+        touch: this.isTouchDevice,
+        smallScreen: this.isSmallScreen,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        screen: `${window.screen.width}x${window.screen.height}`,
+        touchPoints: navigator.maxTouchPoints,
+        ua: ua.substring(0, 80),
+      });
     }
     return this._isMobile;
   }
