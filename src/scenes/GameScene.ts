@@ -2219,8 +2219,8 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // --- ELEMENTAL CONVERGENCE --- 20% chance for secondary random proc
-    if (firedElements.length > 0 && this.upgradeManager.hasUpgrade('elemental_convergence')) {
+    // --- QUILL APOTHEOSIS --- 20% chance for secondary random proc
+    if (firedElements.length > 0 && this.upgradeManager.getModifier('apotheosis') > 0) {
       if (Math.random() < 0.20) {
         const allElements = ['shock', 'freeze', 'burn', 'poison'];
         const remaining = allElements.filter(e => !firedElements.includes(e));
@@ -2232,7 +2232,7 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Apply a single element proc as a secondary effect (from Elemental Convergence) */
+  /** Apply a single element proc as a secondary effect (from Quill Apotheosis) */
   private applySecondaryElementalProc(enemy: Enemy, element: string, mods: ModifierSource, hitDamage: number): void {
     const cfg = ELEMENTAL_EVOLUTION_CONFIG;
     switch (element) {

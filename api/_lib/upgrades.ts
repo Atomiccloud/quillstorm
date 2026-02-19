@@ -93,21 +93,21 @@ export const UPGRADE_LOOKUP: Record<string, UpgradeEntry> = {
   sniper: { effects: { damage: 1.0, piercing: 3, fireRate: -0.3, projectileSpeed: 0.6 }, maxStacks: 3 },
   bouncy_doom: { effects: { bouncing: 5, damage: 0.3, projectileSpeed: 0.3 }, maxStacks: 1 },
   infinite_quills: { effects: { maxQuills: 50, regenRate: 1.0 }, maxStacks: 1 },
-  glass_god: { effects: { damage: 1.5, critChance: 1.0, critDamage: 1.0, maxHealth: -50 } },
+  glass_god: { effects: { damage: 1.5, maxHealth: -50 } },
+  deaths_edge: { effects: { critChance: 1.0, critDamage: 1.5 } },
   nuclear_quills: { effects: { explosionRadius: 150, damage: 0.8, fireRate: -0.3 }, maxStacks: 3 },
   porcupine_army: { effects: { companionCount: 4 }, maxStacks: 1 },
   vampire_lord: { effects: { vampirismStrength: 5, damage: 0.5 }, maxStacks: 1 },
   immortal_fortress: { effects: { shieldCharges: 4, maxHealth: 100 }, maxStacks: 1 },
   midas: { effects: { prosperity: 40 } },
-  elemental_convergence: { effects: { shockStrength: 3, freezeStrength: 3, burnStrength: 3, poisonStrength: 3 }, maxStacks: 3 },
-  living_bastion: { effects: { armor: 0.45, thorns: 24, maxHealth: 100 } },
-  wraith_form: { effects: { evasion: 0.35, moveSpeed: 0.10 } },
+  living_bastion: { effects: { armor: 0.60, thorns: 24, maxHealth: 100 } },
+  wraith_form: { effects: { evasion: 1.0, moveSpeed: 0.10 } },
   lodestone: { effects: { magnetPulse: 1 }, maxStacks: 1 },
 
   // ===== MYTHIC =====
   expanded_options: { effects: { upgradeChoices: 1 }, maxStacks: 1 },
-  fates_favor: { effects: { rerollChance: 0.30 }, maxStacks: 1 },
-  quill_apotheosis: { effects: { apotheosis: 1 }, maxStacks: 1 },
+  fates_favor: { effects: { rerollChance: 0.50, damage: 1.0 }, maxStacks: 1 },
+  quill_apotheosis: { effects: { apotheosis: 1, shockStrength: 5, freezeStrength: 5, burnStrength: 5, poisonStrength: 5 }, maxStacks: 1 },
 };
 
 // Reconstruct expected modifier totals from an upgrade ledger

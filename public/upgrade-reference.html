@@ -27,8 +27,8 @@
     --rare-bg: rgba(96,165,250,0.08);
     --epic: #c084fc;
     --epic-bg: rgba(192,132,252,0.08);
-    --legendary: #fb923c;
-    --legendary-bg: rgba(251,146,60,0.08);
+    --legendary: #ffaa00;
+    --legendary-bg: rgba(255,170,0,0.08);
     --mythic: #f472b6;
     --mythic-bg: rgba(244,114,182,0.12);
 
@@ -58,7 +58,7 @@
   .header h1 {
     font-size: 2.2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #f472b6, #fb923c, #facc15);
+    background: linear-gradient(135deg, #f472b6, #ffaa00, #facc15);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -389,7 +389,7 @@
   .badge-rarity[data-r="uncommon"] { color: var(--uncommon); border-color: rgba(74,222,128,0.3); }
   .badge-rarity[data-r="rare"] { color: var(--rare); border-color: rgba(96,165,250,0.3); }
   .badge-rarity[data-r="epic"] { color: var(--epic); border-color: rgba(192,132,252,0.3); }
-  .badge-rarity[data-r="legendary"] { color: var(--legendary); border-color: rgba(251,146,60,0.3); }
+  .badge-rarity[data-r="legendary"] { color: var(--legendary); border-color: rgba(255,170,0,0.3); }
   .badge-rarity[data-r="mythic"] { color: var(--mythic); border-color: rgba(244,114,182,0.3); }
 
   .badge-stacks {
@@ -593,7 +593,7 @@
   <h1>Quillstorm Upgrade Reference</h1>
   <p>Complete guide to all upgrades, rarities, and mechanics</p>
   <div class="stats-row">
-    <div class="stat-badge"><strong>75</strong> upgrades total</div>
+    <div class="stat-badge"><strong>84</strong> upgrades total</div>
     <div class="stat-badge"><strong>6</strong> rarity tiers</div>
     <div class="stat-badge"><strong>4</strong> elements</div>
     <div class="stat-badge"><strong>3</strong> mythics</div>
@@ -975,7 +975,7 @@ const UPGRADES = [
   { id:'life_leech_1', name:'Life Leech', desc:'Chance to heal when dealing damage. Stacks increase proc rate and healing.', rarity:'common', cat:'special', effects:{vampirismStrength:1}, stacks:null },
   { id:'lucky_find', name:'Lucky Find', desc:'Slightly increases chest drops and rarity.', rarity:'common', cat:'utility', effects:{prosperity:5}, stacks:null },
   { id:'tough_skin', name:'Tough Skin', desc:'Thicker hide reduces and reflects damage. +8 Armor, +2 Thorns.', rarity:'common', cat:'defense', effects:{armor:0.08, thorns:2}, stacks:null },
-  { id:'quick_reflexes', name:'Quick Reflexes', desc:'Nimble footwork to dodge and counter attacks. +8 Evasion.', rarity:'common', cat:'defense', effects:{evasion:0.08}, stacks:null },
+  { id:'quick_reflexes', name:'Quick Reflexes', desc:'Nimble footwork to dodge and counter attacks. +8 Evasion. 30% execute chance on dodge.', rarity:'common', cat:'defense', effects:{evasion:0.08}, stacks:null },
 
   // UNCOMMON
   { id:'damage_2', name:'Razor Quills', desc:'Significantly sharper quills.', rarity:'uncommon', cat:'offense', effects:{damage:0.2}, stacks:null },
@@ -995,7 +995,7 @@ const UPGRADES = [
   { id:'ember_quills', name:'Ember Quills', desc:'Smoldering quills ignite enemies. Burns stack and evolve into explosions.', rarity:'uncommon', cat:'elemental', effects:{burnStrength:2}, stacks:null, element:'fire' },
   { id:'toxic_quills', name:'Toxic Quills', desc:'Venomous quills amplify damage. Higher strength unlocks growth and execute.', rarity:'uncommon', cat:'elemental', effects:{poisonStrength:2}, stacks:null, element:'poison' },
   { id:'iron_quills', name:'Iron Quills', desc:'Hardened quills resist and reflect damage. +12 Armor, +4 Thorns.', rarity:'uncommon', cat:'defense', effects:{armor:0.12, thorns:4}, stacks:null },
-  { id:'acrobat', name:'Acrobat', desc:'Agile movements make you harder to hit. +12 Evasion.', rarity:'uncommon', cat:'defense', effects:{evasion:0.12}, stacks:null },
+  { id:'acrobat', name:'Acrobat', desc:'Agile movements make you harder to hit. +12 Evasion. 40% execute chance on dodge.', rarity:'uncommon', cat:'defense', effects:{evasion:0.12}, stacks:null },
 
   // RARE
   { id:'pierce_1', name:'Piercing Quills', desc:'Quills pass through one enemy.', rarity:'rare', cat:'offense', effects:{piercing:1}, stacks:5 },
@@ -1017,7 +1017,7 @@ const UPGRADES = [
   { id:'flame_quills', name:'Flame Quills', desc:'Fiercer burns with death spread. Reach tier II for enhanced DPS and ignite on kill.', rarity:'rare', cat:'elemental', effects:{burnStrength:3}, stacks:null, element:'fire' },
   { id:'noxious_spines', name:'Noxious Spines', desc:'Stronger venom with higher amp. Reach tier II for poison stack growth over time.', rarity:'rare', cat:'elemental', effects:{poisonStrength:3}, stacks:null, element:'poison' },
   { id:'porcupine_plate', name:'Porcupine Plate', desc:'Natural armor plating with spiny defense. +18 Armor, +6 Thorns, +20 HP.', rarity:'rare', cat:'defense', effects:{armor:0.18, thorns:6, maxHealth:20}, stacks:null },
-  { id:'shadow_step', name:'Shadow Step', desc:'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed.', rarity:'rare', cat:'defense', effects:{evasion:0.18, moveSpeed:0.05}, stacks:null },
+  { id:'shadow_step', name:'Shadow Step', desc:'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed. 60% execute chance on dodge.', rarity:'rare', cat:'defense', effects:{evasion:0.18, moveSpeed:0.05}, stacks:null },
 
   // EPIC
   { id:'pierce_2', name:'Impaling Quills', desc:'Quills pass through multiple enemies.', rarity:'epic', cat:'offense', effects:{piercing:3}, stacks:2 },
@@ -1037,28 +1037,28 @@ const UPGRADES = [
   { id:'venomshock', name:'Venomshock', desc:'Lightning spreads toxins. Chain arcs carry poison stacks to targets.', rarity:'epic', cat:'elemental', effects:{shockStrength:2, poisonStrength:2}, stacks:null, element:'poison' },
   { id:'golden_touch', name:'Golden Touch', desc:'Major luck boost with extra health.', rarity:'epic', cat:'utility', effects:{prosperity:25, maxHealth:10}, stacks:null },
   { id:'diamond_hide', name:'Diamond Hide', desc:'Impenetrable hide that reflects damage. +22 Armor, +12 Thorns.', rarity:'epic', cat:'defense', effects:{armor:0.22, thorns:12}, stacks:null },
-  { id:'phantom_porcupine', name:'Phantom Porcupine', desc:'A blur of quills and fury. +22 Evasion, +10% Speed.', rarity:'epic', cat:'defense', effects:{evasion:0.22, moveSpeed:0.10}, stacks:null },
+  { id:'phantom_porcupine', name:'Phantom Porcupine', desc:'A blur of quills and fury. +22 Evasion, +10% Speed. 80% execute chance on dodge.', rarity:'epic', cat:'defense', effects:{evasion:0.22, moveSpeed:0.10}, stacks:null },
 
   // LEGENDARY
   { id:'machine_gun', name:'Quill Storm', desc:'Unleash a torrent of quills! Massive fire rate boost.', rarity:'legendary', cat:'offense', effects:{fireRate:1.0, projectileCount:2, damage:-0.1}, stacks:3 },
   { id:'sniper', name:'Sniper Quills', desc:'Slower but devastating piercing shots.', rarity:'legendary', cat:'offense', effects:{damage:1.0, piercing:3, fireRate:-0.3, projectileSpeed:0.6}, stacks:3 },
   { id:'bouncy_doom', name:'Pinball Wizard', desc:'Quills bounce everywhere, gaining damage each bounce.', rarity:'legendary', cat:'offense', effects:{bouncing:5, damage:0.3, projectileSpeed:0.3}, stacks:1 },
   { id:'infinite_quills', name:'Quill Infinity', desc:'Absurd quill capacity with incredible regeneration.', rarity:'legendary', cat:'utility', effects:{maxQuills:50, regenRate:1.0}, stacks:1 },
-  { id:'glass_god', name:'Glass God', desc:'Incredible power, but you become very fragile.', rarity:'legendary', cat:'offense', effects:{damage:1.5, critChance:1.0, critDamage:1.0, maxHealth:-50}, stacks:null },
+  { id:'glass_god', name:'Glass God', desc:'Incredible power, but you become very fragile. +150% Damage, -50 HP.', rarity:'legendary', cat:'offense', effects:{damage:1.5, maxHealth:-50}, stacks:null },
+  { id:'deaths_edge', name:"Death's Edge", desc:"Walk the razor's edge. +100 Crit Chance, +1.5x Crit Damage.", rarity:'legendary', cat:'offense', effects:{critChance:1.0, critDamage:1.5}, stacks:null },
   { id:'nuclear_quills', name:'Nuclear Quills', desc:'Devastating explosions, but slower firing.', rarity:'legendary', cat:'offense', effects:{explosionRadius:150, damage:0.8, fireRate:-0.3}, stacks:3 },
   { id:'porcupine_army', name:'Porcupine Army', desc:'An entire squad of baby porcupines!', rarity:'legendary', cat:'special', effects:{companionCount:4}, stacks:1 },
   { id:'vampire_lord', name:'Vampire Lord', desc:'Overwhelming vampiric power with devastating damage.', rarity:'legendary', cat:'special', effects:{vampirismStrength:5, damage:0.5}, stacks:1 },
   { id:'immortal_fortress', name:'Immortal Fortress', desc:'Block four hits per wave and +100 HP. Shield cap: 10.', rarity:'legendary', cat:'defense', effects:{shieldCharges:4, maxHealth:100}, stacks:null },
   { id:'midas', name:'Midas', desc:'Everything you touch turns to gold! Maximum prosperity.', rarity:'legendary', cat:'utility', effects:{prosperity:40}, stacks:null },
-  { id:'living_bastion', name:'Living Bastion', desc:'Become an unstoppable fortress. +45 Armor, +24 Thorns, +100 HP.', rarity:'legendary', cat:'defense', effects:{armor:0.45, thorns:24, maxHealth:100}, stacks:null },
-  { id:'wraith_form', name:'Wraith Form', desc:'Become intangible. +35 Evasion, +10% Speed.', rarity:'legendary', cat:'defense', effects:{evasion:0.35, moveSpeed:0.10}, stacks:null },
-  { id:'elemental_convergence', name:'Elemental Convergence', desc:'All elements converge. +3 to every element. Procs have 20% chance to trigger a second random element.', rarity:'legendary', cat:'elemental', effects:{shockStrength:3, freezeStrength:3, burnStrength:3, poisonStrength:3}, stacks:3 },
+  { id:'living_bastion', name:'Living Bastion', desc:'Become an unstoppable fortress. +60 Armor, +24 Thorns, +100 HP.', rarity:'legendary', cat:'defense', effects:{armor:0.60, thorns:24, maxHealth:100}, stacks:null },
+  { id:'wraith_form', name:'Wraith Form', desc:'Become intangible. +100 Evasion, +10% Speed. 90% execute chance on dodge.', rarity:'legendary', cat:'defense', effects:{evasion:1.0, moveSpeed:0.10}, stacks:null },
   { id:'lodestone', name:'Lodestone', desc:'Periodically emit a magnetic pulse that draws all nearby resources toward you.', rarity:'legendary', cat:'utility', effects:{magnetPulse:1}, stacks:1 },
 
   // MYTHIC
   { id:'expanded_options', name:'Expanded Options', desc:'See an additional upgrade card when choosing upgrades.', rarity:'mythic', cat:'special', effects:{upgradeChoices:1}, stacks:1 },
-  { id:'fates_favor', name:"Fate's Favor", desc:'When a proc effect fails, roll again. Fortune favors the bold.', rarity:'mythic', cat:'special', effects:{rerollChance:0.30}, stacks:1 },
-  { id:'quill_apotheosis', name:'Quill Apotheosis', desc:'Every 5th volley transcends. All quills auto-crit with every unlocked element.', rarity:'mythic', cat:'special', effects:{apotheosis:1}, stacks:1 },
+  { id:'fates_favor', name:"Fate's Favor", desc:'Fortune favors the bold. Failed procs and crits reroll at 50%. +100% Damage.', rarity:'mythic', cat:'special', effects:{rerollChance:0.50, damage:1.0}, stacks:1 },
+  { id:'quill_apotheosis', name:'Quill Apotheosis', desc:'Every 5th volley transcends. All quills auto-crit with every element. +5 all elemental strengths. 20% secondary proc.', rarity:'mythic', cat:'special', effects:{apotheosis:1, shockStrength:5, freezeStrength:5, burnStrength:5, poisonStrength:5}, stacks:1 },
 ];
 
 const EFFECT_LABELS = {

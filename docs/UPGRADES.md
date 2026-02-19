@@ -1,6 +1,6 @@
 # Upgrade Reference
 
-Complete reference for all 75 upgrades, how they work mechanically, and balance assessment.
+Complete reference for all 84 upgrades, how they work mechanically, and balance assessment.
 
 ## Quick Reference Table
 
@@ -16,7 +16,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Life Leech** | Common | vampirism +1 | -- | B |
 | **Lucky Find** | Common | prosperity +5 | -- | B |
 | **Tough Skin** | Common | armor +0.08, thorns +2 | -- | B |
-| **Quick Reflexes** | Common | evasion +0.08 | -- | B |
+| **Quick Reflexes** | Common | evasion +0.08 | -- | B | 30% execute on dodge |
 | **Razor Quills** | Uncommon | damage +20% | -- | A |
 | **Rapid Fire** | Uncommon | fireRate +25% | -- | A |
 | **Quill Overload** | Uncommon | maxQuills +10 | -- | B |
@@ -34,7 +34,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Ember Quills** | Uncommon | burn +2 | -- | A |
 | **Toxic Quills** | Uncommon | poison +2 | -- | A |
 | **Iron Quills** | Uncommon | armor +0.12, thorns +4 | -- | B |
-| **Acrobat** | Uncommon | evasion +0.12 | -- | B |
+| **Acrobat** | Uncommon | evasion +0.12 | -- | B | 40% execute on dodge |
 | **Piercing Quills** | Rare | piercing +1 | 5 | S |
 | **Bouncing Quills** | Rare | bouncing +2 | 3 | B |
 | **Deadly Precision** | Rare | critChance +25%, critDmg +0.5 | -- | A |
@@ -54,7 +54,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Flame Quills** | Rare | burn +3 | -- | A |
 | **Noxious Spines** | Rare | poison +3 | -- | A |
 | **Porcupine Plate** | Rare | armor +0.18, thorns +6, HP +20 | -- | B |
-| **Shadow Step** | Rare | evasion +0.18, speed +5% | -- | B |
+| **Shadow Step** | Rare | evasion +0.18, speed +5% | -- | B | 60% execute on dodge |
 | **Impaling Quills** | Epic | piercing +3 | 2 | S |
 | **Shotgun Burst** | Epic | projCount +4 | 2 | S |
 | **Berserker** | Epic | fireRate +50%, speed +30%, dmg -20% | -- | A |
@@ -72,27 +72,24 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 | **Inferno Quills** | Epic | burn +3, fireAura 30px | -- | A |
 | **Plague Bearer** | Epic | poison +3, spread on death | -- | A |
 | **Diamond Hide** | Epic | armor +0.22, thorns +12 | -- | B |
-| **Phantom Porcupine** | Epic | evasion +0.22, speed +10% | -- | B |
+| **Phantom Porcupine** | Epic | evasion +0.22, speed +10% | -- | B | 80% execute on dodge |
 | **Quill Storm** | Legendary | fireRate +100%, projCount +2, dmg -10% | 3 | S |
 | **Sniper Quills** | Legendary | dmg +100%, pierce +3, rate -30%, speed +60% | 3 | S |
 | **Pinball Wizard** | Legendary | bounce +5, dmg +30%, projSpeed +30% | 1 | A |
 | **Quill Infinity** | Legendary | maxQuills +50, regen +100% | 1 | A |
-| **Glass God** | Legendary | dmg +150%, crit +100%, critDmg +1.0, HP -50 | -- | S |
+| **Glass God** | Legendary | dmg +150%, HP -50 | -- | A |
+| **Death's Edge** | Legendary | crit +100%, critDmg +1.5 | -- | S |
 | **Nuclear Quills** | Legendary | explosion 150px, dmg +80%, rate -30% | 3 | S |
 | **Porcupine Army** | Legendary | companion +4 | 1 | A |
 | **Vampire Lord** | Legendary | vampirism +5, damage +50% | 1 | A |
 | **Immortal Fortress** | Legendary | shield +4, HP +100 | -- | A |
 | **Midas** | Legendary | prosperity +40 | -- | A |
-| **Storm Caller** | Legendary | shock +5, chain +3 | -- | A |
-| **Absolute Zero** | Legendary | freeze +5, shatter 50% maxHP | -- | S |
-| **Hellfire** | Legendary | burn +5, fireExplosion 80px | -- | S |
-| **Pandemic** | Legendary | poison +5, cloud 50px | -- | A |
-| **Living Bastion** | Legendary | armor +0.45, thorns +24, HP +100 | -- | A |
-| **Wraith Form** | Legendary | evasion +0.35, speed +10% | -- | A |
+| **Living Bastion** | Legendary | armor +0.60, thorns +24, HP +100 | -- | S |
+| **Wraith Form** | Legendary | evasion +1.0, speed +10% | -- | S | 90% execute on dodge |
 | **Lodestone** | Legendary | magnetPulse 1 | 1 | A |
 | **Expanded Options** | Mythic | upgradeChoices +1 | 1 | S |
-| **Fate's Favor** | Mythic | rerollChance 30% | 1 | A |
-| **Quill Apotheosis** | Mythic | apotheosis (every 5th volley) | 1 | S |
+| **Fate's Favor** | Mythic | rerollChance 50%, dmg +100% | 1 | S |
+| **Quill Apotheosis** | Mythic | apotheosis + all elements +5 | 1 | S |
 
 ---
 
@@ -208,7 +205,7 @@ Complete reference for all 75 upgrades, how they work mechanically, and balance 
 ### Elemental Proc Chance
 - Formula: `(strength * 0.1) / (1 + strength * 0.1)`
   - 2 strength = **17%**, 3 = **23%**, 5 = **33%**, 10 = **50%**
-- Fate's Favor: failed procs get a 30% chance to reroll
+- Fate's Favor: failed procs and crits get a 50% chance to reroll
 
 ### Elemental Evolution Tiers
 Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
@@ -228,7 +225,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 - T2: Stacks grow (+1/2s). T3: Death spreads stacks to 2 nearby. T4: Execute <15% HP (non-boss) + poison cloud.
 
 **Dual-Element Combos** (Epic): Tempest (shock+ice), Wildfire (burn+poison), Frostfire (burn+ice), Venomshock (shock+poison).
-**Elemental Convergence** (Legendary, max 3): +3 all elements, 20% chance for secondary proc.
+**Quill Apotheosis** (Mythic): +5 all elements, 20% chance for secondary proc, every 5th volley auto-crits.
 
 ### Prosperity
 - Affects chest drop chance (logarithmic curve, caps at ~14%)
@@ -273,7 +270,9 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 
 ### Apotheosis
 - Every 5th volley is "empowered" (deterministic, not random)
-- Empowered quills: always crit + proc ALL unlocked elemental effects
+- Empowered quills: always crit + proc ALL elemental effects
+- Also grants +5 to all elemental strengths (shock, freeze, burn, poison) — T2 baseline
+- 20% secondary proc: when an element fires, 20% chance to also trigger a random unfired element
 - Visual: rainbow trail
 
 ---
@@ -368,6 +367,7 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `phantom_porcupine` | Phantom Porcupine | evasion +0.22, speed +0.10 | B | Good evasion + speed. Dodge counter at 80%. |
 
 ### Legendary (13)
+> Note: Storm Caller, Absolute Zero, Hellfire, Pandemic, and Elemental Convergence were removed in the elemental overhaul (v0.5.2) and balance update (v0.6.1).
 
 | ID | Name | Effects | Tier | Notes |
 |----|------|---------|------|-------|
@@ -375,15 +375,15 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | `sniper` | Sniper Quills | dmg +1.0, pierce +3, rate -0.30, projSpeed +0.60 | S | One-shot build. Stackable x3. |
 | `bouncy_doom` | Pinball Wizard | bounce +5, dmg +0.30, projSpeed +0.30 | A | Chaos mode. Enclosed areas = insane. |
 | `infinite_quills` | Quill Infinity | maxQuills +50, regen +1.0 | A | Never run out. Enables everything. |
-| `glass_god` | Glass God | dmg +1.5, crit +1.0, critDmg +1.0, HP -50 | S | Glass cannon supreme. Stackable. |
+| `glass_god` | Glass God | dmg +1.5, HP -50 | A | Pure damage vs HP tradeoff. Stackable. |
+| `deaths_edge` | Death's Edge | crit +1.0, critDmg +1.5 | S | 51% effective crit at 4.0x multiplier. |
 | `nuclear_quills` | Nuclear Quills | explosion 150px, dmg +0.80, rate -0.30 | S | Screen-clearing explosions. Stackable x3. |
 | `porcupine_army` | Porcupine Army | companion +4 | A | Army of helpers. |
 | `vampire_lord` | Vampire Lord | vampirism +5, damage +0.50 | A | Overwhelming sustain + damage. True legendary power. |
 | `immortal_fortress` | Immortal Fortress | shield +4, HP +100 | A | Nearly unkillable. |
 | `midas` | Midas | prosperity +40 | A | Max luck. |
-| `elemental_convergence` | Elemental Convergence | all elements +3 | S | Universal elemental. 20% secondary proc. Stackable x3. |
-| `living_bastion` | Living Bastion | armor +0.45, thorns +24, HP +100 | A | Ultimate tank. |
-| `wraith_form` | Wraith Form | evasion +0.35, speed +0.10 | A | Ultimate dodge build. 90% dodge counter chance. |
+| `living_bastion` | Living Bastion | armor +0.60, thorns +24, HP +100 | S | 51% DR alone. Ultimate tank. |
+| `wraith_form` | Wraith Form | evasion +1.0, speed +0.10 | S | 54.5% dodge alone. 90% execute on dodge. |
 | `lodestone` | Lodestone | magnetPulse 1 | A | Magnetic pulse every 12s pulls all pickups. Passive chest magnet. |
 
 ### Mythic (3)
@@ -391,8 +391,8 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 | ID | Name | Effects | Tier | Notes |
 |----|------|---------|------|-------|
 | `expanded_options` | Expanded Options | upgradeChoices +1 | S | More choices = better builds. Always pick. |
-| `fates_favor` | Fate's Favor | rerollChance 0.30 | A | 30% reroll on failed procs. Great with elementals. |
-| `quill_apotheosis` | Quill Apotheosis | apotheosis 1 | S | Every 5th volley auto-crits with ALL elements. Deterministic. |
+| `fates_favor` | Fate's Favor | rerollChance 0.50, damage +1.0 | S | 50% reroll on failed procs and crits. +100% damage. Always impactful. |
+| `quill_apotheosis` | Quill Apotheosis | apotheosis 1, all elements +5 | S | Every 5th volley auto-crits with ALL elements. Grants T2 baseline. 20% secondary proc. |
 
 ---
 
