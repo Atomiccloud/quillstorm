@@ -27,28 +27,17 @@
         min-height: 100vh;
       }
       #game-container {
-        border: 3px solid #4a4a6a;
-        border-radius: 8px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-        /* Container dimensions - Phaser scales within these bounds */
-        width: min(1440px, 95vw);
-        height: min(810px, 95vh);
-        /* Maintain aspect ratio when constrained */
-        aspect-ratio: 16 / 9;
+        /* Fill viewport — Phaser Scale.FIT handles 16:9 within */
+        width: 100vw;
+        height: 100vh;
         touch-action: none;
       }
 
-      /* Mobile: full-bleed, no border */
-      /* Use multiple queries for broad device coverage */
+      /* Mobile: ensure no aspect-ratio constraint */
       @media (max-width: 1024px) and (hover: none),
              (max-width: 1024px) and (pointer: coarse),
              (max-height: 500px) and (pointer: coarse) {
         #game-container {
-          width: 100vw;
-          height: 100vh;
-          border: none;
-          border-radius: 0;
-          box-shadow: none;
           aspect-ratio: auto;
         }
       }

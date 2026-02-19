@@ -46,6 +46,10 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 - **Meta-progression (planned)** → Stages, mutators, and perk slots tracked in `docs/TRACKER.md` and plan file
 - **Mobile support** → See [docs/MOBILE.md](docs/MOBILE.md), detection in `src/systems/MobileDetector.ts`, joystick in `src/ui/VirtualJoystick.ts`
 - **PWA config** → `public/manifest.json`, `public/sw.js`, `public/icons/`
+- **Desktop app (Electron)** → `electron/main.cjs` (main process), `electron/preload.cjs`, `electron-builder.yml` (build config)
+- **Desktop CI** → `.github/workflows/build-desktop.yml` — builds on `v*` tag push, publishes to GitHub Releases
+- **Homepage** → `public/home.html` (landing page at `/`), game moved to `/play`
+- **Changelog page** → `public/changelog.html` — update alongside `src/data/version.ts`
 
 ### Understanding Systems
 - **Overall architecture** → See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
@@ -101,6 +105,11 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 | Mobile detection | `src/systems/MobileDetector.ts` |
 | Virtual joystick | `src/ui/VirtualJoystick.ts` |
 | PWA manifest | `public/manifest.json` |
+| Homepage (landing) | `public/home.html` |
+| Changelog page | `public/changelog.html` |
+| Electron main process | `electron/main.cjs` |
+| Electron build config | `electron-builder.yml` |
+| Desktop CI workflow | `.github/workflows/build-desktop.yml` |
 
 ## Common Tasks
 
@@ -108,6 +117,8 @@ When completing features, check off items in TRACKER.md, update the in-game chan
 All balance constants live in `src/config.ts` — search for the relevant `*_CONFIG` export. See Quick Links above for specific systems.
 
 **When changing upgrade values:** Always update `docs/UPGRADES.md`, `public/upgrade-reference.html`, and `api/_lib/upgrades.ts` to stay in sync.
+
+**When releasing a new version:** Update `src/data/version.ts`, `public/changelog.html`, and bump version in `package.json` if releasing a desktop update.
 
 ### Adding a New Enemy Type
 1. Add config to `ENEMY_CONFIG` in `src/config.ts`
@@ -144,3 +155,23 @@ npm install    # Install dependencies
 npm run dev    # Start dev server
 npm run build  # Production build
 ```
+
+### Desktop App (Electron)
+
+```bash
+npm run electron:dev          # Launch Electron (loads localhost:3003, run npm run dev first)
+npm run electron:build:win    # Build Windows installer
+npm run electron:build:mac    # Build Mac DMG
+npm run electron:build:linux  # Build Linux AppImage
+npm run electron:build        # Build all platforms
+```
+
+**Releasing a desktop update:** Bump version in `package.json`, commit, then push a git tag:
+```bash
+git tag v0.6.1 && git push --tags
+```
+GitHub Actions will build all platforms and publish to GitHub Releases. The Electron auto-updater checks GitHub Releases on launch.
+
+**Architecture:** The Electron app loads the game from `https://playquillstorm.com/play` (not local files). Game updates happen via normal Vercel deploy. The auto-updater only handles Electron shell updates.
+
+**Routing:** Homepage at `/` (`public/home.html`), game at `/play` (`index.html`), changelog at `/changelog` (`public/changelog.html`).

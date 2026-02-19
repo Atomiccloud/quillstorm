@@ -45,6 +45,9 @@ export class SettingsModal extends Phaser.GameObjects.Container {
   // Shoot mode controls (mobile only)
   private shootModeButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; mode: ShootMode }[] = [];
 
+  // Display mode controls (Electron only)
+  private displayButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; mode: 'fullscreen' | 'windowed' }[] = [];
+
   // Slider drag tracking
   private isDraggingVolume: boolean = false;
   private draggingCategory: OpacityCategory | null = null;
@@ -59,7 +62,8 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     const centerX = GAME_CONFIG.width / 2;
     const centerY = GAME_CONFIG.height / 2;
     const panelWidth = 600;
-    const panelHeight = MobileDetector.showVirtualControls ? 640 : 570;
+    const isElectron = !!(window as any).electronAPI?.isElectron;
+    const panelHeight = MobileDetector.showVirtualControls ? 640 : (isElectron ? 640 : 570);
 
     this.barX = centerX + 30;
 
@@ -120,11 +124,18 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     this.createSectionHeader(scene, leftX, graphicsY, 'Graphics Quality');
     this.createQualityControls(scene, centerX, graphicsY + 48);
 
-    // --- Section 4: Shoot Mode (mobile only) ---
+    // --- Section 4: Display Mode (Electron only) ---
+    let nextSectionY = graphicsY + 120;
+    if (isElectron) {
+      this.createSectionHeader(scene, leftX, nextSectionY, 'Display');
+      this.createDisplayControls(scene, centerX, nextSectionY + 42);
+      nextSectionY += 90;
+    }
+
+    // --- Section 5: Shoot Mode (mobile only) ---
     if (MobileDetector.showVirtualControls) {
-      const shootY = graphicsY + 130;
-      this.createSectionHeader(scene, leftX, shootY, 'Shoot Mode');
-      this.createShootModeControls(scene, centerX, shootY + 42);
+      this.createSectionHeader(scene, leftX, nextSectionY, 'Shoot Mode');
+      this.createShootModeControls(scene, centerX, nextSectionY + 42);
     }
 
     // Drag handlers at scene level for smooth slider dragging
@@ -400,6 +411,67 @@ export class SettingsModal extends Phaser.GameObjects.Container {
     });
   }
 
+  private createDisplayControls(scene: Phaser.Scene, centerX: number, y: number): void {
+    const mob = MobileDetector.showVirtualControls;
+    const modes: { label: string; value: 'fullscreen' | 'windowed' }[] = [
+      { label: 'FULLSCREEN', value: 'fullscreen' },
+      { label: 'WINDOWED', value: 'windowed' },
+    ];
+
+    const btnWidth = 140;
+    const btnHeight = mob ? 48 : 36;
+    const gap = 12;
+    const totalWidth = modes.length * btnWidth + (modes.length - 1) * gap;
+    const startX = centerX - totalWidth / 2 + btnWidth / 2;
+
+    modes.forEach((m, i) => {
+      const bx = startX + i * (btnWidth + gap);
+      const isActive = m.value === 'fullscreen'; // default, refreshed on show()
+
+      const bg = scene.add.rectangle(bx, y, btnWidth, btnHeight, isActive ? 0x4a6741 : 0x333333);
+      bg.setInteractive({ useHandCursor: true });
+      this.add(bg);
+
+      const text = scene.add.text(bx, y, m.label, {
+        fontSize: mob ? '20px' : '14px',
+        fontFamily: 'Arial Black, sans-serif',
+        color: isActive ? '#ffffff' : '#888888',
+      }).setOrigin(0.5);
+      this.add(text);
+
+      this.displayButtons.push({ bg, text, mode: m.value });
+
+      if (!MobileDetector.isTouchDevice) {
+        bg.on('pointerover', () => {
+          if (!this.isDisplayActive(m.value)) bg.setFillStyle(0x444444);
+        });
+        bg.on('pointerout', () => {
+          bg.setFillStyle(this.isDisplayActive(m.value) ? 0x4a6741 : 0x333333);
+        });
+      }
+      bg.on('pointerdown', () => {
+        AudioManager.playButtonClick();
+        const fullscreen = m.value === 'fullscreen';
+        (window as any).electronAPI.setFullscreen(fullscreen);
+        this.refreshDisplayButtons(fullscreen);
+      });
+    });
+  }
+
+  private isDisplayActive(mode: 'fullscreen' | 'windowed'): boolean {
+    // Check current highlight state from button colors
+    const btn = this.displayButtons.find(b => b.mode === mode);
+    return btn ? btn.text.style.color === '#ffffff' : false;
+  }
+
+  private refreshDisplayButtons(isFullscreen: boolean): void {
+    this.displayButtons.forEach(b => {
+      const active = (b.mode === 'fullscreen') === isFullscreen;
+      b.bg.setFillStyle(active ? 0x4a6741 : 0x333333);
+      b.text.setColor(active ? '#ffffff' : '#888888');
+    });
+  }
+
   private refreshQualityButtons(): void {
     const currentPreset = GraphicsSettings.getPreset();
     this.qualityButtons.forEach(b => {
@@ -438,6 +510,13 @@ export class SettingsModal extends Phaser.GameObjects.Container {
 
     this.refreshQualityButtons();
     this.refreshShootModeButtons();
+
+    // Refresh display mode from Electron (async)
+    if ((window as any).electronAPI?.isElectron) {
+      (window as any).electronAPI.isFullscreen().then((fs: boolean) => {
+        this.refreshDisplayButtons(fs);
+      });
+    }
 
     this.setVisible(true);
   }

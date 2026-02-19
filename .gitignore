@@ -31,5 +31,10 @@ npm-debug.log*
 # Claude Code
 .claude/settings.local.json
 
+# Electron build output
+electron-dist/
+build/icon.ico
+build/icon.icns
+
 # Internal reference docs
 docs/OBFUSCATION_REFERENCE.md

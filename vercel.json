@@ -5,7 +5,9 @@
   "framework": "vite",
   "devCommand": "vite",
   "rewrites": [
+    { "source": "/play", "destination": "/index.html" },
     { "source": "/upgrade-reference", "destination": "/upgrade-reference.html" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/changelog", "destination": "/changelog.html" },
+    { "source": "/((?!api/|play|upgrade-reference|changelog).*)", "destination": "/home.html" }
   ]
 }
