@@ -301,6 +301,33 @@ Achievement system with 18 achievements across 4 categories (combat, survival, s
 
 ---
 
+## Completed (v0.6.2 - Desktop App & Menu Redesign)
+
+### Desktop Distribution
+- [x] Electron wrapper loading from live playquillstorm.com/play URL — `electron/main.cjs`
+- [x] Auto-updater with progress window via electron-updater — `electron/main.cjs`
+- [x] Preload script for security isolation — `electron/preload.cjs`
+- [x] Build config for Windows (NSIS), Mac (DMG), Linux (AppImage) — `electron-builder.yml`
+- [x] GitHub Actions CI triggered on `v*` tag push — `.github/workflows/build-desktop.yml`
+- [x] Fullscreen borderless window, disabled browser shortcuts in production
+- [x] Single instance lock prevents multiple windows
+
+### Homepage & Routing
+- [x] Landing page at playquillstorm.com with download buttons and "Play in Browser" — `public/home.html`
+- [x] Changelog page at /changelog — `public/changelog.html`
+- [x] Vercel routing: `/` → home, `/play` → game, `/changelog` → changelog — `vercel.json`
+
+### Menu Redesign
+- [x] Atmospheric background: gradient sky, 3-layer forest silhouettes, stars, ground strip — `src/scenes/MenuScene.ts`
+- [x] Floating golden particle system (firefly effect) — `src/scenes/MenuScene.ts`
+- [x] Asymmetric desktop layout: title/buttons left, mascot scene right
+- [x] Mascot on platform with enemy silhouettes (scurriers, swooper, spitter, shellback)
+- [x] Browser game container now fills full viewport (no border/shadow)
+- [x] Left-aligned menu buttons with accent bars (Hades/Slay the Spire style)
+- [x] Title glow effect and warm gold color scheme
+
+---
+
 ## In Progress: Stage System (Phase 2)
 
 Full design doc: [docs/META_PROGRESSION.md](META_PROGRESSION.md)
@@ -395,9 +422,10 @@ Full design doc: [docs/META_PROGRESSION.md](META_PROGRESSION.md)
 - [ ] Daily challenge seeds
 
 **Platform Support**
-- [ ] Mobile touch controls
+- [x] Mobile touch controls (v0.6.0)
+- [x] Desktop app via Electron (v0.6.2)
 - [ ] Gamepad support
-- [ ] Fullscreen toggle
+- [x] Fullscreen toggle (mobile v0.6.0, desktop auto-fullscreen v0.6.2)
 - [ ] Resolution options
 
 ---

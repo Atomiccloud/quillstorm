@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quillstorm — Changelog</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      color: #ccc;
+      font-family: 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .header h1 {
+      color: #e8d5a3;
+      font-size: 2rem;
+      letter-spacing: 2px;
+      margin-bottom: 0.25rem;
+    }
+    .header p {
+      color: #888;
+      font-size: 0.95rem;
+    }
+    .back-link {
+      display: inline-block;
+      color: #6a8a5a;
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .version {
+      margin-bottom: 2rem;
+      border-left: 3px solid #4a4a6a;
+      padding-left: 1.25rem;
+    }
+    .version-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .version-number {
+      color: #e8d5a3;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+    .version-date {
+      color: #666;
+      font-size: 0.85rem;
+    }
+    .version ul {
+      list-style: none;
+      padding: 0;
+    }
+    .version li {
+      padding: 0.2rem 0;
+      padding-left: 1.25rem;
+      position: relative;
+      font-size: 0.92rem;
+    }
+    .version li::before {
+      content: '\2022';
+      position: absolute;
+      left: 0;
+      color: #6a8a5a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">&larr; Back to Quillstorm</a>
+    <div class="header">
+      <h1>CHANGELOG</h1>
+      <p>All updates and patch notes</p>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.6.2</span>
+        <span class="version-date">February 19, 2026</span>
+      </div>
+      <ul>
+        <li>Desktop app &mdash; download Quillstorm for Windows, Mac, or Linux</li>
+        <li>Electron wrapper loads from live site with auto-updater for seamless updates</li>
+        <li>New landing page at playquillstorm.com with download links and browser play option</li>
+        <li>Redesigned main menu &mdash; atmospheric forest background with floating particles</li>
+        <li>Asymmetric desktop menu layout inspired by Hades/Slay the Spire</li>
+        <li>Menu mascot now stands on a platform with enemy silhouettes in the scene</li>
+        <li>Browser game now fills the full viewport for an immersive feel</li>
+        <li>Changelog page added at /changelog</li>
+        <li>GitHub Actions CI builds desktop installers on version tag push</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.6.1</span>
+        <span class="version-date">February 19, 2026</span>
+      </div>
+      <ul>
+        <li>Wraith Form buffed: +100 Evasion (was 35), 90% execute chance on dodge</li>
+        <li>Living Bastion buffed: +60 Armor (was 45)</li>
+        <li>Glass God reworked: now +150% Damage / -50 HP only (crit removed)</li>
+        <li>New legendary: Death's Edge &mdash; +100 Crit Chance, +1.5x Crit Damage</li>
+        <li>Elemental Convergence removed &mdash; secondary proc moved to Quill Apotheosis</li>
+        <li>Quill Apotheosis buffed: now grants +5 to all elemental strengths and 20% secondary proc</li>
+        <li>Fate's Favor buffed: 50% reroll (was 30%), now rerolls failed crits too, +100% Damage</li>
+        <li>Evasion upgrades now show execute chance on dodge in their descriptions</li>
+        <li>Fixed legendary color in upgrade reference page to match in-game gold</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.6.0</span>
+        <span class="version-date">February 13, 2026</span>
+      </div>
+      <ul>
+        <li>Mobile support &mdash; play Quillstorm on your phone!</li>
+        <li>Virtual joystick for movement (left thumb), touch to aim and auto-fire (right side)</li>
+        <li>Progressive Web App (PWA) &mdash; add to home screen for fullscreen experience</li>
+        <li>All UI scales for mobile readability (larger fonts, wider bars, bigger buttons)</li>
+        <li>Mobile pause and stats toggle buttons in HUD</li>
+        <li>Portrait orientation warning &mdash; rotate to landscape to play</li>
+        <li>Mobile devices default to auto graphics quality with reduced particles</li>
+        <li>Fullscreen button on mobile menu</li>
+        <li>Desktop experience is completely unchanged</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.72</span>
+        <span class="version-date">February 12, 2026</span>
+      </div>
+      <ul>
+        <li>Stats panel now shows capped speed value (+67%) instead of raw modifier when over the movement speed cap</li>
+        <li>Fixed spitter/boss projectiles, burrower emergence, and bomber zones not scaling with wave/danger/elite multipliers</li>
+        <li>Enemies now build escalating immunity to stun and freeze &mdash; prevents permanent CC-lock at high elemental strength</li>
+        <li>Stun/freeze cannot be refreshed during active CC; immunity window starts when CC expires</li>
+        <li>Each consecutive stun/freeze reduces duration by 75ms and increases immunity by 250ms</li>
+        <li>Bosses take 50% stun / 40% freeze duration with 1.5x longer immunity windows</li>
+        <li>Elites take 75% stun / 70% freeze duration with 1.2x longer immunity windows</li>
+        <li>Subtle white shimmer shows when enemies are CC-immune</li>
+        <li>Piercing quills now hit each enemy at most twice per pass-through instead of burning all charges on one target</li>
+        <li>Second hit on same enemy no longer consumes a pierce charge &mdash; only unique targets cost pierce</li>
+        <li>Homing and bouncing quills can re-hit enemies after leaving and returning</li>
+        <li>Fixed piercing damage compounding &mdash; each hit now rolls fresh crit and distance damage from base</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.71</span>
+        <span class="version-date">February 12, 2026</span>
+      </div>
+      <ul>
+        <li>Effects opacity setting split into 4 independent sliders: Combat Text, Particles, Elemental VFX, and Status Overlays</li>
+        <li>Quill Storm, Sniper Quills, Nuclear Quills, and Elemental Convergence now stackable up to 3</li>
+        <li>Glass God now infinitely stackable</li>
+        <li>Sniper Quills rebalanced: pierce 5&rarr;3, projectile speed 80%&rarr;60%</li>
+        <li>Living Bastion buffed: HP +25&rarr;+100</li>
+        <li>Midas: removed 15% damage bonus</li>
+        <li>Wraith Form buffed: evasion 28&rarr;35, speed 15%&rarr;10%</li>
+        <li>Elite Hunter buffed: elite damage 25%&rarr;35%</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.7</span>
+        <span class="version-date">February 12, 2026</span>
+      </div>
+      <ul>
+        <li>Retuned early XP curve &mdash; first level-up now comes at end of wave 2 instead of mid-wave 4</li>
+        <li>Crit overhaul &mdash; base 5% crit chance and 2.5x crit damage from the start (no upgrades needed)</li>
+        <li>All crit upgrades now boost both crit chance and crit damage</li>
+        <li>Crit chance per upgrade increased across all rarities</li>
+        <li>Stats panel now shows effective crit % and total crit multiplier for clarity</li>
+        <li>Upgrade cards show crit as flat rating instead of misleading percentage</li>
+        <li>Crit hits now show floating damage text on enemies</li>
+        <li>Thorns reflection now has visual shard burst and sound effect</li>
+        <li>Combat text (crit, dodge, counter) can be disabled on low graphics preset</li>
+        <li>Fixed infinite swarm timer and difficulty scaling advancing while paused or choosing upgrades</li>
+        <li>+Max HP upgrades now also heal by the gained amount; -HP upgrades clamp health to new max</li>
+        <li>Armor and evasion now have soft caps &mdash; armor maxes at ~92.5%, evasion at ~85%</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.6</span>
+        <span class="version-date">February 12, 2026</span>
+      </div>
+      <ul>
+        <li>New rare upgrade: Blood Quills &mdash; +3 vampirism strength, +20% damage</li>
+        <li>Vampire Lord buffed &mdash; vampirism strength 3&rarr;5, damage 30%&rarr;50%</li>
+        <li>Upgrade cards now show all stat effects (crit damage, bouncing, quill speed, jump, quill size, knockback, range damage)</li>
+        <li>Armor and evasion reworked &mdash; new exponential saturation formula reaches 90-95% with heavy stacking</li>
+        <li>Fixed infinite swarm timer overlapping HP/DMG stats, and level up / wave complete banners no longer overlap</li>
+        <li>Restart and main menu buttons now require confirmation during a run to prevent accidental progress loss</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.5</span>
+        <span class="version-date">February 11, 2026</span>
+      </div>
+      <ul>
+        <li>"Killed By" display on game over screen &mdash; shows exactly what killed you</li>
+        <li>Death recap panel &mdash; last 5 hits with wave number, damage amount, and timing</li>
+        <li>Wave survival timer added to game over stats</li>
+        <li>Infinite swarm survival timer &mdash; live mm:ss counter that color-shifts through all 4 stages</li>
+        <li>Flying enemies (swoopers, bombers) now spawn across the full top of the screen</li>
+        <li>New legendary upgrade: Lodestone &mdash; periodic magnetic pulse pulls all pickups toward you</li>
+        <li>Treasure chest despawn time increased (9s &rarr; 15s)</li>
+        <li>Pinecone despawn time increased (12s &rarr; 15s)</li>
+        <li>Armor scaling buffed &mdash; single pick now gives ~13% reduction, heavy investment reaches ~69%</li>
+        <li>Evasion scaling buffed &mdash; single pick now gives ~10% dodge, heavy investment reaches ~61%</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.4</span>
+        <span class="version-date">February 10, 2026</span>
+      </div>
+      <ul>
+        <li>Fixed shellback stunlock exploit &mdash; status effects no longer apply during rolling or burrowed states</li>
+        <li>Shellback roll now locks direction at start instead of tracking the player mid-roll</li>
+        <li>Shellback roll speed increased (100 &rarr; 160)</li>
+        <li>Movement speed cap reduced (600 &rarr; 500 px/sec)</li>
+        <li>Scurriers now commit to a direction briefly before reversing (250ms delay)</li>
+        <li>Scurrier jump cooldown added (1.2s after landing) and jump frequency reduced</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.3</span>
+        <span class="version-date">February 7, 2026</span>
+      </div>
+      <ul>
+        <li>Achievement system &mdash; 18 achievements across combat, survival, score, and style categories</li>
+        <li>Cumulative stats tracking: kills, boss kills, elite kills, waves survived, perfect waves</li>
+        <li>Per-run stats: score, wave, upgrade count, infinite swarm survival, and more</li>
+        <li>Wave-timing achievements trigger mid-game</li>
+        <li>Achievements unlock exclusive cosmetics (Spectral skin, Inferno skin, Party Hat, Halo)</li>
+        <li>Achievement progress syncs to server across devices</li>
+        <li>Achievement counter shown on game over screen</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.2</span>
+        <span class="version-date">February 6, 2026</span>
+      </div>
+      <ul>
+        <li>Rebalanced enemy spawn order for smoother difficulty curve</li>
+        <li>New enemy: Bomber &mdash; flying crow that drops AoE danger zones</li>
+        <li>Thick Quills buffed: bigger quills, knockback, and bonus damage</li>
+        <li>Quick Draw + Aerodynamic merged into Swift Quills</li>
+        <li>All armor upgrades now include thorns reflection</li>
+        <li>All evasion upgrades buffed &mdash; dodging can now counter-attack enemies</li>
+        <li>New mechanics: Knockback, Distance Damage, Dodge Counter</li>
+        <li>Companions now inherit your build at scaled efficiency</li>
+        <li>Elemental overhaul: each element now evolves through 4 tiers</li>
+        <li>4 new dual-element epic upgrades + new legendary</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.1</span>
+        <span class="version-date">February 6, 2026</span>
+      </div>
+      <ul>
+        <li>Boss waves now offer a choice: Restoration or Power</li>
+        <li>Vampirism reworked: stack-based proc chance and healing</li>
+        <li>+5 quills restored on normal wave completion</li>
+        <li>+5% damage per level to smooth early-game power curve</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.5.0</span>
+        <span class="version-date">February 5, 2026</span>
+      </div>
+      <ul>
+        <li>Elemental quill effects: Lightning, Ice, Fire, Poison</li>
+        <li>New defense stats: Armor and Evasion</li>
+        <li>Mythic upgrades: Fate's Favor and Quill Apotheosis</li>
+        <li>26 new upgrades across all rarity tiers</li>
+        <li>Major balance overhaul &mdash; shield, prosperity, and crit systems rebalanced</li>
+        <li>4-stage infinite swarm: Swarm, Surge, Frenzy, Apocalypse</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.4.1</span>
+        <span class="version-date">February 4, 2026</span>
+      </div>
+      <ul>
+        <li>Rebalanced infinite swarm &mdash; enemies are tankier but deal less damage</li>
+        <li>Bosses now spawn during infinite swarm at danger level 5+</li>
+        <li>Shield visual indicator and regen during infinite swarm</li>
+        <li>Quill regen delay now scales with regen rate upgrades</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.4.0</span>
+        <span class="version-date">February 4, 2026</span>
+      </div>
+      <ul>
+        <li>Elite enemies &mdash; rare, tougher variants with gold glow and boosted rewards</li>
+        <li>Danger Level system &mdash; opt-in difficulty upgrades</li>
+        <li>Mythic rarity tier</li>
+        <li>Variable-height jumping</li>
+        <li>Redesigned main menu with mascot art</li>
+        <li>Player data syncs to server across sessions</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.3.3</span>
+        <span class="version-date">February 3, 2026</span>
+      </div>
+      <ul>
+        <li>Porcupine walk cycle animation with leg movement and body bob</li>
+        <li>Landing squash effect, quill sway, improved quill distribution</li>
+        <li>Added coyote time for more forgiving jumps</li>
+        <li>Effects opacity slider in pause menu</li>
+        <li>Multiple bug fixes (chests, despawn timers, crashes)</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.3.0 &ndash; v0.3.2</span>
+        <span class="version-date">February 1&ndash;3, 2026</span>
+      </div>
+      <ul>
+        <li>Stage color themes that change after each boss</li>
+        <li>HP numbers on health bar</li>
+        <li>Version number and changelog in menu</li>
+        <li>Improved canvas scaling and shop layout</li>
+        <li>Low health warning and stats panel on game over</li>
+        <li>Multiple bug fixes</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.2.0</span>
+        <span class="version-date">January 30, 2026</span>
+      </div>
+      <ul>
+        <li>Shop with pinecone currency</li>
+        <li>Cosmetic skins, hats, quill styles, and trails</li>
+        <li>Google Sign-In for cross-device progress sync</li>
+      </ul>
+    </div>
+
+    <div class="version">
+      <div class="version-header">
+        <span class="version-number">v0.1.0 &ndash; v0.1.5</span>
+        <span class="version-date">January 20&ndash;28, 2026</span>
+      </div>
+      <ul>
+        <li>Initial release</li>
+        <li>Core gameplay: shoot quills, defeat enemies, survive waves</li>
+        <li>8 enemy types + 2 boss types</li>
+        <li>Upgrade system with 5 rarity tiers</li>
+        <li>Online leaderboards (global and weekly)</li>
+        <li>Infinite Swarm mode after wave 20</li>
+        <li>XP/leveling system with level-up upgrades</li>
+        <li>Treasure chests with guaranteed rare+ drops</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

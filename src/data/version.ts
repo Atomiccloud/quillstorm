@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.6.1';
+export const GAME_VERSION = '0.6.2';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.2',
+    date: '2026-02-19',
+    changes: [
+      'Desktop app — download Quillstorm for Windows, Mac, or Linux',
+      'Electron wrapper loads from live site with auto-updater for seamless updates',
+      'New landing page at playquillstorm.com with download links and browser play option',
+      'Redesigned main menu — atmospheric forest background with floating particles',
+      'Asymmetric desktop menu layout inspired by Hades/Slay the Spire',
+      'Menu mascot now stands on a platform with enemy silhouettes in the scene',
+      'Browser game now fills the full viewport for an immersive feel',
+      'Changelog page added at /changelog',
+      'GitHub Actions CI builds desktop installers on version tag push',
+    ],
+  },
   {
     version: '0.6.1',
     date: '2026-02-19',
