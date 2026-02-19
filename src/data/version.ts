@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.6.0';
+export const GAME_VERSION = '0.6.1';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,21 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.1',
+    date: '2026-02-19',
+    changes: [
+      "Wraith Form buffed: +100 Evasion (was 35), 90% execute chance on dodge",
+      "Living Bastion buffed: +60 Armor (was 45)",
+      "Glass God reworked: now +150% Damage / -50 HP only (crit removed)",
+      "New legendary: Death's Edge — +100 Crit Chance, +1.5x Crit Damage",
+      "Elemental Convergence removed — secondary proc moved to Quill Apotheosis",
+      "Quill Apotheosis buffed: now grants +5 to all elemental strengths and 20% secondary proc",
+      "Fate's Favor buffed: 50% reroll (was 30%), now rerolls failed crits too, +100% Damage",
+      'Evasion upgrades now show execute chance on dodge in their descriptions',
+      'Fixed legendary color in upgrade reference page to match in-game gold',
+    ],
+  },
   {
     version: '0.6.0',
     date: '2026-02-13',

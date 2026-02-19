@@ -291,9 +291,16 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'glass_god',
     name: 'Glass God',
-    description: 'Incredible power, but you become very fragile.',
+    description: 'Incredible power, but you become very fragile. +150% Damage, -50 HP.',
     rarity: 'legendary',
-    effects: { damage: 1.5, critChance: 1.0, critDamage: 1.0, maxHealth: -50 },
+    effects: { damage: 1.5, maxHealth: -50 },
+  },
+  {
+    id: 'deaths_edge',
+    name: "Death's Edge",
+    description: "Walk the razor's edge. +100 Crit Chance, +1.5x Crit Damage.",
+    rarity: 'legendary',
+    effects: { critChance: 1.0, critDamage: 1.5 },
   },
 
   // ===== NEW UPGRADES - PHASE 8 =====
@@ -596,16 +603,6 @@ export const UPGRADES: Upgrade[] = [
     effects: { shockStrength: 2, poisonStrength: 2 },
   },
 
-  // === ELEMENTAL UPGRADES - UNIVERSAL LEGENDARY ===
-  {
-    id: 'elemental_convergence',
-    name: 'Elemental Convergence',
-    description: 'Master all elements. Procs have 20% chance to trigger a second element.',
-    rarity: 'legendary',
-    effects: { shockStrength: 3, freezeStrength: 3, burnStrength: 3, poisonStrength: 3 },
-    maxStacks: 3,
-  },
-
   // === DEFENSE UPGRADES - ARMOR ===
   // Logarithmic diminishing returns: effective = ln(1 + raw) / (ln(1 + raw) + 1.5)
   // Stack infinitely with decreasing returns per point
@@ -640,9 +637,9 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'living_bastion',
     name: 'Living Bastion',
-    description: 'Become an unstoppable fortress. +45 Armor, +24 Thorns, +100 HP.',
+    description: 'Become an unstoppable fortress. +60 Armor, +24 Thorns, +100 HP.',
     rarity: 'legendary',
-    effects: { armor: 0.45, thorns: 24, maxHealth: 100 },
+    effects: { armor: 0.60, thorns: 24, maxHealth: 100 },
   },
 
   // === DEFENSE UPGRADES - EVASION ===
@@ -651,37 +648,37 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'quick_reflexes',
     name: 'Quick Reflexes',
-    description: 'Nimble footwork to dodge and counter attacks. +8 Evasion.',
+    description: 'Nimble footwork to dodge and counter attacks. +8 Evasion. 30% execute chance on dodge.',
     rarity: 'common',
     effects: { evasion: 0.08 },
   },
   {
     id: 'acrobat',
     name: 'Acrobat',
-    description: 'Agile movements make you harder to hit. +12 Evasion.',
+    description: 'Agile movements make you harder to hit. +12 Evasion. 40% execute chance on dodge.',
     rarity: 'uncommon',
     effects: { evasion: 0.12 },
   },
   {
     id: 'shadow_step',
     name: 'Shadow Step',
-    description: 'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed.',
+    description: 'Phase through attacks with uncanny reflexes. +18 Evasion, +5% Speed. 60% execute chance on dodge.',
     rarity: 'rare',
     effects: { evasion: 0.18, moveSpeed: 0.05 },
   },
   {
     id: 'phantom_porcupine',
     name: 'Phantom Porcupine',
-    description: 'A blur of quills and fury. +22 Evasion, +10% Speed.',
+    description: 'A blur of quills and fury. +22 Evasion, +10% Speed. 80% execute chance on dodge.',
     rarity: 'epic',
     effects: { evasion: 0.22, moveSpeed: 0.10 },
   },
   {
     id: 'wraith_form',
     name: 'Wraith Form',
-    description: 'Become intangible. +35 Evasion, +10% Speed.',
+    description: 'Become intangible. +100 Evasion, +10% Speed. 90% execute chance on dodge.',
     rarity: 'legendary',
-    effects: { evasion: 0.35, moveSpeed: 0.10 },
+    effects: { evasion: 1.0, moveSpeed: 0.10 },
   },
   {
     id: 'lodestone',
@@ -704,17 +701,17 @@ export const UPGRADES: Upgrade[] = [
   {
     id: 'fates_favor',
     name: "Fate's Favor",
-    description: 'When a proc effect fails, roll again. Fortune favors the bold.',
+    description: 'Fortune favors the bold. Failed procs and crits reroll at 50%. +100% Damage.',
     rarity: 'mythic',
-    effects: { rerollChance: 0.30 },
+    effects: { rerollChance: 0.50, damage: 1.0 },
     maxStacks: 1,
   },
   {
     id: 'quill_apotheosis',
     name: 'Quill Apotheosis',
-    description: 'Every 5th volley transcends. All quills auto-crit with every unlocked element.',
+    description: 'Every 5th volley transcends. All quills auto-crit with every element. +5 all elemental strengths. 20% secondary proc.',
     rarity: 'mythic',
-    effects: { apotheosis: 1 },
+    effects: { apotheosis: 1, shockStrength: 5, freezeStrength: 5, burnStrength: 5, poisonStrength: 5 },
     maxStacks: 1,
   },
 ];
