@@ -589,7 +589,8 @@
 </head>
 <body>
 
-<div class="header">
+<div class="header" style="position:relative;">
+  <a href="/" style="position:absolute;left:2rem;top:1.8rem;color:var(--text-dim);text-decoration:none;font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:0.4rem;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">&larr; Home</a>
   <h1>Quillstorm Upgrade Reference</h1>
   <p>Complete guide to all upgrades, rarities, and mechanics</p>
   <div class="stats-row">
@@ -682,6 +683,7 @@
       <h2 class="collapse-toggle" onclick="toggleSection(this, 'systems-content')">Systems Reference</h2>
     </div>
     <div id="systems-content" class="info-grid">
+      <!-- Row 1: Offense mechanics -->
       <!-- Elemental Proc Chances -->
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--lightning)"></span>Elemental Proc System</h3>
@@ -697,6 +699,23 @@
           <tr><td>10</td><td>50.0%</td></tr>
           <tr><td>15</td><td>60.0%</td></tr>
           <tr><td>20</td><td>66.7%</td></tr>
+        </table>
+      </div>
+
+      <!-- Crit -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#f97316"></span>Critical Hits</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Effective: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">rawCrit / (rawCrit + 1)</code> &nbsp;
+          Base damage: <strong style="color:var(--text)">2.0x</strong>
+        </p>
+        <table class="info-table">
+          <tr><th>Raw Crit</th><th>Effective</th></tr>
+          <tr><td>10%</td><td>9%</td></tr>
+          <tr><td>25%</td><td>20%</td></tr>
+          <tr><td>50%</td><td>33%</td></tr>
+          <tr><td>100%</td><td>50%</td></tr>
+          <tr><td>200%</td><td>67%</td></tr>
         </table>
       </div>
 
@@ -717,6 +736,23 @@
         </table>
       </div>
 
+      <!-- Shields -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#22d3ee"></span>Shield System</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Max charges: <strong style="color:var(--text)">10</strong> &nbsp;|&nbsp; Reset each wave &nbsp;|&nbsp; Diminishing iframes
+        </p>
+        <table class="info-table">
+          <tr><th>Hit #</th><th>Iframe</th></tr>
+          <tr><td>1st</td><td>400ms</td></tr>
+          <tr><td>2nd</td><td>240ms (&times;0.6)</td></tr>
+          <tr><td>3rd</td><td>144ms (&times;0.6)</td></tr>
+          <tr><td>4th+</td><td>100ms (floor)</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Resets to 400ms after 2s without breaks.</p>
+      </div>
+
+      <!-- Row 2: Defense mechanics (Armor, Evasion, Dodge Counter together) -->
       <!-- Armor -->
       <div class="info-panel">
         <h3><span class="dot" style="background:var(--defense-armor)"></span>Armor (Damage Reduction)</h3>
@@ -755,37 +791,55 @@
         </table>
       </div>
 
-      <!-- Crit -->
+      <!-- Dodge Counter (now right next to Evasion) -->
       <div class="info-panel">
-        <h3><span class="dot" style="background:#f97316"></span>Critical Hits</h3>
+        <h3><span class="dot" style="background:var(--defense-evasion)"></span>Dodge Counter</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Effective: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">rawCrit / (rawCrit + 1)</code> &nbsp;
-          Base damage: <strong style="color:var(--text)">2.0x</strong>
+          On successful dodge, chance to execute/chunk the attacker. Based on <strong style="color:var(--text)">highest evasion tier</strong>.
         </p>
         <table class="info-table">
-          <tr><th>Raw Crit</th><th>Effective</th></tr>
-          <tr><td>10%</td><td>9%</td></tr>
-          <tr><td>25%</td><td>20%</td></tr>
-          <tr><td>50%</td><td>33%</td></tr>
-          <tr><td>100%</td><td>50%</td></tr>
-          <tr><td>200%</td><td>67%</td></tr>
+          <tr><th>Evasion Tier</th><th>Execute Chance</th></tr>
+          <tr><td>Common</td><td>30%</td></tr>
+          <tr><td>Uncommon</td><td>40%</td></tr>
+          <tr><td>Rare</td><td>60%</td></tr>
+          <tr><td>Epic</td><td>80%</td></tr>
+          <tr><td>Legendary</td><td>90%</td></tr>
+        </table>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Normal enemies: instant kill. Elites/Bosses: 25% max HP (scales with damage modifier).</p>
+      </div>
+
+      <!-- Knockback -->
+      <div class="info-panel">
+        <h3><span class="dot" style="background:#a78bfa"></span>Knockback</h3>
+        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
+          Force: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">modifier &times; 200 px/s</code> &nbsp;
+          Duration: <strong style="color:var(--text)">150ms</strong>
+        </p>
+        <table class="info-table">
+          <tr><th>Feature</th><th>Detail</th></tr>
+          <tr><td>Direction</td><td>Hit angle (quill &rarr; enemy)</td></tr>
+          <tr><td>Explosion</td><td>Push away from blast center</td></tr>
+          <tr><td>Immune</td><td>Bosses, stunned, frozen, burrowed, rolling</td></tr>
         </table>
       </div>
 
-      <!-- Shields -->
+      <!-- Row 3: Utility mechanics -->
+      <!-- Distance Damage -->
       <div class="info-panel">
-        <h3><span class="dot" style="background:#22d3ee"></span>Shield System</h3>
+        <h3><span class="dot" style="background:#38bdf8"></span>Distance Damage</h3>
         <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Max charges: <strong style="color:var(--text)">10</strong> &nbsp;|&nbsp; Reset each wave &nbsp;|&nbsp; Diminishing iframes
+          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">dmg &times;= (1 + mod &times; ratio&sup2;)</code> &nbsp;
+          where ratio = min(dist/600, 1)
         </p>
         <table class="info-table">
-          <tr><th>Hit #</th><th>Iframe</th></tr>
-          <tr><td>1st</td><td>400ms</td></tr>
-          <tr><td>2nd</td><td>240ms (&times;0.6)</td></tr>
-          <tr><td>3rd</td><td>144ms (&times;0.6)</td></tr>
-          <tr><td>4th+</td><td>100ms (floor)</td></tr>
+          <tr><th>Distance</th><th>Bonus (+0.40 mod)</th></tr>
+          <tr><td>100px</td><td>+1.1%</td></tr>
+          <tr><td>200px</td><td>+4.4%</td></tr>
+          <tr><td>300px</td><td>+10%</td></tr>
+          <tr><td>400px</td><td>+17.8%</td></tr>
+          <tr><td>600px+</td><td>+40% (max)</td></tr>
         </table>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Resets to 400ms after 2s without breaks.</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Quadratic scaling &mdash; minimal at short range, ramps up past 300px. Applied before crit.</p>
       </div>
 
       <!-- Prosperity -->
@@ -817,56 +871,6 @@
           <tr><td>Score Bonus</td><td>+15%</td></tr>
           <tr><td>XP Bonus</td><td>+10%</td></tr>
         </table>
-      </div>
-
-      <!-- Knockback -->
-      <div class="info-panel">
-        <h3><span class="dot" style="background:#a78bfa"></span>Knockback</h3>
-        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Force: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">modifier &times; 200 px/s</code> &nbsp;
-          Duration: <strong style="color:var(--text)">150ms</strong>
-        </p>
-        <table class="info-table">
-          <tr><th>Feature</th><th>Detail</th></tr>
-          <tr><td>Direction</td><td>Hit angle (quill &rarr; enemy)</td></tr>
-          <tr><td>Explosion</td><td>Push away from blast center</td></tr>
-          <tr><td>Immune</td><td>Bosses, stunned, frozen, burrowed, rolling</td></tr>
-        </table>
-      </div>
-
-      <!-- Distance Damage -->
-      <div class="info-panel">
-        <h3><span class="dot" style="background:#38bdf8"></span>Distance Damage</h3>
-        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          Formula: <code style="color:var(--text);background:rgba(255,255,255,0.05);padding:0.1rem 0.3rem;border-radius:3px;">dmg &times;= (1 + mod &times; ratio&sup2;)</code> &nbsp;
-          where ratio = min(dist/600, 1)
-        </p>
-        <table class="info-table">
-          <tr><th>Distance</th><th>Bonus (+0.40 mod)</th></tr>
-          <tr><td>100px</td><td>+1.1%</td></tr>
-          <tr><td>200px</td><td>+4.4%</td></tr>
-          <tr><td>300px</td><td>+10%</td></tr>
-          <tr><td>400px</td><td>+17.8%</td></tr>
-          <tr><td>600px+</td><td>+40% (max)</td></tr>
-        </table>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Quadratic scaling &mdash; minimal at short range, ramps up past 300px. Applied before crit.</p>
-      </div>
-
-      <!-- Dodge Counter -->
-      <div class="info-panel">
-        <h3><span class="dot" style="background:var(--defense-evasion)"></span>Dodge Counter</h3>
-        <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:0.75rem;">
-          On successful dodge, chance to execute/chunk the attacker. Based on <strong style="color:var(--text)">highest evasion tier</strong>.
-        </p>
-        <table class="info-table">
-          <tr><th>Evasion Tier</th><th>Execute Chance</th></tr>
-          <tr><td>Common</td><td>30%</td></tr>
-          <tr><td>Uncommon</td><td>40%</td></tr>
-          <tr><td>Rare</td><td>60%</td></tr>
-          <tr><td>Epic</td><td>80%</td></tr>
-          <tr><td>Legendary</td><td>90%</td></tr>
-        </table>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">Normal enemies: instant kill. Elites/Bosses: 25% max HP (scales with damage modifier).</p>
       </div>
     </div>
   </div>
