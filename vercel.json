@@ -1,11 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build && mv dist/index.html dist/game.html",
   "outputDirectory": "dist",
   "framework": "vite",
   "devCommand": "vite",
   "rewrites": [
-    { "source": "/play", "destination": "/index.html" },
+    { "source": "/play", "destination": "/game.html" },
     { "source": "/upgrade-reference", "destination": "/upgrade-reference.html" },
     { "source": "/changelog", "destination": "/changelog.html" },
     { "source": "/((?!api/|play|upgrade-reference|changelog).*)", "destination": "/home.html" }
