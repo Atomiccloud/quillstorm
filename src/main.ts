@@ -12,14 +12,18 @@ import { ShopScene } from './scenes/ShopScene';
 import { LoginScene } from './scenes/LoginScene';
 import { BossRewardScene } from './scenes/BossRewardScene';
 
-// Render text at native display resolution (fixes blur on HiDPI / Electron)
+// Render text at native display resolution (fixes blur from canvas upscaling)
 const _origText = Phaser.GameObjects.GameObjectFactory.prototype.text;
 Phaser.GameObjects.GameObjectFactory.prototype.text = function (
   x: number, y: number, text: string | string[],
   style?: Phaser.Types.GameObjects.Text.TextStyle
 ) {
   const obj = _origText.call(this, x, y, text, style);
-  obj.setResolution(window.devicePixelRatio);
+  const canvasScale = Math.min(
+    window.innerWidth / GAME_CONFIG.width,
+    window.innerHeight / GAME_CONFIG.height
+  );
+  obj.setResolution(Math.min(Math.ceil(canvasScale * window.devicePixelRatio), 3));
   return obj;
 };
 
