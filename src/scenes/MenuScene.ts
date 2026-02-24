@@ -104,8 +104,10 @@ export class MenuScene extends Phaser.Scene {
 
     // ─── MODALS ───
     this.changelogModal = new ChangelogModal(this, () => { });
+    this.changelogModal.setDepth(50);
     this.add.existing(this.changelogModal);
     this.settingsModal = new SettingsModal(this, () => { });
+    this.settingsModal.setDepth(50);
     this.add.existing(this.settingsModal);
 
     this.input.keyboard?.on('keydown-M', () => {
