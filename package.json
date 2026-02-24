@@ -1,6 +1,6 @@
 {
   "name": "quillstorm",
-  "version": "1.0.0",
+  "version": "0.6.3",
   "description": "A roguelike platformer where you play as a quill-shooting porcupine",
   "type": "module",
   "main": "electron/main.cjs",
