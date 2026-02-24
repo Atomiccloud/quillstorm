@@ -12,6 +12,17 @@ import { ShopScene } from './scenes/ShopScene';
 import { LoginScene } from './scenes/LoginScene';
 import { BossRewardScene } from './scenes/BossRewardScene';
 
+// Render text at native display resolution (fixes blur on HiDPI / Electron)
+const _origText = Phaser.GameObjects.GameObjectFactory.prototype.text;
+Phaser.GameObjects.GameObjectFactory.prototype.text = function (
+  x: number, y: number, text: string | string[],
+  style?: Phaser.Types.GameObjects.Text.TextStyle
+) {
+  const obj = _origText.call(this, x, y, text, style);
+  obj.setResolution(window.devicePixelRatio);
+  return obj;
+};
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'game-container',
