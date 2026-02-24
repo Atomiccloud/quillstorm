@@ -267,6 +267,13 @@ export const DANGER_CONFIG = {
 export const ELEMENTAL_EVOLUTION_CONFIG = {
   tierThresholds: [0, 2, 5, 8, 12] as const,  // Tier 0/1/2/3/4
 
+  // Elemental mastery: bonus damage for strength past T4 (lightning/ice only)
+  // Fire and poison already scale linearly with raw strength
+  excessStrengthDamageBonus: {
+    threshold: 12,       // Start scaling after T4
+    bonusPerStr: 0.05,   // +5% damage per strength point past threshold
+  },
+
   lightning: {
     // Stun duration per tier (ms)
     stunDuration: [0, 300, 400, 500, 600],

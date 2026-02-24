@@ -227,6 +227,19 @@ Elements evolve at strength thresholds: **2 (T1), 5 (T2), 8 (T3), 12 (T4)**
 **Dual-Element Combos** (Epic): Tempest (shock+ice), Wildfire (burn+poison), Frostfire (burn+ice), Venomshock (shock+poison).
 **Quill Apotheosis** (Mythic): +5 all elements, 20% chance for secondary proc, every 5th volley auto-crits.
 
+### Elemental Mastery (Lightning & Ice)
+Strength past T4 (12) grants bonus damage to lightning and ice effects at **+5% per point**:
+- **Lightning**: bonus applies to chain arc damage
+- **Ice**: bonus applies to shatter damage and frostfire steam damage
+- Fire and poison already scale linearly with raw strength, so they don't need this bonus
+
+| Strength | Excess | Damage Bonus |
+|----------|--------|--------------|
+| 15       | 3      | +15%         |
+| 20       | 8      | +40%         |
+| 25       | 13     | +65%         |
+| 30       | 18     | +90%         |
+
 ### Prosperity
 - Affects chest drop chance (logarithmic curve, caps at ~14%)
 - Shifts rarity weights (higher prosperity → more uncommon/rare/epic drops)

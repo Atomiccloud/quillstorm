@@ -1,5 +1,5 @@
 // Game version - update this when releasing new versions
-export const GAME_VERSION = '0.6.2';
+export const GAME_VERSION = '0.6.3';
 
 export interface ChangelogEntry {
   version: string;
@@ -9,6 +9,16 @@ export interface ChangelogEntry {
 
 // Changelog entries - newest first
 export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: '0.6.3',
+    date: '2026-02-20',
+    changes: [
+      'Elemental Mastery: lightning and ice now gain bonus damage from strength past Tier 4 (+5% per point past 12)',
+      'Lightning arcs deal more damage the more shock strength you stack',
+      'Ice shatter and frostfire steam damage scale with excess freeze strength',
+      'Stats panel (Tab) now shows Mastery bonus for lightning and ice when active',
+    ],
+  },
   {
     version: '0.6.2',
     date: '2026-02-19',

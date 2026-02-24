@@ -2137,6 +2137,13 @@ export class GameScene extends Phaser.Scene {
     return x / (1 + x);
   }
 
+  /** Calculate elemental mastery damage bonus for strength past T4 (lightning/ice only) */
+  private getElementalDamageBonus(strength: number): number {
+    const cfg = ELEMENTAL_EVOLUTION_CONFIG.excessStrengthDamageBonus;
+    const excess = Math.max(0, strength - cfg.threshold);
+    return excess * cfg.bonusPerStr;
+  }
+
   /** Apply elemental status effects from quill hit. Empowered quills (Apotheosis) auto-proc all elements.
    *  hitDamage is the raw quill damage for lightning arc calculations. */
   private applyElementalProcs(enemy: Enemy, empowered: boolean = false, modSource?: ModifierSource, hitDamage: number = 0): void {
@@ -2157,7 +2164,8 @@ export class GameScene extends Phaser.Scene {
       const arcDmgPct = cfg.lightning.arcDamagePercent[shockTier];
       const arcStunPct = cfg.lightning.arcStunChance[shockTier];
       if (arcCount > 0) {
-        this.triggerChainLightning(enemy, arcCount, hitDamage * arcDmgPct, stunDur, arcStunPct, mods);
+        const arcDamage = hitDamage * arcDmgPct * (1 + this.getElementalDamageBonus(shockStr));
+        this.triggerChainLightning(enemy, arcCount, arcDamage, stunDur, arcStunPct, mods);
       }
     }
 
@@ -2243,7 +2251,8 @@ export class GameScene extends Phaser.Scene {
           enemy.applyShock(cfg.lightning.stunDuration[tier]);
           const arcCount = cfg.lightning.arcCount[tier];
           if (arcCount > 0) {
-            this.triggerChainLightning(enemy, arcCount, hitDamage * cfg.lightning.arcDamagePercent[tier],
+            const arcDmg = hitDamage * cfg.lightning.arcDamagePercent[tier] * (1 + this.getElementalDamageBonus(str));
+            this.triggerChainLightning(enemy, arcCount, arcDmg,
               cfg.lightning.stunDuration[tier], cfg.lightning.arcStunChance[tier], mods);
           }
         }
@@ -2384,7 +2393,8 @@ export class GameScene extends Phaser.Scene {
   private triggerFrostfireSteam(enemy: Enemy): void {
     if (!enemy.isBurning()) return;
     const radius = 80;
-    const damage = enemy.maxHealth * 0.15; // 15% max HP steam damage
+    const freezeStr = this.upgradeManager.getModifier('freezeStrength');
+    const damage = enemy.maxHealth * 0.15 * (1 + this.getElementalDamageBonus(freezeStr)); // 15% max HP steam damage
     const ex = enemy.x;
     const ey = enemy.y;
 
@@ -2502,7 +2512,7 @@ export class GameScene extends Phaser.Scene {
     // T4: Frozen enemies shatter on death (25% max HP AoE + apply chill)
     if (freezeTier >= 4 && enemy.isFreezeActive()) {
       const shatterRadius = cfg.ice.shatterRange;
-      const shatterDmg = enemy.maxHealth * cfg.ice.shatterDamagePercent;
+      const shatterDmg = enemy.maxHealth * cfg.ice.shatterDamagePercent * (1 + this.getElementalDamageBonus(freezeStr));
 
       this.waveManager.enemies.getChildren().forEach((obj) => {
         const e = obj as Enemy;

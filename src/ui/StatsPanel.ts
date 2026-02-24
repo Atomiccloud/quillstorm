@@ -404,6 +404,10 @@ export class StatsPanel {
     const elemental: { name: string; value: string }[] = [];
     const getChance = (str: number) => str > 0 ? (str * 0.1) / (1 + str * 0.1) : 0;
     const tierLabel = (tier: number) => tier > 0 ? `T${tier}` : '';
+    const getEleDmgBonus = (str: number) => {
+      const cfg = ELEMENTAL_EVOLUTION_CONFIG.excessStrengthDamageBonus;
+      return Math.max(0, str - cfg.threshold) * cfg.bonusPerStr;
+    };
 
     const shockStrength = this.upgradeManager.getModifier('shockStrength');
     if (shockStrength > 0) {
@@ -413,6 +417,8 @@ export class StatsPanel {
       elemental.push({ name: 'Shock', value: `${tierLabel(tier)} ${chance}% (${shockStrength} str)` });
       if (tier >= 1) elemental.push({ name: '  Arcs', value: `${cfg.arcCount[tier]} @ ${Math.round(cfg.arcDamagePercent[tier] * 100)}% dmg` });
       if (tier >= 1) elemental.push({ name: '  Stun', value: `${cfg.stunDuration[tier]}ms` });
+      const shockBonus = getEleDmgBonus(shockStrength);
+      if (shockBonus > 0) elemental.push({ name: '  Mastery', value: `+${Math.round(shockBonus * 100)}% arc dmg` });
     }
 
     const freezeStrength = this.upgradeManager.getModifier('freezeStrength');
@@ -425,6 +431,8 @@ export class StatsPanel {
       if (tier >= 2) elemental.push({ name: '  Freeze', value: `${cfg.freezeDuration[tier]}ms` });
       if (tier >= 3) elemental.push({ name: '  Aura', value: `${Math.round(cfg.frostAuraSlowAmount * 100)}% slow nearby` });
       if (tier >= 4) elemental.push({ name: '  Shatter', value: `${Math.round(cfg.shatterDamagePercent * 100)}% HP AoE` });
+      const freezeBonus = getEleDmgBonus(freezeStrength);
+      if (freezeBonus > 0) elemental.push({ name: '  Mastery', value: `+${Math.round(freezeBonus * 100)}% shatter dmg` });
     }
 
     const burnStrength = this.upgradeManager.getModifier('burnStrength');
