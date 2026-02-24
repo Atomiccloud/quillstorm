@@ -39,3 +39,4 @@ publish:
   provider: github
   owner: Atomiccloud
   repo: quillstorm
+  releaseType: release
