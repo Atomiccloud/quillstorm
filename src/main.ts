@@ -12,20 +12,13 @@ import { ShopScene } from './scenes/ShopScene';
 import { LoginScene } from './scenes/LoginScene';
 import { BossRewardScene } from './scenes/BossRewardScene';
 
-// Render text at native display resolution (fixes blur from canvas upscaling)
-const _origText = Phaser.GameObjects.GameObjectFactory.prototype.text;
-Phaser.GameObjects.GameObjectFactory.prototype.text = function (
-  x: number, y: number, text: string | string[],
-  style?: Phaser.Types.GameObjects.Text.TextStyle
-) {
-  const obj = _origText.call(this, x, y, text, style);
-  const canvasScale = Math.min(
-    window.innerWidth / GAME_CONFIG.width,
-    window.innerHeight / GAME_CONFIG.height
-  );
-  obj.setResolution(Math.min(Math.ceil(canvasScale * window.devicePixelRatio), 3));
-  return obj;
-};
+// Render canvas at native display resolution (prevents CSS upscale blur)
+const _upscale = Math.min(
+  window.innerWidth / GAME_CONFIG.width,
+  window.innerHeight / GAME_CONFIG.height
+);
+const _nativeZoom = Math.max(1, Math.min(Math.ceil(_upscale * (window.devicePixelRatio || 1)), 3));
+console.log(`[HiDPI] ${window.innerWidth}x${window.innerHeight} dpr=${window.devicePixelRatio} upscale=${_upscale.toFixed(2)} zoom=${_nativeZoom}`);
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -45,6 +38,7 @@ const config: Phaser.Types.Core.GameConfig = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    zoom: _nativeZoom,
     width: GAME_CONFIG.width,
     height: GAME_CONFIG.height,
     parent: 'game-container',

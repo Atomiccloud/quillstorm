@@ -68,11 +68,16 @@ function createMainWindow() {
 
   mainWindow.loadURL(isDev ? 'http://localhost:3003' : GAME_URL);
 
-  // F11 toggles fullscreen
+  // F11 toggles fullscreen, F12 opens DevTools
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.key === 'F11' && input.type === 'keyDown') {
-      mainWindow.setFullScreen(!mainWindow.isFullScreen());
-      event.preventDefault();
+    if (input.type === 'keyDown') {
+      if (input.key === 'F11') {
+        mainWindow.setFullScreen(!mainWindow.isFullScreen());
+        event.preventDefault();
+      } else if (input.key === 'F12') {
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+      }
     }
   });
 
