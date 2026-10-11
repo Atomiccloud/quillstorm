@@ -4,8 +4,12 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "devCommand": "vite",
+  "redirects": [
+    { "source": "/play-v2", "destination": "/play-v2/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/play", "destination": "/game.html" },
+    { "source": "/play-v2/:path*", "destination": "https://quillstorm-v2.vercel.app/:path*" },
     { "source": "/upgrade-reference", "destination": "/upgrade-reference.html" },
     { "source": "/changelog", "destination": "/changelog.html" },
     { "source": "/((?!api/|play|upgrade-reference|changelog).*)", "destination": "/home.html" }
