@@ -9,6 +9,7 @@
   ],
   "rewrites": [
     { "source": "/play", "destination": "/game.html" },
+    { "source": "/play-v2/", "destination": "https://quillstorm-v2.vercel.app/" },
     { "source": "/play-v2/:path*", "destination": "https://quillstorm-v2.vercel.app/:path*" },
     { "source": "/upgrade-reference", "destination": "/upgrade-reference.html" },
     { "source": "/changelog", "destination": "/changelog.html" },
